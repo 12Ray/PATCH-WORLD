@@ -58,10 +58,40 @@ void main() {
       previousSecond: 176,
       currentSecond: 180,
     );
+    final storm = director.milestonesBetween(
+      previousSecond: 298,
+      currentSecond: 302,
+    );
+    final optimizer = director.milestonesBetween(
+      previousSecond: 448,
+      currentSecond: 452,
+    );
 
     expect(elite.spawnElite, isTrue);
     expect(elite.spawnComposite, isFalse);
     expect(composite.spawnElite, isFalse);
     expect(composite.spawnComposite, isTrue);
+    expect(storm.activateTemporalStorm, isTrue);
+    expect(storm.spawnElite, isFalse);
+    expect(optimizer.spawnOptimizerFragment, isTrue);
+    expect(optimizer.spawnElite, isFalse);
+  });
+
+  test('endless scaling adds a new pressure tier every sixty seconds', () {
+    final director = SurvivalWaveDirector(seed: 9);
+    final tenMinutes = director.planForSecond(
+      second: 600,
+      integrityRatio: 1,
+      recentKillsPerSecond: 1,
+    );
+    final twelveMinutes = director.planForSecond(
+      second: 720,
+      integrityRatio: 1,
+      recentKillsPerSecond: 1,
+    );
+
+    expect(tenMinutes.endlessTier, 1);
+    expect(twelveMinutes.endlessTier, 3);
+    expect(twelveMinutes.threatBudget, greaterThan(tenMinutes.threatBudget));
   });
 }

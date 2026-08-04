@@ -60,6 +60,14 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     'SURVIVAL_START_SECOND',
     defaultValue: 0,
   );
+  static const int survivalQaTimeScale = int.fromEnvironment(
+    'SURVIVAL_QA_TIME_SCALE',
+    defaultValue: 1,
+  );
+  static const bool survivalQaInvincible = bool.fromEnvironment(
+    'SURVIVAL_QA_INVINCIBLE',
+    defaultValue: false,
+  );
 
   final RoomId initialRoom;
 
@@ -235,9 +243,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     input.clearAll();
     currentRoom = RoomId.survivalArena;
     resumeEngine();
-    if (world.activeRoom is! SurvivalArenaController) {
-      await world.loadRoom(currentRoom);
-    }
+    // A survival run must always receive a fresh director timeline. This also
+    // keeps QA start-second builds from replaying every earlier milestone.
+    await world.loadRoom(currentRoom);
     publishUiSnapshot(force: true);
   }
 
@@ -363,13 +371,23 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
     final movement = input.movementAxis;
     final hasGameplayIntent = input.hasGameplayIntent;
+    final activeRoom = world.activeRoom;
+    final survivalTempo = activeRoom is SurvivalArenaController
+        ? activeRoom.enemySpeedMultiplier
+        : 1.0;
+    final survivalQaTempo = mode == PatchWorldMode.survival
+        ? survivalQaTimeScale
+        : 1.0;
     enemyTempo.update(dt);
     clock.beginFrame(
       realDt: dt,
       simulationAdvances:
           currentRoom != RoomId.temporalHall || hasGameplayIntent,
       enemySpeedMultiplier:
-          enemyTempo.speedMultiplier * (settings.value.assistMode ? 0.85 : 1),
+          enemyTempo.speedMultiplier *
+          survivalTempo *
+          survivalQaTempo *
+          (settings.value.assistMode ? 0.85 : 1),
     );
     runMetrics.update(clock.realDt);
     _updateScreenShake(clock.realDt);
@@ -801,6 +819,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     final burst = enemyTempo.frameBurstSnapshot;
     final boss = world.activeBoss;
     final activeRoom = world.activeRoom;
+    final survivalRoom = activeRoom is SurvivalArenaController
+        ? activeRoom
+        : null;
     final pattern = patternTracker.snapshot;
     final next = UiSnapshot(
       integrity: world.player.integrity,
@@ -875,13 +896,13 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       echoPulseCount: patchEffects.echoPulseCount,
       frameBurstPhase: burst?.phase,
       frameBurstProgress: burst?.phaseProgress,
-      bossHealth: boss?.health,
-      bossMaxHealth: boss == null ? null : 20,
+      bossHealth: boss?.health ?? survivalRoom?.milestoneBossHealth,
+      bossMaxHealth: boss == null ? survivalRoom?.milestoneBossMaxHealth : 20,
       bossStability: boss?.phase.name == 'perfect'
           ? boss?.stability.current
           : null,
       patternConfidence: boss == null ? null : pattern.confidence,
-      bossPhase: boss?.phase.name,
+      bossPhase: boss?.phase.name ?? survivalRoom?.milestoneBossLabel,
     );
     if (force || uiSnapshot.value != next) {
       uiSnapshot.value = next;

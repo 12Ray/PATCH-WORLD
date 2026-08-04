@@ -147,6 +147,11 @@ final class PlayerComponent extends RectangleComponent
   }
 
   void takeDamage(int amount, {String causeId = 'unknown'}) {
+    if (isMounted &&
+        game.mode == PatchWorldMode.survival &&
+        PatchWorldGame.survivalQaInvincible) {
+      return;
+    }
     if (amount <= 0 || isInvulnerable || integrity <= 0) {
       return;
     }

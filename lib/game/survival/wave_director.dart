@@ -7,6 +7,7 @@ final class SurvivalWavePlan {
     required this.spawnElite,
     required this.spawnComposite,
     required this.threatBudget,
+    required this.endlessTier,
   });
 
   final int crawlers;
@@ -14,6 +15,7 @@ final class SurvivalWavePlan {
   final bool spawnElite;
   final bool spawnComposite;
   final double threatBudget;
+  final int endlessTier;
 }
 
 final class SurvivalSpawnPoint {
@@ -30,10 +32,14 @@ final class SurvivalMilestonePlan {
   const SurvivalMilestonePlan({
     required this.spawnElite,
     required this.spawnComposite,
+    required this.activateTemporalStorm,
+    required this.spawnOptimizerFragment,
   });
 
   final bool spawnElite;
   final bool spawnComposite;
+  final bool activateTemporalStorm;
+  final bool spawnOptimizerFragment;
 }
 
 final class SurvivalWaveDirector {
@@ -49,9 +55,17 @@ final class SurvivalWaveDirector {
     final current = math.max(previous, currentSecond);
     final crossedComposite = current ~/ 180 > previous ~/ 180;
     final crossedElite = current ~/ 90 > previous ~/ 90;
+    final crossedTemporalStorm = previous < 300 && current >= 300;
+    final crossedOptimizerFragment = previous < 450 && current >= 450;
     return SurvivalMilestonePlan(
-      spawnElite: crossedElite && !crossedComposite,
-      spawnComposite: crossedComposite,
+      spawnElite:
+          crossedElite &&
+          !crossedComposite &&
+          !crossedOptimizerFragment &&
+          !crossedTemporalStorm,
+      spawnComposite: crossedComposite && !crossedOptimizerFragment,
+      activateTemporalStorm: crossedTemporalStorm,
+      spawnOptimizerFragment: crossedOptimizerFragment,
     );
   }
 
@@ -61,7 +75,8 @@ final class SurvivalWaveDirector {
     required double recentKillsPerSecond,
   }) {
     final safeSecond = math.max(0, second);
-    final pressure = 2.2 + safeSecond / 22;
+    final endlessTier = safeSecond < 600 ? 0 : 1 + (safeSecond - 600) ~/ 60;
+    final pressure = 2.2 + safeSecond / 22 + endlessTier * 1.8;
     final recoveryFactor = integrityRatio < 0.4 ? 0.72 : 1.0;
     final masteryFactor = recentKillsPerSecond > 1.8 ? 1.18 : 1.0;
     final budget = pressure * recoveryFactor * masteryFactor;
@@ -69,7 +84,9 @@ final class SurvivalWaveDirector {
     final elite = !composite && safeSecond > 0 && safeSecond % 90 == 0;
 
     var remaining = composite ? math.max(0, budget - 7) : budget;
-    final sentinelLimit = safeSecond < 45 ? 0 : 1 + safeSecond ~/ 150;
+    final sentinelLimit = safeSecond < 45
+        ? 0
+        : 1 + safeSecond ~/ 150 + endlessTier ~/ 2;
     final sentinels = math.min(sentinelLimit, (remaining / 3).floor());
     remaining -= sentinels * 3;
     final crawlers = math.max(1, remaining.floor());
@@ -79,6 +96,7 @@ final class SurvivalWaveDirector {
       spawnElite: elite,
       spawnComposite: composite,
       threatBudget: budget,
+      endlessTier: endlessTier,
     );
   }
 

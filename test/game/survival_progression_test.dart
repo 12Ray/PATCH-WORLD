@@ -7,6 +7,7 @@ import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/enemies/composite_component.dart';
 import 'package:patch_world/game/components/enemies/sentinel_component.dart';
+import 'package:patch_world/game/components/enemies/optimizer_fragment_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
@@ -103,6 +104,15 @@ void main() {
       arena.children.whereType<TextComponent>().any(
         (label) => label.text.contains('POWER ONLINE'),
       ),
+      isFalse,
+    );
+    for (var frame = 0; frame < 16; frame += 1) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(
+      arena.children.whereType<TextComponent>().any(
+        (label) => label.text.contains('POWER ONLINE'),
+      ),
       isTrue,
     );
     expect(game.paused, isFalse);
@@ -131,6 +141,25 @@ void main() {
     );
     expect(arena.children.whereType<CompositeComponent>().first.health.max, 10);
 
+    game.survivalRun.elapsedSeconds = 448;
+    await _pumpUntil(
+      tester,
+      () => arena.children.whereType<OptimizerFragmentComponent>().isNotEmpty,
+    );
+    expect(
+      arena.children.whereType<OptimizerFragmentComponent>().first.health.max,
+      16,
+    );
+    game.publishUiSnapshot(force: true);
+    expect(game.uiSnapshot.value.bossPhase, 'OPTIMIZER FRAGMENT');
+    expect(game.uiSnapshot.value.bossHealth, 16);
+    expect(game.uiSnapshot.value.bossMaxHealth, 16);
+
+    game.survivalRun.elapsedSeconds = 600;
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(arena.enemySpeedMultiplier, greaterThanOrEqualTo(0.85));
+    expect(arena.enemySpeedMultiplier, lessThanOrEqualTo(1.55));
+
     final firstPatchId = game.survivalRun.firstPatchId;
     game.handlePlayerDefeat(causeId: 'test.survival');
     await tester.pump();
@@ -151,7 +180,7 @@ void main() {
 }
 
 Future<void> _pumpUntil(WidgetTester tester, bool Function() condition) async {
-  for (var frame = 0; frame < 120; frame += 1) {
+  for (var frame = 0; frame < 300; frame += 1) {
     await tester.pump(const Duration(milliseconds: 50));
     if (condition()) return;
   }

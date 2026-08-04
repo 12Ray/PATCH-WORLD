@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
@@ -6,6 +7,8 @@ import 'package:flutter/painting.dart';
 import 'package:patch_world/game/components/enemies/composite_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/enemies/sentinel_component.dart';
+import 'package:patch_world/game/components/enemies/optimizer_fragment_component.dart';
+import 'package:patch_world/game/components/effects/temporal_storm_component.dart';
 import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
@@ -19,11 +22,56 @@ final class SurvivalArenaController extends Component
   final PhaseLeakController _phaseLeak = PhaseLeakController();
   final Vector2 playerSpawn = Vector2(480, 270);
   final List<PhaseWallComponent> _phaseWalls = <PhaseWallComponent>[];
+  final List<({String text, Color color})> _alertQueue =
+      <({String text, Color color})>[];
   double _spawnRemaining = 4;
   bool _spawning = false;
   int _spawnId = 0;
   int _lastWaveSecond = 0;
   int _lastCelebratedMinute = 0;
+  bool _alertActive = false;
+
+  int? get milestoneBossHealth {
+    for (final fragment in children.whereType<OptimizerFragmentComponent>()) {
+      if (!fragment.isRemoving) return fragment.health.current;
+    }
+    for (final composite in children.whereType<CompositeComponent>()) {
+      if (!composite.isRemoving) return composite.health.current;
+    }
+    return null;
+  }
+
+  int? get milestoneBossMaxHealth {
+    for (final fragment in children.whereType<OptimizerFragmentComponent>()) {
+      if (!fragment.isRemoving) return fragment.health.max;
+    }
+    for (final composite in children.whereType<CompositeComponent>()) {
+      if (!composite.isRemoving) return composite.health.max;
+    }
+    return null;
+  }
+
+  String? get milestoneBossLabel {
+    if (children.whereType<OptimizerFragmentComponent>().any(
+      (fragment) => !fragment.isRemoving,
+    )) {
+      return 'OPTIMIZER FRAGMENT';
+    }
+    if (children.whereType<CompositeComponent>().any(
+      (composite) => !composite.isRemoving,
+    )) {
+      return 'COMPOSITE';
+    }
+    return null;
+  }
+
+  double get enemySpeedMultiplier {
+    final second = game.survivalRun.elapsedSeconds;
+    if (second < 300) return 1;
+    final wave = 0.5 + 0.5 * math.sin((second - 300) * math.pi / 4);
+    final endlessTier = second < 600 ? 0 : 1 + (second - 600) ~/ 60;
+    return (0.85 + wave * 0.50 + endlessTier * 0.03).clamp(0.85, 1.55);
+  }
 
   @override
   Future<void> onLoad() async {
@@ -31,6 +79,7 @@ final class SurvivalArenaController extends Component
     _lastWaveSecond = game.survivalRun.elapsedSeconds.floor();
     _lastCelebratedMinute = _lastWaveSecond ~/ 60;
     await add(RoomBackdropComponent(RoomBackdropStyle.survival));
+    await add(TemporalStormComponent());
     await addAll(<WallComponent>[
       WallComponent(position: Vector2.zero(), size: Vector2(960, 24)),
       WallComponent(position: Vector2(0, 516), size: Vector2(960, 24)),
@@ -48,14 +97,17 @@ final class SurvivalArenaController extends Component
 
   @override
   void update(double dt) {
-    final simulationDt = game.clock.simulationDt;
+    final simulationDt =
+        game.clock.simulationDt * PatchWorldGame.survivalQaTimeScale;
     game.survivalRun.update(simulationDt);
     _updateSurvivalMilestone();
     _updatePhaseLeak(simulationDt);
     if (game.world.isReady && !_spawning && simulationDt > 0) {
       _spawnRemaining -= simulationDt;
       if (_spawnRemaining <= 0) {
-        _spawnRemaining = 4;
+        _spawnRemaining = _spawnIntervalForSecond(
+          game.survivalRun.elapsedSeconds.floor(),
+        );
         _spawning = true;
         unawaited(_spawnWave().whenComplete(() => _spawning = false));
       }
@@ -63,14 +115,23 @@ final class SurvivalArenaController extends Component
     super.update(dt);
   }
 
+  double _spawnIntervalForSecond(int second) {
+    if (second < 60) return 4;
+    if (second < 180) return 3.6;
+    if (second < 300) return 3.2;
+    if (second < 600) return 3.0;
+    final endlessTier = 1 + (second - 600) ~/ 60;
+    return math.max(1.8, 3.0 - endlessTier * 0.12);
+  }
+
   void _updateSurvivalMilestone() {
     final minute = game.survivalRun.elapsedSeconds.floor() ~/ 60;
     if (minute <= _lastCelebratedMinute) return;
     _lastCelebratedMinute = minute;
-    _showAlert(
-      '${minute * 60}s SURVIVED // RISK x${game.survivalRun.riskMultiplier.toStringAsFixed(2)}',
-      const Color(0xFF45F3A6),
-    );
+    final label = minute >= 10
+        ? 'ENDLESS T${minute - 9} // ${minute * 60}s // RISK x${game.survivalRun.riskMultiplier.toStringAsFixed(2)}'
+        : '${minute * 60}s SURVIVED // RISK x${game.survivalRun.riskMultiplier.toStringAsFixed(2)}';
+    _showAlert(label, const Color(0xFF45F3A6));
   }
 
   void showComboMilestone(int combo) {
@@ -114,6 +175,13 @@ final class SurvivalArenaController extends Component
           game.world.player.integrity / game.world.player.maxIntegrity,
       recentKillsPerSecond: state.recentKillsPerSecond(),
     );
+    if (milestones.activateTemporalStorm) {
+      _showAlert('TEMPORAL STORM // 300s', const Color(0xFF36E1FF));
+    }
+    if (milestones.spawnOptimizerFragment) {
+      await _spawnOptimizerFragment();
+      return;
+    }
     if (milestones.spawnComposite) {
       await _spawnComposite();
       return;
@@ -125,14 +193,26 @@ final class SurvivalArenaController extends Component
           (child) =>
               child is CrawlerComponent ||
               child is SentinelComponent ||
-              child is CompositeComponent,
+              child is CompositeComponent ||
+              child is OptimizerFragmentComponent,
         )
         .length;
-    if (activeEnemies >= 28) return;
-    for (var index = 0; index < plan.crawlers.clamp(1, 5); index += 1) {
+    final activeCap = math.min(48, 28 + plan.endlessTier * 4);
+    if (activeEnemies >= activeCap) return;
+    final crawlerCap = math.min(9, 5 + plan.endlessTier);
+    final sentinelCap = math.min(4, 2 + plan.endlessTier ~/ 2);
+    for (
+      var index = 0;
+      index < plan.crawlers.clamp(1, crawlerCap);
+      index += 1
+    ) {
       await _spawnCrawler(_nextSpawn());
     }
-    for (var index = 0; index < plan.sentinels.clamp(0, 2); index += 1) {
+    for (
+      var index = 0;
+      index < plan.sentinels.clamp(0, sentinelCap);
+      index += 1
+    ) {
       await add(
         SentinelComponent(
           entityId: 'survival-sentinel-${_spawnId++}',
@@ -144,7 +224,10 @@ final class SurvivalArenaController extends Component
   }
 
   Future<void> _spawnEliteSentinel() async {
-    _showAlert('ELITE ERROR // 90s', const Color(0xFFFFC857));
+    _showAlert(
+      'ELITE ERROR // ${game.survivalRun.elapsedSeconds.floor()}s',
+      const Color(0xFFFFC857),
+    );
     await add(
       SentinelComponent(
         entityId: 'survival-elite-sentinel-${_spawnId++}',
@@ -160,7 +243,10 @@ final class SurvivalArenaController extends Component
   }
 
   Future<void> _spawnComposite() async {
-    _showAlert('COMPOSITE BREACH // 180s', const Color(0xFFFF4FD8));
+    _showAlert(
+      'COMPOSITE BREACH // ${game.survivalRun.elapsedSeconds.floor()}s',
+      const Color(0xFFFF4FD8),
+    );
     await add(
       CompositeComponent(
         entityId: 'survival-composite-${_spawnId++}',
@@ -171,15 +257,34 @@ final class SurvivalArenaController extends Component
     );
   }
 
+  Future<void> _spawnOptimizerFragment() async {
+    _showAlert('OPTIMIZER FRAGMENT // 450s', const Color(0xFFFFC857));
+    await add(
+      OptimizerFragmentComponent(
+        entityId: 'survival-optimizer-fragment-${_spawnId++}',
+        position: _nextSpawn(),
+        onDefeated: () => game.recordSurvivalKill(miniBoss: true),
+      ),
+    );
+  }
+
   void _showAlert(String text, Color color) {
+    _alertQueue.add((text: text, color: color));
+    _displayNextAlert();
+  }
+
+  void _displayNextAlert() {
+    if (_alertActive || _alertQueue.isEmpty || isRemoving) return;
+    _alertActive = true;
+    final alert = _alertQueue.removeAt(0);
     final label = TextComponent(
-      text: text,
+      text: alert.text,
       position: Vector2(480, 104),
       anchor: Anchor.center,
       priority: 80,
       textRenderer: TextPaint(
         style: TextStyle(
-          color: color,
+          color: alert.color,
           fontSize: 22,
           fontWeight: FontWeight.w900,
           letterSpacing: 1.6,
@@ -193,6 +298,8 @@ final class SurvivalArenaController extends Component
         removeOnFinish: true,
         onTick: () {
           if (label.isMounted) label.removeFromParent();
+          _alertActive = false;
+          _displayNextAlert();
         },
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/components/enemies/composite_component.dart';
 import 'package:patch_world/game/components/enemies/sentinel_component.dart';
+import 'package:patch_world/game/components/enemies/optimizer_fragment_component.dart';
 
 void main() {
   test('elite sentinel exposes its stronger readable combat profile', () {
@@ -33,6 +34,21 @@ void main() {
     composite.receiveDamage(10);
 
     expect(composite.health.isDefeated, isTrue);
+    expect(defeats, 1);
+  });
+
+  test('optimizer fragment has a dedicated survival health pool', () {
+    var defeats = 0;
+    final fragment = OptimizerFragmentComponent(
+      entityId: 'fragment-test',
+      position: Vector2.zero(),
+      onDefeated: () => defeats += 1,
+    );
+
+    fragment.receiveDamage(15);
+    expect(fragment.health.current, 1);
+    fragment.receiveDamage(1);
+    expect(fragment.health.isDefeated, isTrue);
     expect(defeats, 1);
   });
 }
