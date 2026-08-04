@@ -8,6 +8,7 @@ final class UiSnapshot {
     required this.maxIntegrity,
     required this.roomLabel,
     required this.anomalyLabel,
+    required this.objectiveLabel,
     required this.selectedPatchIds,
     this.normalizedHeat,
     this.echoPulseCount,
@@ -25,6 +26,7 @@ final class UiSnapshot {
     maxIntegrity: 5,
     roomLabel: 'BOOT',
     anomalyLabel: '',
+    objectiveLabel: '',
     selectedPatchIds: <String>[],
   );
 
@@ -32,6 +34,7 @@ final class UiSnapshot {
   final int maxIntegrity;
   final String roomLabel;
   final String anomalyLabel;
+  final String objectiveLabel;
   final List<String> selectedPatchIds;
   final double? normalizedHeat;
   final int? echoPulseCount;
@@ -51,6 +54,7 @@ final class UiSnapshot {
           maxIntegrity == other.maxIntegrity &&
           roomLabel == other.roomLabel &&
           anomalyLabel == other.anomalyLabel &&
+          objectiveLabel == other.objectiveLabel &&
           listEquals(selectedPatchIds, other.selectedPatchIds) &&
           normalizedHeat == other.normalizedHeat &&
           echoPulseCount == other.echoPulseCount &&
@@ -68,6 +72,7 @@ final class UiSnapshot {
     maxIntegrity,
     roomLabel,
     anomalyLabel,
+    objectiveLabel,
     Object.hashAll(selectedPatchIds),
     normalizedHeat,
     echoPulseCount,

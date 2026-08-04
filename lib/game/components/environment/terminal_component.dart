@@ -1,6 +1,6 @@
-import 'dart:ui';
-
 import 'package:flame/components.dart';
+import 'package:flame/text.dart';
+import 'package:flutter/material.dart';
 
 typedef TerminalActivated = void Function(TerminalComponent terminal);
 
@@ -20,6 +20,25 @@ final class TerminalComponent extends RectangleComponent {
   final TerminalActivated onActivated;
   bool _activated = false;
   bool get isActivated => _activated;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    await add(
+      TextComponent(
+        text: 'E',
+        position: size / 2,
+        anchor: Anchor.center,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Color(0xFFF4F7FF),
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
 
   bool tryActivate(Vector2 playerPosition) {
     if (_activated || position.distanceToSquared(playerPosition) > 56 * 56) {

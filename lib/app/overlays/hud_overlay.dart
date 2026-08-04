@@ -16,7 +16,7 @@ final class HudOverlay extends StatelessWidget {
         child: ValueListenableBuilder<UiSnapshot>(
           valueListenable: game.uiSnapshot,
           builder: (context, snapshot, child) => Container(
-            height: 58,
+            height: 70,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: const BoxDecoration(
               color: Color(0xE6111827),
@@ -104,6 +104,15 @@ final class _RuleView extends StatelessWidget {
         style: const TextStyle(
           color: Color(0xFFFF4FD8),
           fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      Text(
+        snapshot.objectiveLabel,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Color(0xFFFFC857),
+          fontSize: 10,
           fontWeight: FontWeight.w700,
         ),
       ),

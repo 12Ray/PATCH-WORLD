@@ -20,6 +20,8 @@ import 'package:patch_world/game/rules/game_rule.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/game/rules/rule_engine.dart';
 import 'package:patch_world/game/rules/rule_ids.dart';
+import 'package:patch_world/game/rooms/room_one_controller.dart';
+import 'package:patch_world/game/rooms/room_two_controller.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
 import 'package:patch_world/game/systems/enemy_tempo_system.dart';
 import 'package:patch_world/game/systems/duplicate_fault_system.dart';
@@ -605,6 +607,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
     final burst = enemyTempo.frameBurstSnapshot;
     final boss = world.activeBoss;
+    final activeRoom = world.activeRoom;
     final pattern = patternTracker.snapshot;
     final next = UiSnapshot(
       integrity: world.player.integrity,
@@ -623,6 +626,28 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         RoomId.temporalHall => localization.text('rule.timeOnInput'),
         RoomId.collisionArchive => localization.text('rule.collisionMerge'),
         RoomId.optimizerCore => localization.text('rule.patternAnalysis'),
+      },
+      objectiveLabel: switch (currentRoom) {
+        RoomId.damageLab => localization.text(
+          'objective.damageLab',
+          parameters: <String, Object>{
+            'count': activeRoom is RoomOneController
+                ? activeRoom.overflowCount
+                : 0,
+          },
+        ),
+        RoomId.temporalHall => localization.text(
+          'objective.temporalHall',
+          parameters: <String, Object>{
+            'count': activeRoom is RoomTwoController
+                ? activeRoom.activatedTerminalCount
+                : 0,
+          },
+        ),
+        RoomId.collisionArchive => localization.text(
+          'objective.collisionArchive',
+        ),
+        RoomId.optimizerCore => localization.text('objective.optimizerCore'),
       },
       selectedPatchIds: runState.selectedPatchIds,
       normalizedHeat: patchEffects.normalizedHeat,
