@@ -85,6 +85,26 @@ void main() {
     expect(state.perfectDodges, 0);
   });
 
+  test('hound break rewards flow without duplicating kill progress', () {
+    final state = SurvivalRunState();
+    state.seedComboForQa(5);
+    state.addRiskTier(2);
+    final killsBefore = state.kills;
+    final experienceBefore = state.experience;
+    final comboBefore = state.combo;
+    final scoreBefore = state.score;
+
+    expect(state.recordHoundBreak(), 320);
+    expect(state.houndBreaks, 1);
+    expect(state.score - scoreBefore, 397);
+    expect(state.kills, killsBefore);
+    expect(state.experience, experienceBefore);
+    expect(state.combo, comboBefore);
+
+    state.reset();
+    expect(state.houndBreaks, 0);
+  });
+
   test('critical flow activates at chain twenties and resets safely', () {
     final state = SurvivalRunState();
     state.seedComboForQa(19);
@@ -222,6 +242,7 @@ void main() {
       ..elapsedSeconds = 91.8
       ..upgradePatch('patch.motion_tax', riskTier: 1);
     state.recordKill(elite: true);
+    state.recordHoundBreak();
     final result = SurvivalResultSnapshot.fromRun(
       state,
       isBestScore: true,
@@ -232,9 +253,10 @@ void main() {
     expect(result.formattedTime, '1:31');
     expect(result.eliteKills, 1);
     expect(result.maxCombo, 1);
+    expect(result.houndBreaks, 1);
     expect(result.patchTiers, <String, int>{'patch.motion_tax': 1});
     expect(result.firstPatchId, 'patch.motion_tax');
-    expect(result.meaningfulEventCount, 2);
+    expect(result.meaningfulEventCount, 3);
     expect(result.longestQuietSeconds, 91.8);
     expect(result.hasPacingGap, isTrue);
   });

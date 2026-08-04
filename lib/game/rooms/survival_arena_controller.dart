@@ -403,6 +403,7 @@ final class SurvivalArenaController extends Component
       onDefeated: () => game.recordSurvivalKillAt(hound.position),
       onPerfectDodge: () =>
           game.recordSurvivalPerfectDodge(game.world.player.position.clone()),
+      onBreakDefeated: () => game.recordSurvivalHoundBreak(hound.position),
     );
     await add(hound);
   }

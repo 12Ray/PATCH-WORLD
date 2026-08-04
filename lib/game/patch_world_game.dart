@@ -86,6 +86,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     'SURVIVAL_QA_PERFECT_DODGE_DEMO',
     defaultValue: false,
   );
+  static const bool survivalQaHoundBreakDemo = bool.fromEnvironment(
+    'SURVIVAL_QA_HOUND_BREAK_DEMO',
+    defaultValue: false,
+  );
 
   final RoomId initialRoom;
 
@@ -282,6 +286,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     if (survivalQaPerfectDodgeDemo) {
       recordSurvivalPerfectDodge(world.player.position.clone());
     }
+    if (survivalQaHoundBreakDemo) {
+      recordSurvivalHoundBreak(world.player.position.clone());
+    }
     publishUiSnapshot(force: true);
   }
 
@@ -406,6 +413,18 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     final gainedScore = math.max(0, survivalRun.score - scoreBefore);
     world.spawnDataShards(position, count: 1, alternatingCorruption: false);
     world.spawnPerfectDodgeBurst(position, score: gainedScore);
+    publishUiSnapshot(force: true);
+    return gainedScore;
+  }
+
+  int recordSurvivalHoundBreak(Vector2 position) {
+    if (mode != PatchWorldMode.survival) return 0;
+    final scoreBefore = survivalRun.score;
+    survivalRun.recordHoundBreak();
+    final gainedScore = math.max(0, survivalRun.score - scoreBefore);
+    world.spawnDataShards(position, count: 1, alternatingCorruption: false);
+    world.spawnHoundBreakBurst(position, score: gainedScore);
+    triggerImpactFeedback();
     publishUiSnapshot(force: true);
     return gainedScore;
   }

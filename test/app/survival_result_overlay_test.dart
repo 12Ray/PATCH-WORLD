@@ -24,6 +24,7 @@ void main() {
       hotCachesSpawned: 3,
       hotCachesCollected: 2,
       perfectDodges: 7,
+      houndBreaks: 4,
       patchTiers: <String, int>{'patch.motion_tax': 2, 'patch.phase_leak': 2},
       riskMultiplier: 1.24,
       firstPatchId: 'patch.motion_tax',
@@ -55,6 +56,8 @@ void main() {
     expect(find.text('2/3'), findsOneWidget);
     expect(find.text('PERFECT DODGES'), findsOneWidget);
     expect(find.text('7'), findsOneWidget);
+    expect(find.text('BREAK CONFIRMS'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
     expect(find.text('PACING CLEAR // NO GAP OVER 20s'), findsOneWidget);
     expect(find.text('PLAYTEST SESSION  1/5'), findsOneWidget);
     expect(find.text('TOP PICK  MOTION TAX  100%'), findsOneWidget);

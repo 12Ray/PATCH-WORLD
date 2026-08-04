@@ -14,6 +14,7 @@ enum SurvivalMeaningfulEvent {
   reroute,
   volatileCache,
   perfectDodge,
+  houndBreak,
 }
 
 final class SurvivalPacingSnapshot {

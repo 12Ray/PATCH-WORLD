@@ -40,21 +40,28 @@ void main() {
   });
 
   test('recovery is a one-point damage break window', () {
+    var normalBreaks = 0;
     final normal = PhaseHoundComponent(
       entityId: 'hound-normal-damage',
       position: Vector2.zero(),
       targetPosition: () => Vector2(220, 0),
       onDefeated: () {},
+      onBreakDefeated: () => normalBreaks += 1,
     );
     normal.receiveDamage(1);
     expect(normal.healthState.current, 2);
+    normal.receiveDamage(2);
+    normal.receiveDamage(3);
+    expect(normalBreaks, 0);
 
     var defeats = 0;
+    var breaks = 0;
     final broken = PhaseHoundComponent(
       entityId: 'hound-break-damage',
       position: Vector2.zero(),
       targetPosition: () => Vector2(220, 0),
       onDefeated: () => defeats += 1,
+      onBreakDefeated: () => breaks += 1,
     );
     broken.update(1.01);
     broken.update(0.66);
@@ -67,6 +74,7 @@ void main() {
     broken.receiveDamage(1);
     expect(broken.healthState.isDefeated, isTrue);
     expect(defeats, 1);
+    expect(breaks, 1);
   });
 
   test('phase hound has three health and reports defeat once', () {

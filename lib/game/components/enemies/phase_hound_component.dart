@@ -26,6 +26,7 @@ final class PhaseHoundComponent extends RectangleComponent
     required this.onDefeated,
     this.targetPosition,
     this.onPerfectDodge,
+    this.onBreakDefeated,
   }) : healthState = HealthState(max: maxHealth, current: maxHealth),
        super(
          size: Vector2(38, 30),
@@ -50,6 +51,7 @@ final class PhaseHoundComponent extends RectangleComponent
   final void Function() onDefeated;
   final Vector2 Function()? targetPosition;
   final void Function()? onPerfectDodge;
+  final void Function()? onBreakDefeated;
   final HealthState healthState;
   final Vector2 _previousPosition = Vector2.zero();
   Vector2 _lockedDirection = Vector2(1, 0);
@@ -345,8 +347,9 @@ final class PhaseHoundComponent extends RectangleComponent
   @override
   void receiveDamage(int amount) {
     if (amount <= 0 || _defeatReported) return;
+    final defeatedDuringBreak = state == PhaseHoundState.recovery;
     final effectiveAmount =
-        amount + (state == PhaseHoundState.recovery ? recoveryDamageBonus : 0);
+        amount + (defeatedDuringBreak ? recoveryDamageBonus : 0);
     if (healthState.applyDamage(effectiveAmount) == HealthMutation.defeated) {
       _defeatReported = true;
       if (isMounted) {
@@ -357,6 +360,7 @@ final class PhaseHoundComponent extends RectangleComponent
         );
       }
       onDefeated();
+      if (defeatedDuringBreak) onBreakDefeated?.call();
       removeFromParent();
     } else {
       _visual?.flash(const Color(0xFFFFFFFF));

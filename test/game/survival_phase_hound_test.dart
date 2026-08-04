@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
 import 'package:patch_world/game/components/effects/survival_score_popup_component.dart';
 import 'package:patch_world/game/components/effects/perfect_dodge_burst_component.dart';
+import 'package:patch_world/game/components/effects/hound_break_burst_component.dart';
 import 'package:patch_world/game/components/enemies/phase_hound_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
@@ -95,6 +96,50 @@ void main() {
     expect(popup.kind, SurvivalScorePopupKind.normal);
     await tester.pump(const Duration(milliseconds: 400));
     expect(game.world.player.dataShardCharge - dataBefore, 4);
+
+    late final PhaseHoundComponent breakHound;
+    breakHound = PhaseHoundComponent(
+      entityId: 'phase-hound-break-integration',
+      position: game.world.player.position.clone(),
+      targetPosition: () => game.world.player.position + Vector2(220, 0),
+      onDefeated: () => game.recordSurvivalKillAt(breakHound.position),
+      onBreakDefeated: () => game.recordSurvivalHoundBreak(breakHound.position),
+    );
+    breakHound.update(1.01);
+    breakHound.update(0.66);
+    breakHound.update(0.33);
+    await room.add(breakHound);
+    await tester.pump(const Duration(milliseconds: 16));
+    breakHound.position.setFrom(game.world.player.position);
+    final killsBeforeBreak = game.survivalRun.kills;
+    final experienceBeforeBreak = game.survivalRun.experience;
+    final comboBeforeBreak = game.survivalRun.combo;
+    final scoreBeforeBreak = game.survivalRun.score;
+    final eventsBeforeBreak = game.survivalRun.telemetry
+        .snapshot(game.survivalRun.elapsedSeconds)
+        .meaningfulEventCount;
+    breakHound.receiveDamage(2);
+    breakHound.receiveDamage(2);
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(game.survivalRun.houndBreaks, 1);
+    expect(game.survivalRun.kills, killsBeforeBreak + 1);
+    expect(game.survivalRun.experience, experienceBeforeBreak + 1);
+    expect(game.survivalRun.combo, comboBeforeBreak + 1);
+    expect(game.survivalRun.score - scoreBeforeBreak, greaterThan(160));
+    expect(
+      game.survivalRun.telemetry
+              .snapshot(game.survivalRun.elapsedSeconds)
+              .meaningfulEventCount -
+          eventsBeforeBreak,
+      2,
+    );
+    expect(
+      game.world.children.whereType<HoundBreakBurstComponent>(),
+      hasLength(1),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(game.world.player.dataShardCharge - dataBefore, 2);
+    expect(game.survivalRun.dataSurgeActive, isTrue);
 
     game.world.player.integrity = 999;
     game.survivalRun.elapsedSeconds = 119;
