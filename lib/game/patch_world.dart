@@ -22,6 +22,8 @@ import 'package:patch_world/game/rooms/room_two_controller.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/game/systems/duplicate_fault_system.dart';
+import 'package:patch_world/game/systems/combat_system.dart';
+import 'package:patch_world/game/survival/survival_run_state.dart';
 
 final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   late final PlayerComponent player;
@@ -30,6 +32,14 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
 
   bool get isReady => _isReady;
   Component? get activeRoom => _activeRoom;
+  Iterable<PositionComponent> get activeCombatTargets sync* {
+    final room = _activeRoom;
+    if (room == null) return;
+    for (final child in room.children.whereType<PositionComponent>()) {
+      if (child is CombatTarget && !child.isRemoving) yield child;
+    }
+  }
+
   OptimizerBossComponent? get activeBoss {
     final room = _activeRoom;
     return room is BossRoomController ? room.boss : null;
@@ -167,14 +177,30 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
         healthMaximum: 1,
         canDuplicate: false,
         speedMultiplier: 1.15,
+        onDefeated: game.mode == PatchWorldMode.survival
+            ? () => game.recordSurvivalKill(
+                rewardMultiplier:
+                    game.survivalModifiers.duplicateRewardMultiplier,
+              )
+            : null,
       ),
     );
   }
 
   Future<void> restartCurrentRoom() => loadRoom(game.currentRoom);
 
-  Future<void> spawnPatchPulse(Vector2 worldPosition) async {
-    await add(PatchPulseComponent(position: worldPosition.clone()));
+  Future<void> spawnPatchPulse(
+    Vector2 worldPosition, {
+    int damage = 1,
+    double radiusMultiplier = 1,
+  }) async {
+    await add(
+      PatchPulseComponent(
+        position: worldPosition.clone(),
+        damage: damage,
+        radiusMultiplier: radiusMultiplier,
+      ),
+    );
   }
 
   void spawnDataShards(

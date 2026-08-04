@@ -60,7 +60,7 @@ final class SurvivalUpgradeOverlay extends StatelessWidget {
                         );
                       }
                       return Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: cards
                             .map(
                               (card) => Expanded(
@@ -102,7 +102,7 @@ final class _UpgradeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         onTap: () => game.selectSurvivalUpgrade(patch.id),
         child: Container(
-          constraints: const BoxConstraints(minHeight: 230),
+          constraints: const BoxConstraints(minHeight: 300),
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             border: Border.all(color: const Color(0xFF36E1FF)),
@@ -129,12 +129,18 @@ final class _UpgradeCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              Text(
-                _localized('sideEffect', patch.sideEffect),
-                style: const TextStyle(color: Color(0xFFD7DEEC), height: 1.35),
+              _EffectSection(
+                label: game.localization.text('survivalUpgrade.benefit'),
+                color: const Color(0xFF36E1FF),
+                body: _localized('survivalBenefit', patch.fix),
               ),
-              const Spacer(),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
+              _EffectSection(
+                label: game.localization.text('survivalUpgrade.sideEffect'),
+                color: const Color(0xFFFF4FD8),
+                body: _localized('survivalRisk', patch.sideEffect),
+              ),
+              const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -153,4 +159,36 @@ final class _UpgradeCard extends StatelessWidget {
     final value = game.localization.text('${patch.id}.$field');
     return value.startsWith('[') ? fallback : value;
   }
+}
+
+final class _EffectSection extends StatelessWidget {
+  const _EffectSection({
+    required this.label,
+    required this.color,
+    required this.body,
+  });
+
+  final String label;
+  final Color color;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
+      Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        body,
+        style: const TextStyle(color: Color(0xFFD7DEEC), height: 1.35),
+      ),
+    ],
+  );
 }

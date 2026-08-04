@@ -218,6 +218,15 @@ final class _RuleView extends StatelessWidget {
                     ),
                   ),
                 ],
+                const SizedBox(width: 8),
+                Text(
+                  'RISK x${game.survivalRun.riskMultiplier.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    color: Color(0xFFFF4FD8),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ],
             ],
           ),
@@ -246,11 +255,31 @@ final class _PatchStack extends StatelessWidget {
             border: Border.all(color: const Color(0xFFFF4FD8)),
             borderRadius: BorderRadius.circular(5),
           ),
-          child: Text(
-            patchId.split('.').last.substring(0, 1).toUpperCase(),
-            style: const TextStyle(
-              color: Color(0xFFF4F7FF),
-              fontWeight: FontWeight.w800,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  patchId.split('.').last.substring(0, 1).toUpperCase(),
+                  style: const TextStyle(
+                    color: Color(0xFFF4F7FF),
+                    height: 0.9,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (game.survivalRun.patchTier(patchId) > 0)
+                  Text(
+                    'T${game.survivalRun.patchTier(patchId)}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFC857),
+                      fontSize: 8,
+                      height: 1,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

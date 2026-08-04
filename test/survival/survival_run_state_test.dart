@@ -27,6 +27,15 @@ void main() {
     expect(state.combo, 0);
   });
 
+  test('reward multiplier grants bonus experience and score', () {
+    final state = SurvivalRunState();
+    state.recordKill(rewardMultiplier: 2);
+    expect(state.kills, 1);
+    expect(state.experience, 2);
+    expect(state.bonusScore, 25);
+    expect(state.score, 50);
+  });
+
   test('patch tiers cap at three and reset with the run', () {
     final state = SurvivalRunState();
     expect(state.upgradePatch('patch.test', riskTier: 2), 1);

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:math' as math;
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
@@ -7,18 +8,23 @@ import 'package:patch_world/game/systems/combat_system.dart';
 
 final class PatchPulseComponent extends CircleComponent
     with CollisionCallbacks, HasGameReference<PatchWorldGame> {
-  PatchPulseComponent({required super.position, this.onTargetHit})
-    : super(
-        radius: radiusValue,
-        anchor: Anchor.center,
-        paint: Paint()..color = const Color(0x5536E1FF),
-        priority: 30,
-      );
+  PatchPulseComponent({
+    required super.position,
+    this.onTargetHit,
+    this.damage = 1,
+    double radiusMultiplier = 1,
+  }) : super(
+         radius: radiusValue * radiusMultiplier,
+         anchor: Anchor.center,
+         paint: Paint()..color = const Color(0x5536E1FF),
+         priority: 30,
+       );
 
   static const double radiusValue = 52;
   static const double lifetimeSeconds = 0.10;
 
   final void Function(CombatTarget target)? onTargetHit;
+  final int damage;
   final Set<CombatTarget> _hitTargets = <CombatTarget>{};
   double _remainingLifetime = lifetimeSeconds;
 
@@ -33,6 +39,28 @@ final class PatchPulseComponent extends CircleComponent
         anchor: Anchor.center,
       ),
     );
+    _resolveInitialOverlaps();
+  }
+
+  void _resolveInitialOverlaps() {
+    for (final component in game.world.activeCombatTargets) {
+      final reach = radius + math.max(component.size.x, component.size.y) / 2;
+      if (position.distanceToSquared(component.position) > reach * reach) {
+        continue;
+      }
+      if (game.world.isPulseBlocked(position, component.position)) continue;
+      _hitTarget(component as CombatTarget);
+    }
+  }
+
+  void _hitTarget(CombatTarget target) {
+    if (!_hitTargets.add(target)) return;
+    final handler = onTargetHit;
+    if (handler != null) {
+      handler(target);
+    } else {
+      game.combatSystem.applyPlayerPulse(target, amount: damage);
+    }
   }
 
   @override
@@ -57,15 +85,7 @@ final class PatchPulseComponent extends CircleComponent
     final pathIsBlocked =
         isMounted && game.world.isPulseBlocked(position, other.position);
     if (other is CombatTarget && !pathIsBlocked) {
-      final target = other as CombatTarget;
-      if (_hitTargets.add(target)) {
-        final handler = onTargetHit;
-        if (handler != null) {
-          handler(target);
-        } else {
-          game.combatSystem.applyPlayerPulse(target);
-        }
-      }
+      _hitTarget(other as CombatTarget);
     }
     super.onCollisionStart(intersectionPoints, other);
   }

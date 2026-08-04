@@ -14,6 +14,7 @@ final class SurvivalRunState {
   int experience = 0;
   int experienceToNext = 6;
   int riskTierTotal = 0;
+  int bonusScore = 0;
 
   Map<String, int> get patchTiers => Map<String, int>.unmodifiable(_patchTiers);
 
@@ -25,7 +26,8 @@ final class SurvivalRunState {
       ((elapsedSeconds * 10 +
                   kills * 25 +
                   eliteKills * 250 +
-                  miniBossKills * 1000) *
+                  miniBossKills * 1000 +
+                  bonusScore) *
               riskMultiplier)
           .round();
 
@@ -37,17 +39,30 @@ final class SurvivalRunState {
     if (comboRemaining == 0) combo = 0;
   }
 
-  bool recordKill({bool elite = false, bool miniBoss = false}) {
+  bool recordKill({
+    bool elite = false,
+    bool miniBoss = false,
+    int rewardMultiplier = 1,
+  }) {
+    final safeRewardMultiplier = math.max(1, rewardMultiplier);
     kills += 1;
     if (elite) eliteKills += 1;
     if (miniBoss) miniBossKills += 1;
     combo += 1;
     comboRemaining = 3;
-    experience += miniBoss
+    final baseExperience = miniBoss
         ? 20
         : elite
         ? 5
         : 1;
+    experience += baseExperience * safeRewardMultiplier;
+    bonusScore +=
+        (safeRewardMultiplier - 1) *
+        (miniBoss
+            ? 1000
+            : elite
+            ? 250
+            : 25);
     var leveledUp = false;
     while (experience >= experienceToNext) {
       experience -= experienceToNext;
@@ -86,6 +101,7 @@ final class SurvivalRunState {
     experience = 0;
     experienceToNext = 6;
     riskTierTotal = 0;
+    bonusScore = 0;
     _patchTiers.clear();
   }
 }

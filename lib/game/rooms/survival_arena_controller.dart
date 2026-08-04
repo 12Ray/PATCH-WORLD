@@ -1,18 +1,23 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/enemies/sentinel_component.dart';
 import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
+import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/systems/phase_leak_controller.dart';
 import 'package:patch_world/game/survival/wave_director.dart';
 
 final class SurvivalArenaController extends Component
     with HasGameReference<PatchWorldGame> {
   final SurvivalWaveDirector _director = SurvivalWaveDirector();
+  final PhaseLeakController _phaseLeak = PhaseLeakController();
   final Vector2 playerSpawn = Vector2(480, 270);
-  double _spawnRemaining = 1.2;
+  final List<PhaseWallComponent> _phaseWalls = <PhaseWallComponent>[];
+  double _spawnRemaining = 4;
   bool _spawning = false;
   int _spawnId = 0;
 
@@ -26,6 +31,11 @@ final class SurvivalArenaController extends Component
       WallComponent(position: Vector2.zero(), size: Vector2(24, 540)),
       WallComponent(position: Vector2(936, 0), size: Vector2(24, 540)),
     ]);
+    _phaseWalls.addAll(<PhaseWallComponent>[
+      PhaseWallComponent(position: Vector2(390, 132), size: Vector2(180, 14)),
+      PhaseWallComponent(position: Vector2(390, 394), size: Vector2(180, 14)),
+    ]);
+    await addAll(_phaseWalls);
     await _spawnCrawler(Vector2(300, 190));
     await _spawnCrawler(Vector2(660, 350));
   }
@@ -34,6 +44,7 @@ final class SurvivalArenaController extends Component
   void update(double dt) {
     final simulationDt = game.clock.simulationDt;
     game.survivalRun.update(simulationDt);
+    _updatePhaseLeak(simulationDt);
     if (game.world.isReady && !_spawning && simulationDt > 0) {
       _spawnRemaining -= simulationDt;
       if (_spawnRemaining <= 0) {
@@ -43,6 +54,21 @@ final class SurvivalArenaController extends Component
       }
     }
     super.update(dt);
+  }
+
+  void _updatePhaseLeak(double dt) {
+    if (!game.survivalModifiers.phaseWallsLeak || dt <= 0) return;
+    if (_phaseLeak.update(dt)) unawaited(_syncPhaseWalls());
+  }
+
+  Future<void> _syncPhaseWalls() async {
+    final solid = _phaseLeak.phase != PhaseLeakPhase.open;
+    for (final wall in _phaseWalls) {
+      await wall.setSolid(solid);
+      if (_phaseLeak.phase == PhaseLeakPhase.warning) {
+        wall.paint.color = const Color(0xCCFFC857);
+      }
+    }
   }
 
   Future<void> _spawnWave() async {
@@ -78,6 +104,8 @@ final class SurvivalArenaController extends Component
       CrawlerComponent(
         entityId: 'survival-crawler-${_spawnId++}',
         position: position,
+        initialHealth: 2,
+        healthMaximum: 2,
         onDefeated: game.recordSurvivalKill,
       ),
     );

@@ -22,13 +22,13 @@ final class CombatSystem {
   final RuleContext Function() contextProvider;
   final PlayerDamageCommitted? onPlayerDamageCommitted;
 
-  RuleResolution applyPlayerPulse(CombatTarget target) {
+  RuleResolution applyPlayerPulse(CombatTarget target, {int amount = 1}) {
     final resolution = ruleEngine.resolve(
       DamageEvent(
         sourceId: 'player.qa-0',
         targetId: target.entityId,
         sourceFaction: EventFaction.player,
-        amount: 1,
+        amount: amount,
       ),
       contextProvider(),
     );

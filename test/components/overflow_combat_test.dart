@@ -52,4 +52,19 @@ void main() {
 
     expect(crawler.health, CrawlerComponent.maxHealth - 1);
   });
+
+  test('survival modifiers can increase committed pulse damage', () {
+    final combat = CombatSystem(
+      ruleEngine: RuleEngine()..setRules(const <GameRule>[]),
+      contextProvider: () => context,
+    );
+    final crawler = CrawlerComponent(
+      entityId: 'survival-powered-target',
+      position: Vector2.zero(),
+    );
+
+    combat.applyPlayerPulse(crawler, amount: 2);
+
+    expect(crawler.health, CrawlerComponent.maxHealth - 2);
+  });
 }

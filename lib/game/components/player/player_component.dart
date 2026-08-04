@@ -9,6 +9,7 @@ import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/visuals/entity_sprite_visual.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/survival/survival_run_state.dart';
 import 'package:patch_world/services/game_settings.dart';
 
 final class PlayerComponent extends RectangleComponent
@@ -119,7 +120,12 @@ final class PlayerComponent extends RectangleComponent
       return;
     }
 
-    _attackCooldown = attackCooldownSeconds;
+    final survivalModifiers = game.mode == PatchWorldMode.survival
+        ? game.survivalModifiers
+        : null;
+    _attackCooldown =
+        attackCooldownSeconds *
+        (survivalModifiers?.pulseCooldownMultiplier ?? 1);
     final pulseFrames = _pulseFrames;
     if (pulseFrames != null) {
       _visual?.playOnce(pulseFrames, fps: 10);
@@ -127,7 +133,11 @@ final class PlayerComponent extends RectangleComponent
     _visual?.flash(const Color(0xFFFF8FE8), seconds: 0.10);
     _visual?.squash();
     final pulsePosition = position.clone();
-    game.world.spawnPatchPulse(pulsePosition);
+    game.world.spawnPatchPulse(
+      pulsePosition,
+      damage: survivalModifiers?.pulseDamage ?? 1,
+      radiusMultiplier: survivalModifiers?.pulseRadiusMultiplier ?? 1,
+    );
     game.patchEffects.onPatchPulseEmitted(pulsePosition);
     unawaited(game.audio.playPatchPulse());
   }

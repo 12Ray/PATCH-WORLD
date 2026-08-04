@@ -2,6 +2,8 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
+import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
+import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
@@ -44,8 +46,33 @@ void main() {
     await _waitForSurvival(tester, game);
     expect(game.mode, PatchWorldMode.survival);
     expect(game.world.activeRoom, isA<SurvivalArenaController>());
+    final arena = game.world.activeRoom! as SurvivalArenaController;
+    expect(
+      arena.children.whereType<CrawlerComponent>().every(
+        (crawler) => crawler.healthState.max == 2,
+      ),
+      isTrue,
+    );
+    await tester.pump(const Duration(seconds: 1));
+    expect(game.world.children.whereType<PatchPulseComponent>(), isEmpty);
 
-    for (var index = 0; index < 6; index += 1) {
+    final target = arena.children.whereType<CrawlerComponent>().first;
+    target.position.setFrom(game.world.player.position);
+    game.world.player.tryAttack();
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(game.world.children.whereType<PatchPulseComponent>(), isNotEmpty);
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(target.health, 1);
+    for (var frame = 0; frame < 10; frame += 1) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    target.position.setFrom(game.world.player.position);
+    game.world.player.tryAttack();
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(game.survivalRun.kills, 1);
+
+    for (var index = 0; index < 5; index += 1) {
       game.recordSurvivalKill();
     }
     await tester.pump();
@@ -60,6 +87,8 @@ void main() {
     expect(game.pendingSurvivalUpgrade, isNull);
     expect(game.runState.hasPatch(chosen.id), isTrue);
     expect(game.survivalRun.patchTier(chosen.id), 1);
+    expect(game.survivalModifiers.pulseDamage, 2);
+    expect(game.survivalModifiers.pulseRadiusMultiplier, closeTo(1.14, 0.001));
     expect(game.paused, isFalse);
   });
 }

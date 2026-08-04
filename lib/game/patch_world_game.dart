@@ -29,6 +29,7 @@ import 'package:patch_world/game/systems/duplicate_fault_system.dart';
 import 'package:patch_world/game/systems/patch_effects_system.dart';
 import 'package:patch_world/game/systems/player_pattern_tracker.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
+import 'package:patch_world/game/survival/survival_patch_modifiers.dart';
 import 'package:patch_world/game/survival/survival_upgrade_request.dart';
 import 'package:patch_world/services/audio_service.dart';
 import 'package:patch_world/services/game_settings.dart';
@@ -92,7 +93,6 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   SurvivalUpgradeRequest? pendingSurvivalUpgrade;
   bool _roomTransitionInProgress = false;
   double _uiPublishAccumulator = 0;
-  double _survivalAutoPulseRemaining = 0.35;
   bool _roomRestartRequested = false;
   dart_async.Timer? _defeatRestartTimer;
   dart_async.Timer? _patchNoticeTimer;
@@ -107,6 +107,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     roomId: currentRoom,
     selectedPatchIds: runState.selectedPatchIds.toSet(),
   );
+
+  SurvivalPatchModifiers get survivalModifiers =>
+      SurvivalPatchModifiers(survivalRun.patchTiers);
 
   @override
   Future<void> onLoad() async {
@@ -226,9 +229,18 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     publishUiSnapshot(force: true);
   }
 
-  void recordSurvivalKill({bool elite = false, bool miniBoss = false}) {
+  void recordSurvivalKill({
+    bool elite = false,
+    bool miniBoss = false,
+    int rewardMultiplier = 1,
+  }) {
     if (mode != PatchWorldMode.survival) return;
-    final leveledUp = survivalRun.recordKill(elite: elite, miniBoss: miniBoss);
+    final leveledUp = survivalRun.recordKill(
+      elite: elite,
+      miniBoss: miniBoss,
+      rewardMultiplier:
+          rewardMultiplier * survivalModifiers.killExperienceMultiplier,
+    );
     publishUiSnapshot(force: true);
     if (leveledUp && pendingSurvivalUpgrade == null) {
       _openSurvivalUpgrade();
@@ -350,13 +362,6 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       playerStatusDt: clock.playerStatusDt,
       isPlayerMoving: movement.length2 > 0,
     );
-    if (mode == PatchWorldMode.survival && pendingSurvivalUpgrade == null) {
-      _survivalAutoPulseRemaining -= clock.simulationDt;
-      if (_survivalAutoPulseRemaining <= 0) {
-        _survivalAutoPulseRemaining = 0.65;
-        world.player.tryAttack();
-      }
-    }
     if (input.consumeAttack()) {
       patternTracker.recordAttack();
       world.player.tryAttack();
