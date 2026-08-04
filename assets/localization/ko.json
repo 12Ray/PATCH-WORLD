@@ -1,0 +1,15 @@
+{
+  "ui.start": "패치 시작",
+  "ui.pause": "일시정지",
+  "ui.resume": "계속하기",
+  "ui.restartRoom": "현재 룸 재시작",
+  "ui.settings": "설정 / 접근성",
+  "ui.back": "뒤로",
+  "room.damageLab": "DAMAGE LAB",
+  "room.temporalHall": "TEMPORAL HALL",
+  "room.collisionArchive": "COLLISION ARCHIVE",
+  "room.optimizerCore": "OPTIMIZATION CORE",
+  "rule.damageInverted": "공격이 적을 회복시킵니다.",
+  "patch.motionTax.title": "MOTION TAX",
+  "ending.final": "기계는 규칙을 썼고, 인간은 그 의미를 선택했다."
+}

@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/tiled/tiled_room_map.dart';
 
 final class RoomOneController extends Component
     with HasGameReference<PatchWorldGame> {
@@ -19,6 +20,7 @@ final class RoomOneController extends Component
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await add(TiledRoomMap(fileName: 'damage_lab.tmx'));
     sealOne = SealNodeComponent(position: Vector2(790, 215));
     sealTwo = SealNodeComponent(position: Vector2(790, 325));
     await addAll(<SealNodeComponent>[sealOne, sealTwo]);

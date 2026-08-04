@@ -33,6 +33,9 @@ dependencies:
 
   cupertino_icons: 1.0.9
   flame: 1.38.0
+  flame_audio: 2.12.2
+  flame_tiled: 3.1.2
+  shared_preferences: 2.5.5
 
 dev_dependencies:
   flutter_test:
@@ -55,6 +58,17 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/ui/
+    - assets/tiles/
+    - assets/tiles/maps/
+    - assets/audio/
+    - assets/audio/bgm/
+    - assets/audio/sfx/
+    - assets/localization/
+    - assets/licenses/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

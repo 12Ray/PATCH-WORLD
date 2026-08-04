@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/services/build_info.dart';
 
 final class PauseOverlay extends StatelessWidget {
   const PauseOverlay({required this.game, super.key});
@@ -21,9 +22,9 @@ final class PauseOverlay extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Text(
-              'SYSTEM PAUSED',
-              style: TextStyle(
+            Text(
+              game.localization.text('ui.pause'),
+              style: const TextStyle(
                 color: Color(0xFFF4F7FF),
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
@@ -34,7 +35,15 @@ final class PauseOverlay extends StatelessWidget {
               width: double.infinity,
               child: FilledButton(
                 onPressed: game.closePauseMenu,
-                child: const Text('RESUME'),
+                child: Text(game.localization.text('ui.resume')),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: game.openSettings,
+                child: Text(game.localization.text('ui.settings')),
               ),
             ),
             const SizedBox(height: 10),
@@ -42,13 +51,18 @@ final class PauseOverlay extends StatelessWidget {
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: game.restartRoomFromPauseMenu,
-                child: const Text('RESTART ROOM'),
+                child: Text(game.localization.text('ui.restartRoom')),
               ),
             ),
             const SizedBox(height: 16),
             const Text(
               'Press Esc to continue',
               style: TextStyle(color: Color(0xFFA9B4C8)),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              BuildInfo.label,
+              style: const TextStyle(color: Color(0xFF6F7D96), fontSize: 10),
             ),
           ],
         ),

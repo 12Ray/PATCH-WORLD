@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="16" tilewidth="32" tileheight="32" infinite="0" nextlayerid="7" nextobjectid="5">
+ <objectgroup id="1" name="Collision"><object id="1" name="phase-left" class="PhaseWall" x="280" y="180" width="36" height="180"/><object id="2" name="phase-right" class="PhaseWall" x="644" y="180" width="36" height="180"/></objectgroup>
+ <objectgroup id="2" name="SpawnPoints"><object id="3" name="optimizer-player" class="PlayerSpawn" x="480" y="450"/></objectgroup>
+ <objectgroup id="3" name="Enemies"/>
+ <objectgroup id="4" name="Interactions"><object id="4" name="legacy-terminal" class="LegacyTerminal" x="480" y="90" width="76" height="44"/></objectgroup>
+ <objectgroup id="5" name="Triggers"/>
+ <objectgroup id="6" name="Hints"/>
+</map>

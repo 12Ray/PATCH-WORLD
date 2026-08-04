@@ -1,0 +1,27 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: flutter analyze
+      - run: flutter test --reporter expanded
+      - run: |
+          flutter build web --release \
+            --dart-define=APP_VERSION=ci \
+            --dart-define=BUILD_SHA=${GITHUB_SHA::8} \
+            --dart-define=BUILD_TIME=$(date -u +%Y%m%dT%H%M%SZ)

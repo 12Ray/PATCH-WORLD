@@ -5,7 +5,9 @@ import 'package:patch_world/app/overlays/ending_overlay.dart';
 import 'package:patch_world/app/overlays/hud_overlay.dart';
 import 'package:patch_world/app/overlays/patch_selection_overlay.dart';
 import 'package:patch_world/app/overlays/pause_overlay.dart';
+import 'package:patch_world/app/overlays/settings_overlay.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/services/game_settings.dart';
 
 final class PatchWorldApp extends StatefulWidget {
   const PatchWorldApp({super.key});
@@ -32,6 +34,15 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF05070D),
       ),
+      builder: (context, child) => ValueListenableBuilder<GameSettings>(
+        valueListenable: _game.settings,
+        builder: (context, settings, _) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(settings.textScale)),
+          child: child!,
+        ),
+      ),
       home: Scaffold(
         body: Center(
           child: AspectRatio(
@@ -49,6 +60,8 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
                           PauseOverlay(game: game),
                       OverlayIds.ending: (context, game) =>
                           EndingOverlay(game: game),
+                      OverlayIds.settings: (context, game) =>
+                          SettingsOverlay(game: game),
                       OverlayIds.patchSelection: (context, game) =>
                           PatchSelectionOverlay(game: game),
                     },

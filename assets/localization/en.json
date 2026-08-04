@@ -1,0 +1,15 @@
+{
+  "ui.start": "START PATCHING",
+  "ui.pause": "PAUSED",
+  "ui.resume": "RESUME",
+  "ui.restartRoom": "RESTART ROOM",
+  "ui.settings": "SETTINGS / ACCESSIBILITY",
+  "ui.back": "BACK",
+  "room.damageLab": "DAMAGE LAB",
+  "room.temporalHall": "TEMPORAL HALL",
+  "room.collisionArchive": "COLLISION ARCHIVE",
+  "room.optimizerCore": "OPTIMIZATION CORE",
+  "rule.damageInverted": "Attacks heal enemies.",
+  "patch.motionTax.title": "MOTION TAX",
+  "ending.final": "The machine wrote the rules. The human chose their meaning."
+}

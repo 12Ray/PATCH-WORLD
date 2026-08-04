@@ -4,6 +4,7 @@ import 'package:patch_world/game/components/environment/terminal_component.dart'
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/tiled/tiled_room_map.dart';
 
 final class RoomTwoController extends Component
     with HasGameReference<PatchWorldGame> {
@@ -16,6 +17,7 @@ final class RoomTwoController extends Component
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await add(TiledRoomMap(fileName: 'temporal_hall.tmx'));
     await addAll(<WallComponent>[
       WallComponent(position: Vector2(420, 125), size: Vector2(48, 120)),
       WallComponent(position: Vector2(420, 295), size: Vector2(48, 120)),

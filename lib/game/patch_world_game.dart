@@ -22,6 +22,10 @@ import 'package:patch_world/game/systems/enemy_tempo_system.dart';
 import 'package:patch_world/game/systems/duplicate_fault_system.dart';
 import 'package:patch_world/game/systems/patch_effects_system.dart';
 import 'package:patch_world/game/systems/player_pattern_tracker.dart';
+import 'package:patch_world/services/audio_service.dart';
+import 'package:patch_world/services/game_settings.dart';
+import 'package:patch_world/services/localization_service.dart';
+import 'package:patch_world/services/settings_service.dart';
 
 final class PatchWorldGame extends FlameGame<PatchWorld>
     with HasCollisionDetection, KeyboardEvents {
@@ -45,6 +49,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   final RuleEngine ruleEngine = RuleEngine();
   final GameClock clock = GameClock();
   final PlayerPatternTracker patternTracker = PlayerPatternTracker();
+  final AudioService audio = AudioService();
+  final LocalizationService localization = LocalizationService();
+  final SettingsService settingsService = SettingsService();
+  final ValueNotifier<GameSettings> settings = ValueNotifier<GameSettings>(
+    const GameSettings(),
+  );
   final ValueNotifier<UiSnapshot> uiSnapshot = ValueNotifier<UiSnapshot>(
     UiSnapshot.initial(),
   );
@@ -65,6 +75,20 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
 
   @override
   Future<void> onLoad() async {
+    try {
+      settings.value = await settingsService.load();
+    } catch (_) {
+      settings.value = const GameSettings();
+    }
+    try {
+      await localization.load(settings.value.languageCode);
+    } catch (_) {
+      // Missing localization must not prevent silent/offline play.
+    }
+    unawaited(audio.preloadSafely());
+    audio
+      ..setBgmVolume(settings.value.bgmVolume)
+      ..setSfxVolume(settings.value.sfxVolume);
     ruleEngine.setRules(const <GameRule>[DamageSignInvertedRule()]);
     duplicateFault = DuplicateFaultSystem(
       runState: runState,
@@ -110,6 +134,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   ) {
     input.syncPressedKeys(keysPressed);
     if (event is KeyDownEvent) {
+      unawaited(audio.unlockFromUserGesture());
       input.handleKeyDown(event.logicalKey);
       if (event.logicalKey == LogicalKeyboardKey.escape &&
           pendingPatchSelection == null) {
@@ -266,6 +291,50 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   void closePauseMenu() {
     overlays.remove(OverlayIds.pause);
     resumeEngine();
+  }
+
+  void openSettings() {
+    overlays.remove(OverlayIds.pause);
+    overlays.add(OverlayIds.settings);
+  }
+
+  void closeSettings() {
+    overlays.remove(OverlayIds.settings);
+    overlays.add(OverlayIds.pause);
+  }
+
+  void updateSettings(GameSettings next) {
+    final languageChanged = settings.value.languageCode != next.languageCode;
+    if (languageChanged) {
+      unawaited(_changeLanguageAndApplySettings(next));
+      return;
+    }
+    _applySettings(next);
+  }
+
+  Future<void> _changeLanguageAndApplySettings(GameSettings next) async {
+    try {
+      await localization.load(next.languageCode);
+    } catch (_) {
+      // The selected code is still persisted so a repaired asset works later.
+    }
+    _applySettings(next);
+  }
+
+  void _applySettings(GameSettings next) {
+    settings.value = next;
+    audio
+      ..setBgmVolume(next.bgmVolume)
+      ..setSfxVolume(next.sfxVolume);
+    if (world.isReady) {
+      world.player.maxIntegrity = next.assistMode ? 7 : 5;
+      world.player.integrity = world.player.integrity.clamp(
+        0,
+        world.player.maxIntegrity,
+      );
+    }
+    unawaited(settingsService.save(next));
+    publishUiSnapshot(force: true);
   }
 
   void restartRoomFromPauseMenu() {

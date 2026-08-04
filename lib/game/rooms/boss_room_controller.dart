@@ -8,6 +8,7 @@ import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rules/anomalies/damage_sign_inverted_rule.dart';
 import 'package:patch_world/game/rules/rule_ids.dart';
+import 'package:patch_world/game/rooms/tiled/tiled_room_map.dart';
 import 'package:patch_world/game/systems/phase_leak_controller.dart';
 
 final class BossRoomController extends Component
@@ -23,6 +24,7 @@ final class BossRoomController extends Component
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await add(TiledRoomMap(fileName: 'optimizer_core.tmx'));
     terminal = LegacyGlitchTerminal(
       position: Vector2(480, 90),
       onActivated: _activateLegacyGlitch,

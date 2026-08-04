@@ -1,0 +1,8 @@
+tags:
+  unit:
+  component:
+  golden:
+  integration:
+  slow:
+
+timeout: 30s

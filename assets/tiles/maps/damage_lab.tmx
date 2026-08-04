@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="16" tilewidth="32" tileheight="32" infinite="0" nextlayerid="7" nextobjectid="4">
+ <objectgroup id="1" name="Collision"><object id="1" name="north-wall" class="Wall" x="0" y="0" width="960" height="24"/></objectgroup>
+ <objectgroup id="2" name="SpawnPoints"><object id="2" name="damage-player" class="PlayerSpawn" x="150" y="270"/></objectgroup>
+ <objectgroup id="3" name="Enemies"><object id="3" name="damage-crawler" class="EnemySpawn" x="610" y="215"><properties><property name="archetype" value="crawler"/><property name="spawnOrder" type="int" value="1"/></properties></object></objectgroup>
+ <objectgroup id="4" name="Interactions"/>
+ <objectgroup id="5" name="Triggers"/>
+ <objectgroup id="6" name="Hints"/>
+</map>

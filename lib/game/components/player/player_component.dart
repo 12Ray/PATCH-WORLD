@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -61,6 +62,7 @@ final class PlayerComponent extends RectangleComponent
     final pulsePosition = position.clone();
     game.world.spawnPatchPulse(pulsePosition);
     game.patchEffects.onPatchPulseEmitted(pulsePosition);
+    unawaited(game.audio.playPatchPulse());
   }
 
   void tryInteract() {
@@ -73,6 +75,9 @@ final class PlayerComponent extends RectangleComponent
     }
 
     integrity = math.max(0, integrity - amount);
+    if (isMounted) {
+      unawaited(game.audio.playDamage());
+    }
     lastDamageCauseId = causeId;
     _hitInvulnerability = hitInvulnerabilitySeconds;
     if (isMounted) {

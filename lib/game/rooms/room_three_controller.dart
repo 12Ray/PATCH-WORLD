@@ -6,6 +6,7 @@ import 'package:patch_world/game/components/enemies/composite_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/tiled/tiled_room_map.dart';
 
 final class RoomThreeController extends Component
     with HasGameReference<PatchWorldGame> {
@@ -17,6 +18,7 @@ final class RoomThreeController extends Component
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await add(TiledRoomMap(fileName: 'collision_archive.tmx'));
     await add(MergeZoneComponent(position: Vector2(520, 270)));
     final crawlerA = CrawlerComponent(
       entityId: 'collision-crawler-a',
