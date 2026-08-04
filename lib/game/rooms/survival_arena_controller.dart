@@ -142,10 +142,14 @@ final class SurvivalArenaController extends Component
     _showAlert(label, const Color(0xFF45F3A6));
   }
 
-  void showComboMilestone(int combo) {
+  void showComboMilestone(
+    int combo, {
+    required int flowMultiplier,
+    required int dataReward,
+  }) {
     if (combo != 5 && combo != 10 && combo % 20 != 0) return;
     _showAlert(
-      'COMBO x$combo // DATA FLOW',
+      'COMBO x$combo // FLOW x$flowMultiplier // DATA +$dataReward',
       combo >= 20 ? const Color(0xFFFFC857) : const Color(0xFF36E1FF),
     );
   }

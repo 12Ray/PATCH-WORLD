@@ -13,7 +13,7 @@ void main() {
     expect(state.score, ((600 + 50 + 250) * 1.36).round());
   });
 
-  test('kills level up and combo expires after three seconds', () {
+  test('kills level up and combo window grows with flow', () {
     final state = SurvivalRunState();
     for (var index = 0; index < 6; index += 1) {
       state.recordKill();
@@ -23,9 +23,42 @@ void main() {
 
     state.recordHit();
     expect(state.combo, 3);
-    state.update(3.01);
+    expect(state.comboRemaining, closeTo(3.12, 0.001));
+    state.update(3.13);
     expect(state.combo, 0);
     expect(state.maxCombo, 6);
+  });
+
+  test('flow state multiplies full kill value at combo thresholds', () {
+    final state = SurvivalRunState();
+    for (var index = 0; index < 4; index += 1) {
+      state.recordKill();
+    }
+    expect(state.flowMultiplier, 1);
+    expect(state.score, 100);
+
+    state.recordKill();
+    expect(state.flowMultiplier, 2);
+    expect(state.score, 150);
+    expect(state.comboRemaining, closeTo(3.20, 0.001));
+
+    for (var index = 0; index < 5; index += 1) {
+      state.recordKill();
+    }
+    expect(state.flowMultiplier, 3);
+    expect(state.score, 425);
+
+    state.recordKill(elite: true);
+    expect(state.score, 1250);
+  });
+
+  test('flow milestones pay stable data at five ten and twenty', () {
+    expect(SurvivalRunState.flowDataRewardForCombo(4), 0);
+    expect(SurvivalRunState.flowDataRewardForCombo(5), 1);
+    expect(SurvivalRunState.flowDataRewardForCombo(10), 1);
+    expect(SurvivalRunState.flowDataRewardForCombo(20), 2);
+    expect(SurvivalRunState.flowDataRewardForCombo(21), 0);
+    expect(SurvivalRunState.flowDataRewardForCombo(40), 2);
   });
 
   test('result snapshot preserves run data after the live state resets', () {

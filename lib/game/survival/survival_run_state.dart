@@ -32,6 +32,24 @@ final class SurvivalRunState {
 
   double get riskMultiplier => (1 + riskTierTotal * 0.12).clamp(1, 2.5);
 
+  static int flowMultiplierForCombo(int combo) {
+    if (combo >= 20) return 4;
+    if (combo >= 10) return 3;
+    if (combo >= 5) return 2;
+    return 1;
+  }
+
+  static double comboWindowForCombo(int combo) =>
+      3 + math.min(1.5, math.max(0, combo) * 0.04);
+
+  static int flowDataRewardForCombo(int combo) {
+    if (combo == 5 || combo == 10) return 1;
+    if (combo >= 20 && combo % 20 == 0) return 2;
+    return 0;
+  }
+
+  int get flowMultiplier => flowMultiplierForCombo(combo);
+
   double recentKillsPerSecond({double windowSeconds = 20}) {
     final safeWindow = math.max(1.0, windowSeconds);
     final cutoff = elapsedSeconds - safeWindow;
@@ -81,20 +99,15 @@ final class SurvivalRunState {
     if (miniBoss) miniBossKills += 1;
     combo += 1;
     maxCombo = math.max(maxCombo, combo);
-    comboRemaining = 3;
+    comboRemaining = comboWindowForCombo(combo);
     final baseExperience = miniBoss
         ? 20
         : elite
         ? 5
         : 1;
     experience += baseExperience * safeRewardMultiplier;
-    bonusScore +=
-        (safeRewardMultiplier - 1) *
-        (miniBoss
-            ? 1000
-            : elite
-            ? 250
-            : 25);
+    final baseKillScore = 25 + (elite ? 250 : 0) + (miniBoss ? 1000 : 0);
+    bonusScore += (safeRewardMultiplier * flowMultiplier - 1) * baseKillScore;
     var leveledUp = false;
     while (experience >= experienceToNext) {
       experience -= experienceToNext;
@@ -108,7 +121,7 @@ final class SurvivalRunState {
   void recordHit() {
     telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.hit);
     combo = combo ~/ 2;
-    comboRemaining = combo == 0 ? 0 : 3;
+    comboRemaining = combo == 0 ? 0 : comboWindowForCombo(combo);
   }
 
   void addRiskTier(int tier) {

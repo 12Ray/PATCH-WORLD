@@ -313,9 +313,26 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     if (modifiers.turboOverclockOnKill) {
       survivalRun.triggerTurboOverclock();
     }
+    final flowDataReward = SurvivalRunState.flowDataRewardForCombo(
+      survivalRun.combo,
+    );
+    if (flowDataReward > 0) {
+      world.spawnDataShards(
+        world.player.position,
+        count: flowDataReward,
+        alternatingCorruption: false,
+      );
+    }
     final activeRoom = world.activeRoom;
     if (activeRoom is SurvivalArenaController) {
-      activeRoom.showComboMilestone(survivalRun.combo);
+      activeRoom.showComboMilestone(
+        survivalRun.combo,
+        flowMultiplier: survivalRun.flowMultiplier,
+        dataReward: flowDataReward,
+      );
+      if (flowDataReward > 0 && survivalRun.combo >= 10) {
+        triggerImpactFeedback();
+      }
     }
     publishUiSnapshot(force: true);
     if (leveledUp && pendingSurvivalUpgrade == null) {

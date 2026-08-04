@@ -42,6 +42,7 @@ void main() {
     expect(find.text('OVERCLOCK'), findsOneWidget);
     expect(find.text('DATA SURGE'), findsOneWidget);
     expect(find.text('FUSION x3'), findsOneWidget);
+    expect(find.text('FLOW x3'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

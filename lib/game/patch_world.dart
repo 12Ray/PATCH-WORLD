@@ -241,6 +241,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     Vector2 worldPosition, {
     required int count,
     bool corrupted = false,
+    bool alternatingCorruption = true,
   }) {
     for (var index = 0; index < count; index += 1) {
       final angle = (index / count) * math.pi * 2 + (corrupted ? 0.35 : 0);
@@ -248,7 +249,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
         DataShardComponent(
           position: worldPosition.clone(),
           scatterDirection: Vector2(math.cos(angle), math.sin(angle)),
-          isCorrupted: corrupted || index.isOdd,
+          isCorrupted: corrupted || (alternatingCorruption && index.isOdd),
         ),
       );
     }

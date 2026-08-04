@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
+import 'package:patch_world/game/components/effects/data_shard_component.dart';
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/enemies/composite_component.dart';
@@ -77,9 +78,21 @@ void main() {
     await tester.pump(const Duration(milliseconds: 16));
     expect(game.survivalRun.kills, 1);
 
-    for (var index = 0; index < 5; index += 1) {
+    final shardsBeforeFlow = game.world.children
+        .whereType<DataShardComponent>()
+        .length;
+    for (var index = 0; index < 4; index += 1) {
       game.recordSurvivalKill();
     }
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(game.survivalRun.combo, 5);
+    expect(game.survivalRun.flowMultiplier, 2);
+    final shardsAfterFlow = game.world.children
+        .whereType<DataShardComponent>()
+        .toList(growable: false);
+    expect(shardsAfterFlow, hasLength(shardsBeforeFlow + 1));
+    expect(shardsAfterFlow.last.isCorrupted, isFalse);
+    game.recordSurvivalKill();
     await tester.pump();
     expect(game.survivalRun.level, 2);
     expect(game.pendingSurvivalUpgrade, isNotNull);
@@ -96,7 +109,7 @@ void main() {
     expect(game.survivalModifiers.pulseRadiusMultiplier, closeTo(1.14, 0.001));
     expect(
       arena.children.whereType<TextComponent>().any(
-        (label) => label.text.contains('COMBO x5'),
+        (label) => label.text.contains('COMBO x5 // FLOW x2 // DATA +1'),
       ),
       isTrue,
     );

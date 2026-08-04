@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:patch_world/game/core/ui_snapshot.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/survival/survival_run_state.dart';
 import 'package:patch_world/game/systems/frame_burst_controller.dart';
 
 final class HudOverlay extends StatelessWidget {
@@ -213,6 +214,17 @@ final class _RuleView extends StatelessWidget {
                     'COMBO x${snapshot.survivalCombo}',
                     style: const TextStyle(
                       color: Color(0xFFFFC857),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+                if ((snapshot.survivalCombo ?? 0) >= 5) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Text(
+                    'FLOW x${SurvivalRunState.flowMultiplierForCombo(snapshot.survivalCombo ?? 0)}',
+                    style: const TextStyle(
+                      color: Color(0xFF45F3A6),
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
                     ),
