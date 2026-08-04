@@ -253,6 +253,47 @@
       "transparentCorners": true
     }
   },
+  "phase-hound-run": {
+    "asset": "images/sprites/animations/phase-hound-run.png",
+    "frames": 6,
+    "fps": 12,
+    "loop": true,
+    "frameSize": [
+      256,
+      256
+    ],
+    "pivot": [
+      0.5,
+      0.9609
+    ],
+    "validation": {
+      "centroidX": [
+        127.72,
+        128.36,
+        128.01,
+        127.83,
+        127.56,
+        127.89
+      ],
+      "baseline": [
+        246,
+        246,
+        246,
+        246,
+        246,
+        246
+      ],
+      "alphaCoverage": [
+        0.1484,
+        0.1022,
+        0.1404,
+        0.1413,
+        0.1075,
+        0.1377
+      ],
+      "transparentCorners": true
+    }
+  },
   "sentinel-scan": {
     "asset": "images/sprites/animations/sentinel-scan.png",
     "frames": 4,

@@ -97,33 +97,30 @@ final class PhaseHoundComponent extends RectangleComponent
 
   Future<void> _loadVisual() async {
     try {
+      final runImage = await game.images.load(
+        'sprites/animations/phase-hound-run.png',
+      );
+      final runFrames = List.generate(
+        6,
+        (index) => Sprite(
+          runImage,
+          srcPosition: Vector2(index * 256.0, 0),
+          srcSize: Vector2.all(256),
+        ),
+      );
       final visual = EntitySpriteVisual(
-        sprite: await game.loadSprite('sprites/crawler.png'),
-        size: Vector2(66, 58),
+        sprite: runFrames.first,
+        size: Vector2(78, 66),
         parentSize: size,
-        bobAmplitude: 1,
-        bobSpeed: 7,
-        rotationAmplitude: 0.025,
+        bobAmplitude: 0.7,
+        bobSpeed: 8,
+        rotationAmplitude: 0.018,
       );
       if (isRemoving) return;
       _visual = visual;
       await add(visual);
-      final chaseImage = await game.images.load(
-        'sprites/animations/crawler-chase.png',
-      );
-      if (isRemoving) return;
-      visual.setDefaultAnimation(
-        List.generate(
-          6,
-          (index) => Sprite(
-            chaseImage,
-            srcPosition: Vector2(index * 256.0, 0),
-            srcSize: Vector2.all(256),
-          ),
-        ),
-        fps: 12,
-      );
-      visual.setStateTint(const Color(0xFF36E1FF));
+      visual.setDefaultAnimation(runFrames, fps: 12);
+      visual.setStateTint(null);
     } catch (_) {
       paint.color = const Color(0xFF36E1FF);
     }
@@ -147,9 +144,7 @@ final class PhaseHoundComponent extends RectangleComponent
         }
       case PhaseHoundState.telegraph:
         _visual?.setStateTint(
-          (stateTimer * 14).floor().isEven
-              ? const Color(0xFF36E1FF)
-              : const Color(0xFFFF4FD8),
+          (stateTimer * 14).floor().isEven ? null : const Color(0xFFFFB6F0),
         );
         if (stateTimer <= 0) _enterDash();
       case PhaseHoundState.dash:
@@ -167,7 +162,7 @@ final class PhaseHoundComponent extends RectangleComponent
         if (stateTimer <= 0) {
           state = PhaseHoundState.stalk;
           stateTimer = stalkSeconds;
-          _visual?.setStateTint(const Color(0xFF36E1FF));
+          _visual?.setStateTint(null);
         }
     }
     super.update(dt);
