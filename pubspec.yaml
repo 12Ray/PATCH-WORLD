@@ -62,6 +62,8 @@ flutter:
   assets:
     - assets/images/
     - assets/images/ui/
+    - assets/images/sprites/
+    - assets/images/sprites/animations/
     - assets/tiles/
     - assets/tiles/maps/
     - assets/audio/

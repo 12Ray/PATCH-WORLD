@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:patch_world/game/components/enemies/sentinel_component.dart';
 import 'package:patch_world/game/components/environment/terminal_component.dart';
+import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -18,6 +19,7 @@ final class RoomTwoController extends Component
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await add(RoomBackdropComponent(RoomBackdropStyle.temporal));
     final roomMap = TiledRoomMap(fileName: 'temporal_hall.tmx');
     await add(roomMap);
     playerSpawn = roomMap.singleByClass('PlayerSpawn').center;

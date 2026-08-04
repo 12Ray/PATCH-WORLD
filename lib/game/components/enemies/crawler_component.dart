@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
+import 'package:patch_world/game/components/visuals/entity_sprite_visual.dart';
 import 'package:patch_world/game/core/health_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
@@ -24,13 +26,13 @@ final class CrawlerComponent extends RectangleComponent
        super(
          size: Vector2.all(32),
          anchor: Anchor.center,
-         paint: Paint()..color = const Color(0xFFFF6464),
+         paint: Paint()..color = const Color(0x00000000),
          priority: 10,
        );
 
   static const double moveSpeed = 70;
   static const int maxHealth = 3;
-  static const double overflowDelaySeconds = 0.35;
+  static const double overflowDelaySeconds = 0.42;
 
   @override
   final String entityId;
@@ -45,6 +47,8 @@ final class CrawlerComponent extends RectangleComponent
   double _overflowTimer = 0;
   bool _mergeConsumed = false;
   bool _duplicateClaimed = false;
+  EntitySpriteVisual? _visual;
+  List<Sprite>? _overflowFrames;
 
   int get health => healthState.current;
   bool get isDefeated => healthState.isDefeated;
@@ -69,6 +73,7 @@ final class CrawlerComponent extends RectangleComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    unawaited(_loadVisual());
     await add(
       RectangleHitbox.relative(
         Vector2.all(0.72),
@@ -79,6 +84,47 @@ final class CrawlerComponent extends RectangleComponent
     );
   }
 
+  Future<void> _loadVisual() async {
+    try {
+      final visual = EntitySpriteVisual(
+        sprite: await game.loadSprite('sprites/crawler.png'),
+        size: Vector2.all(58),
+        parentSize: size,
+        bobAmplitude: 1.5,
+        bobSpeed: 5.2,
+        rotationAmplitude: 0.045,
+        phaseOffset: entityId.hashCode.remainder(17).toDouble(),
+      );
+      if (isRemoving) return;
+      _visual = visual;
+      await add(visual);
+      await _loadAnimations(visual);
+    } catch (_) {
+      paint.color = const Color(0xFFFF6464);
+    }
+  }
+
+  Future<void> _loadAnimations(EntitySpriteVisual visual) async {
+    final chaseImage = await game.images.load(
+      'sprites/animations/crawler-chase.png',
+    );
+    final overflowImage = await game.images.load(
+      'sprites/animations/crawler-overflow.png',
+    );
+    if (isRemoving) return;
+    visual.setDefaultAnimation(_frames(chaseImage, 6), fps: 9);
+    _overflowFrames = _frames(overflowImage, 5);
+  }
+
+  List<Sprite> _frames(Image image, int count) => List.generate(
+    count,
+    (index) => Sprite(
+      image,
+      srcPosition: Vector2(index * 256.0, 0),
+      srcSize: Vector2.all(256),
+    ),
+  );
+
   void takePulseDamage(int amount) => receiveDamage(amount);
 
   @override
@@ -86,9 +132,11 @@ final class CrawlerComponent extends RectangleComponent
     if (mergeShielded) return;
     final mutation = healthState.applyDamage(amount);
     if (mutation == HealthMutation.defeated) {
+      if (isMounted) game.world.spawnDataShards(position, count: 1);
       removeFromParent();
     } else if (mutation == HealthMutation.damaged) {
-      paint.color = const Color(0xFFFFFFFF);
+      _visual?.flash(const Color(0xFFFFFFFF));
+      _visual?.squash();
     }
   }
 
@@ -96,11 +144,16 @@ final class CrawlerComponent extends RectangleComponent
   void receiveHealing(int amount) {
     final mutation = healthState.applyHealing(amount);
     if (mutation == HealthMutation.healed) {
-      paint.color = const Color(0xFF36E1FF);
+      _visual?.flash(const Color(0xFF36E1FF));
     } else if (mutation == HealthMutation.overflowed) {
       _overflowStarted = true;
       _overflowTimer = overflowDelaySeconds;
-      paint.color = const Color(0xFFFF4FD8);
+      final overflowFrames = _overflowFrames;
+      if (overflowFrames != null) {
+        _visual?.playOnce(overflowFrames, fps: 12);
+      }
+      _visual?.setStateTint(const Color(0xFFFF4FD8));
+      _visual?.squash(seconds: 0.28);
     }
   }
 
@@ -112,6 +165,7 @@ final class CrawlerComponent extends RectangleComponent
       _overflowTimer -= simulationDt;
       scale.setAll(1 + (overflowDelaySeconds - _overflowTimer) * 0.55);
       if (_overflowTimer <= 0) {
+        game.world.spawnDataShards(position, count: 3, corrupted: true);
         onOverflow?.call(this);
         removeFromParent();
       }
@@ -128,12 +182,12 @@ final class CrawlerComponent extends RectangleComponent
       final direction = game.world.player.position - position;
       if (direction.length2 > 16) {
         direction.normalize();
+        _visual?.setAnimationPlaying(true);
+        _visual?.faceMovement(direction);
         position += direction * (moveSpeed * speedMultiplier * enemyDt);
+      } else {
+        _visual?.setAnimationPlaying(false);
       }
-    }
-    if (paint.color == const Color(0xFFFFFFFF) ||
-        paint.color == const Color(0xFF36E1FF)) {
-      paint.color = const Color(0xFFFF6464);
     }
     super.update(dt);
   }

@@ -6,6 +6,7 @@ import 'package:patch_world/game/components/enemies/composite_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
+import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/tiled/tiled_room_map.dart';
 
@@ -20,6 +21,7 @@ final class RoomThreeController extends Component
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await add(RoomBackdropComponent(RoomBackdropStyle.collision));
     final roomMap = TiledRoomMap(fileName: 'collision_archive.tmx');
     await add(roomMap);
     playerSpawn = roomMap.singleByClass('PlayerSpawn').center;

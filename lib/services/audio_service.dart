@@ -94,6 +94,15 @@ final class AudioService {
     }
   }
 
+  Future<void> playHeal() async {
+    if (!_unlocked || !_available) return;
+    try {
+      await FlameAudio.play('sfx/heal.wav', volume: _sfxVolume);
+    } catch (_) {
+      _available = false;
+    }
+  }
+
   void setBgmVolume(double value) => _bgmVolume = value.clamp(0, 1);
   void setSfxVolume(double value) => _sfxVolume = value.clamp(0, 1);
 

@@ -1,9 +1,12 @@
+import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
+import 'package:patch_world/game/components/effects/data_shard_component.dart';
 import 'package:patch_world/game/components/effects/retaliation_echo_component.dart';
 import 'package:patch_world/game/components/effects/time_freeze_overlay_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
@@ -80,7 +83,9 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       await existing.removed;
     }
     for (final child in children.toList()) {
-      if (child is RetaliationEchoComponent) child.removeFromParent();
+      if (child is RetaliationEchoComponent || child is DataShardComponent) {
+        child.removeFromParent();
+      }
     }
     final nextRoom = switch (roomId) {
       RoomId.damageLab => RoomOneController(),
@@ -166,6 +171,23 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
 
   Future<void> spawnPatchPulse(Vector2 worldPosition) async {
     await add(PatchPulseComponent(position: worldPosition.clone()));
+  }
+
+  void spawnDataShards(
+    Vector2 worldPosition, {
+    required int count,
+    bool corrupted = false,
+  }) {
+    for (var index = 0; index < count; index += 1) {
+      final angle = (index / count) * math.pi * 2 + (corrupted ? 0.35 : 0);
+      add(
+        DataShardComponent(
+          position: worldPosition.clone(),
+          scatterDirection: Vector2(math.cos(angle), math.sin(angle)),
+          isCorrupted: corrupted || index.isOdd,
+        ),
+      );
+    }
   }
 
   Future<void> spawnRetaliationEcho(Vector2 worldPosition) async {

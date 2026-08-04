@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flame/components.dart';
 import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
 import 'package:patch_world/game/components/environment/legacy_glitch_terminal.dart';
+import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
@@ -26,6 +27,7 @@ final class BossRoomController extends Component
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await add(RoomBackdropComponent(RoomBackdropStyle.optimizer));
     final roomMap = TiledRoomMap(fileName: 'optimizer_core.tmx');
     await add(roomMap);
     playerSpawn = roomMap.singleByClass('PlayerSpawn').center;

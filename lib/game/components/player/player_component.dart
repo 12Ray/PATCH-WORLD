@@ -7,6 +7,7 @@ import 'package:flame/components.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
+import 'package:patch_world/game/components/visuals/entity_sprite_visual.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/services/game_settings.dart';
 
@@ -16,7 +17,7 @@ final class PlayerComponent extends RectangleComponent
     : super(
         size: Vector2.all(32),
         anchor: Anchor.center,
-        paint: Paint()..color = const Color(0xFF36E1FF),
+        paint: Paint()..color = const Color(0x00000000),
         priority: 20,
       );
 
@@ -33,14 +34,19 @@ final class PlayerComponent extends RectangleComponent
 
   double _attackCooldown = 0;
   double _hitInvulnerability = 0;
+  int _dataShardCharge = 0;
+  EntitySpriteVisual? _visual;
+  List<Sprite>? _pulseFrames;
   String? lastDamageCauseId;
 
   bool get canAttack => _attackCooldown <= 0 && !isRemoving;
   bool get isInvulnerable => _hitInvulnerability > 0;
+  int get dataShardCharge => _dataShardCharge;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    unawaited(_loadVisual());
     await add(
       RectangleHitbox.relative(
         Vector2.all(0.66),
@@ -50,6 +56,45 @@ final class PlayerComponent extends RectangleComponent
       ),
     );
   }
+
+  Future<void> _loadVisual() async {
+    try {
+      final visual = EntitySpriteVisual(
+        sprite: await game.loadSprite('sprites/qa-hero.png'),
+        size: Vector2.all(54),
+        parentSize: size,
+        bobAmplitude: 1.1,
+        bobSpeed: 4.2,
+      );
+      if (isRemoving) return;
+      _visual = visual;
+      await add(visual);
+      await _loadAnimations(visual);
+    } catch (_) {
+      paint.color = const Color(0xFF36E1FF);
+    }
+  }
+
+  Future<void> _loadAnimations(EntitySpriteVisual visual) async {
+    final idleImage = await game.images.load(
+      'sprites/animations/qa-hero-idle.png',
+    );
+    final pulseImage = await game.images.load(
+      'sprites/animations/qa-hero-pulse.png',
+    );
+    if (isRemoving) return;
+    visual.setDefaultAnimation(_frames(idleImage, 4), fps: 6);
+    _pulseFrames = _frames(pulseImage, 4);
+  }
+
+  List<Sprite> _frames(Image image, int count) => List.generate(
+    count,
+    (index) => Sprite(
+      image,
+      srcPosition: Vector2(index * 256.0, 0),
+      srcSize: Vector2.all(256),
+    ),
+  );
 
   void setMovementInput(Vector2 input) {
     _movementInput.setFrom(input);
@@ -61,6 +106,12 @@ final class PlayerComponent extends RectangleComponent
     }
 
     _attackCooldown = attackCooldownSeconds;
+    final pulseFrames = _pulseFrames;
+    if (pulseFrames != null) {
+      _visual?.playOnce(pulseFrames, fps: 10);
+    }
+    _visual?.flash(const Color(0xFFFF8FE8), seconds: 0.10);
+    _visual?.squash();
     final pulsePosition = position.clone();
     game.world.spawnPatchPulse(pulsePosition);
     game.patchEffects.onPatchPulseEmitted(pulsePosition);
@@ -85,11 +136,28 @@ final class PlayerComponent extends RectangleComponent
     }
     lastDamageCauseId = causeId;
     _hitInvulnerability = hitInvulnerabilitySeconds;
+    _visual?.flash(const Color(0xFFFF6464), seconds: 0.18);
+    _visual?.squash(seconds: 0.20);
     if (isMounted) {
       game.publishUiSnapshot();
     }
     if (integrity == 0) {
       game.handlePlayerDefeat(causeId: causeId);
+    }
+  }
+
+  void absorbDataShard() {
+    _dataShardCharge += 1;
+    _attackCooldown = math.max(0, _attackCooldown - 0.08);
+    _visual?.flash(const Color(0xFF36E1FF), seconds: 0.08);
+    if (_dataShardCharge < 6) return;
+
+    _dataShardCharge = 0;
+    _attackCooldown = 0;
+    if (integrity < maxIntegrity) integrity += 1;
+    if (isMounted) {
+      unawaited(game.audio.playHeal());
+      game.publishUiSnapshot(force: true);
     }
   }
 
@@ -102,6 +170,7 @@ final class PlayerComponent extends RectangleComponent
 
     _previousPosition.setFrom(position);
     position += _movementInput * (moveSpeed * statusDt);
+    _visual?.faceMovement(_movementInput);
     _clampToLogicalWorld();
     _updateDamageBlink();
     super.update(dt);
@@ -120,17 +189,17 @@ final class PlayerComponent extends RectangleComponent
 
   void _updateDamageBlink() {
     if (!isInvulnerable) {
-      paint.color = const Color(0xFF36E1FF);
+      _visual?.setVisualOpacity(1);
       return;
     }
 
     if (isMounted && game.settings.value.flash == FlashSetting.reduced) {
-      paint.color = const Color(0xAA36E1FF);
+      _visual?.setVisualOpacity(0.72);
       return;
     }
 
     final visible = (_hitInvulnerability * 12).floor().isEven;
-    paint.color = visible ? const Color(0xFF36E1FF) : const Color(0x5536E1FF);
+    _visual?.setVisualOpacity(visible ? 1 : 0.32);
   }
 
   @override
@@ -151,5 +220,19 @@ final class PlayerComponent extends RectangleComponent
       takeDamage(1, causeId: 'enemy.crawler.contact');
     }
     super.onCollisionStart(intersectionPoints, other);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    if (_dataShardCharge == 0) return;
+    for (var index = 0; index < 6; index += 1) {
+      final active = index < _dataShardCharge;
+      canvas.drawRect(
+        Rect.fromLTWH(2 + index * 5, -9, 3, 3),
+        Paint()
+          ..color = active ? const Color(0xFF36E1FF) : const Color(0x4425304A),
+      );
+    }
   }
 }

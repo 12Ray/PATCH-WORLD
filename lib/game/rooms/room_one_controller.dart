@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
+import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/tiled/tiled_room_map.dart';
 import 'package:patch_world/game/rooms/tiled/room_object_spec.dart';
@@ -24,6 +25,7 @@ final class RoomOneController extends Component
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await add(RoomBackdropComponent(RoomBackdropStyle.damage));
     final roomMap = TiledRoomMap(fileName: 'damage_lab.tmx');
     await add(roomMap);
     playerSpawn = roomMap.singleByClass('PlayerSpawn').center;

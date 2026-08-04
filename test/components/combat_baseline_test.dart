@@ -50,4 +50,18 @@ void main() {
     player.takeDamage(1);
     expect(player.integrity, 3);
   });
+
+  test('six data shards restore one integrity and reset the charge', () {
+    final player = PlayerComponent(
+      position: Vector2.zero(),
+      spawnPosition: Vector2.zero(),
+    )..integrity = 3;
+
+    for (var index = 0; index < 6; index += 1) {
+      player.absorbDataShard();
+    }
+
+    expect(player.integrity, 4);
+    expect(player.dataShardCharge, 0);
+  });
 }
