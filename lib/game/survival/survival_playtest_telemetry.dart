@@ -10,6 +10,7 @@ enum SurvivalMeaningfulEvent {
   optimizerFragment,
   endlessTier,
   dataSurge,
+  fusionUnlocked,
 }
 
 final class SurvivalPacingSnapshot {

@@ -52,6 +52,24 @@ void main() {
     expect(system.consumeMotionVentCharge(), isFalse);
   });
 
+  test('ghost vent can charge while the player is moving', () {
+    final runState = RunState()..selectPatch(RuleIds.motionTax);
+    final system = PatchEffectsSystem(
+      runState: runState,
+      spawnEcho: (_, _) {},
+      spawnFriendlyBurst: (_, _, _, {excludedEntityId}) {},
+      damagePlayer: (_, _) {},
+    );
+
+    system.update(
+      playerStatusDt: 0.76,
+      isPlayerMoving: true,
+      motionTaxTier: 2,
+      allowMovingVentCharge: true,
+    );
+    expect(system.motionVentCharged, isTrue);
+  });
+
   test('tier three motion tax releases a burst on overheat', () {
     final runState = RunState()..selectPatch(RuleIds.motionTax);
     var burstDamage = 0;

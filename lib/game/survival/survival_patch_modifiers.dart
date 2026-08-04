@@ -1,4 +1,5 @@
 import 'package:patch_world/game/rules/rule_ids.dart';
+import 'package:patch_world/game/survival/survival_patch_fusions.dart';
 
 final class SurvivalPatchModifiers {
   const SurvivalPatchModifiers(this.patchTiers);
@@ -13,6 +14,15 @@ final class SurvivalPatchModifiers {
   int get frameBurstTier => tier(RuleIds.frameBurst);
   int get phaseLeakTier => tier(RuleIds.phaseLeak);
   int get duplicateFaultTier => tier(RuleIds.duplicateFault);
+
+  List<String> get activeFusionIds =>
+      SurvivalPatchFusions.activeFor(patchTiers);
+  bool get ghostVentFusion =>
+      activeFusionIds.contains(SurvivalPatchFusions.ghostVent);
+  bool get echoCascadeFusion =>
+      activeFusionIds.contains(SurvivalPatchFusions.echoCascade);
+  bool get redlineFusion =>
+      activeFusionIds.contains(SurvivalPatchFusions.redline);
 
   int get pulseDamage => 1 + motionTaxTier;
 
@@ -36,7 +46,8 @@ final class SurvivalPatchModifiers {
   int get overheatBurstDamage => motionTaxTier >= 3 ? 2 : 0;
 
   bool get echoPullsTargets => retaliationEchoTier >= 2;
-  int get echoDamage => retaliationEchoTier >= 3 ? 2 : 1;
+  int get echoDamage =>
+      (retaliationEchoTier >= 3 ? 2 : 1) + (echoCascadeFusion ? 1 : 0);
   bool get echoDamagesPlayer => retaliationEchoTier < 3;
 
   int get turboBonusShardInterval => hostileTurboTier >= 2 ? 3 : 0;
@@ -48,10 +59,17 @@ final class SurvivalPatchModifiers {
   double get phaseOpenMoveMultiplier => phaseLeakTier >= 2 ? 1.20 : 1;
   bool get phaseOpenGuard => phaseLeakTier >= 3;
 
-  int get duplicateBurstDamage => duplicateFaultTier >= 3
-      ? 2
-      : duplicateFaultTier >= 2
-      ? 1
-      : 0;
+  int get duplicateBurstDamage {
+    final baseDamage = duplicateFaultTier >= 3
+        ? 2
+        : duplicateFaultTier >= 2
+        ? 1
+        : 0;
+    return baseDamage + (echoCascadeFusion ? 1 : 0);
+  }
+
   double get duplicateBurstRadius => duplicateFaultTier >= 3 ? 90 : 70;
+
+  double get ghostVentRadiusMultiplier => ghostVentFusion ? 1.25 : 1;
+  int get redlineDamageBonus => redlineFusion ? 1 : 0;
 }

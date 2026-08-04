@@ -154,6 +154,10 @@ final class SurvivalArenaController extends Component
     _showAlert('POWER ONLINE // $patchTitle', const Color(0xFF45F3A6));
   }
 
+  void showFusionOnline(String fusionTitle) {
+    _showAlert('FUSION ONLINE // $fusionTitle', const Color(0xFFFFC857));
+  }
+
   void _updatePhaseLeak(double dt) {
     if (!game.survivalModifiers.phaseWallsLeak || dt <= 0) return;
     if (_phaseLeak.update(dt)) unawaited(_syncPhaseWalls());

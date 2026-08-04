@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/rules/rule_ids.dart';
 import 'package:patch_world/game/survival/survival_patch_modifiers.dart';
+import 'package:patch_world/game/survival/survival_patch_fusions.dart';
 
 void main() {
   test('no patches preserves the campaign combat baseline', () {
@@ -49,11 +50,49 @@ void main() {
       RuleIds.duplicateFault: 3,
     });
     expect(modifiers.echoPullsTargets, isTrue);
-    expect(modifiers.echoDamage, 2);
+    expect(modifiers.echoDamage, 3);
     expect(modifiers.echoDamagesPlayer, isFalse);
     expect(modifiers.turboOverclockOnKill, isTrue);
     expect(modifiers.phaseOpenGuard, isTrue);
-    expect(modifiers.duplicateBurstDamage, 2);
+    expect(modifiers.duplicateBurstDamage, 3);
     expect(modifiers.duplicateRewardMultiplier, 3);
+  });
+
+  test('fusions unlock only when both paired patches reach tier two', () {
+    const almost = SurvivalPatchModifiers(<String, int>{
+      RuleIds.motionTax: 2,
+      RuleIds.phaseLeak: 1,
+      RuleIds.retaliationEcho: 2,
+      RuleIds.duplicateFault: 2,
+    });
+    expect(almost.ghostVentFusion, isFalse);
+    expect(almost.activeFusionIds, <String>[SurvivalPatchFusions.echoCascade]);
+    expect(almost.echoDamage, 2);
+    expect(almost.duplicateBurstDamage, 2);
+
+    const all = SurvivalPatchModifiers(<String, int>{
+      RuleIds.motionTax: 2,
+      RuleIds.phaseLeak: 2,
+      RuleIds.retaliationEcho: 2,
+      RuleIds.duplicateFault: 2,
+      RuleIds.hostileTurbo: 2,
+      RuleIds.frameBurst: 2,
+    });
+    expect(all.activeFusionIds, SurvivalPatchFusions.all);
+    expect(all.ghostVentRadiusMultiplier, 1.25);
+    expect(all.redlineDamageBonus, 1);
+  });
+
+  test('newly unlocked fusions preserve catalog order', () {
+    expect(
+      SurvivalPatchFusions.newlyUnlocked(
+        before: const <String>[SurvivalPatchFusions.ghostVent],
+        after: SurvivalPatchFusions.all,
+      ),
+      const <String>[
+        SurvivalPatchFusions.echoCascade,
+        SurvivalPatchFusions.redline,
+      ],
+    );
   });
 }

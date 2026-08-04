@@ -30,6 +30,7 @@ import 'package:patch_world/game/systems/patch_effects_system.dart';
 import 'package:patch_world/game/systems/player_pattern_tracker.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
 import 'package:patch_world/game/survival/survival_patch_modifiers.dart';
+import 'package:patch_world/game/survival/survival_patch_fusions.dart';
 import 'package:patch_world/game/survival/survival_playtest_telemetry.dart';
 import 'package:patch_world/game/survival/survival_upgrade_request.dart';
 import 'package:patch_world/services/audio_service.dart';
@@ -381,10 +382,15 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       if (choice.id == patchId) patch = choice;
     }
     if (patch == null) return;
+    final fusionsBefore = survivalModifiers.activeFusionIds;
     runState.selectPatch(patch.id);
     survivalRun.upgradePatch(
       patch.id,
       riskTier: SurvivalUpgradeCatalog.riskTierFor(patch),
+    );
+    final unlockedFusions = SurvivalPatchFusions.newlyUnlocked(
+      before: fusionsBefore,
+      after: survivalModifiers.activeFusionIds,
     );
     pendingSurvivalUpgrade = null;
     overlays.remove(OverlayIds.survivalUpgrade);
@@ -392,7 +398,15 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     publishUiSnapshot(force: true);
     final activeRoom = world.activeRoom;
     if (activeRoom is SurvivalArenaController) {
-      activeRoom.showPatchPowerDemo(patch.title);
+      if (unlockedFusions case [final fusionId, ...]) {
+        survivalRun.telemetry.record(
+          survivalRun.elapsedSeconds,
+          SurvivalMeaningfulEvent.fusionUnlocked,
+        );
+        activeRoom.showFusionOnline(localization.text('$fusionId.title'));
+      } else {
+        activeRoom.showPatchPowerDemo(patch.title);
+      }
     }
     resumeEngine();
   }
@@ -499,6 +513,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       motionTaxTier: mode == PatchWorldMode.survival
           ? survivalModifiers.motionTaxTier
           : 0,
+      allowMovingVentCharge:
+          mode == PatchWorldMode.survival &&
+          survivalModifiers.ghostVentFusion &&
+          activeRoom is SurvivalArenaController &&
+          activeRoom.isPhaseWindowOpen,
       playerPosition: world.player.position,
     );
     if (input.consumeAttack()) {
@@ -1005,6 +1024,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           : null,
       survivalDataSurge:
           mode == PatchWorldMode.survival && survivalRun.dataSurgeActive,
+      survivalFusionCount: mode == PatchWorldMode.survival
+          ? survivalModifiers.activeFusionIds.length
+          : 0,
       motionVentReady:
           mode == PatchWorldMode.survival && patchEffects.motionVentCharged,
       normalizedHeat: patchEffects.normalizedHeat,

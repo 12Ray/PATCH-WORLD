@@ -241,6 +241,17 @@ final class _RuleView extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (snapshot.survivalFusionCount > 0) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Text(
+                    'FUSION x${snapshot.survivalFusionCount}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFC857),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
                 if (snapshot.motionVentReady) ...<Widget>[
                   const SizedBox(width: 8),
                   const Text(

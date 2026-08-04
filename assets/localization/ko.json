@@ -172,5 +172,8 @@
   "patch.duplicate_fault.survivalBenefit.tier3": "오류 폭발이 피해 2·반경 90이 되고 복제체 보상이 3배가 됩니다.",
   "patch.duplicate_fault.survivalRisk.tier3": "더 큰 연쇄 폭발을 위해 복제체 군집을 감수해야 합니다.",
   "patch.motionTax.title": "MOTION TAX",
-  "ending.final": "기계는 규칙을 썼고, 인간은 그 의미를 선택했다."
+  "ending.final": "기계는 규칙을 썼고, 인간은 그 의미를 선택했다.",
+  "fusion.ghost_vent.title": "고스트 벤트",
+  "fusion.echo_cascade.title": "에코 캐스케이드",
+  "fusion.redline.title": "레드라인"
 }

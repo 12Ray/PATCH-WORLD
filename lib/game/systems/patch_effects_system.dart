@@ -43,6 +43,7 @@ final class PatchEffectsSystem {
     required double playerStatusDt,
     required bool isPlayerMoving,
     int motionTaxTier = 0,
+    bool allowMovingVentCharge = false,
     Vector2? playerPosition,
   }) {
     if (!hasMotionTax) {
@@ -51,7 +52,7 @@ final class PatchEffectsSystem {
       return;
     }
     if (motionTaxTier >= 2) {
-      if (isPlayerMoving) {
+      if (isPlayerMoving && !allowMovingVentCharge) {
         _stationarySeconds = 0;
       } else if (!_motionVentCharged) {
         _stationarySeconds += playerStatusDt;

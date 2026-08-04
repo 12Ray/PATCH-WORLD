@@ -26,6 +26,7 @@ final class UiSnapshot {
     this.survivalOverclock = false,
     this.survivalDataCharge,
     this.survivalDataSurge = false,
+    this.survivalFusionCount = 0,
     this.motionVentReady = false,
   });
 
@@ -60,6 +61,7 @@ final class UiSnapshot {
   final bool survivalOverclock;
   final int? survivalDataCharge;
   final bool survivalDataSurge;
+  final int survivalFusionCount;
   final bool motionVentReady;
 
   @override
@@ -88,6 +90,7 @@ final class UiSnapshot {
           survivalOverclock == other.survivalOverclock &&
           survivalDataCharge == other.survivalDataCharge &&
           survivalDataSurge == other.survivalDataSurge &&
+          survivalFusionCount == other.survivalFusionCount &&
           motionVentReady == other.motionVentReady;
 
   @override
@@ -114,6 +117,7 @@ final class UiSnapshot {
     survivalOverclock,
     survivalDataCharge,
     survivalDataSurge,
+    survivalFusionCount,
     motionVentReady,
   ]);
 }

@@ -134,6 +134,10 @@ final class PlayerComponent extends RectangleComponent
             game.survivalRun.frameOverclockActive
         ? survivalModifiers?.frameOverclockDamageBonus ?? 0
         : 0;
+    final redlineDamageBonus =
+        game.mode == PatchWorldMode.survival && game.survivalRun.overclockActive
+        ? survivalModifiers?.redlineDamageBonus ?? 0
+        : 0;
     final dataSurgeDamageBonus = game.mode == PatchWorldMode.survival
         ? game.survivalRun.dataSurgeDamageBonus
         : 0;
@@ -153,14 +157,24 @@ final class PlayerComponent extends RectangleComponent
     _visual?.flash(const Color(0xFFFF8FE8), seconds: 0.10);
     _visual?.squash();
     final pulsePosition = position.clone();
+    final activeRoom = game.world.activeRoom;
+    final ghostVentRadiusMultiplier =
+        survivalModifiers?.ghostVentFusion == true &&
+            activeRoom is SurvivalArenaController &&
+            activeRoom.isPhaseWindowOpen
+        ? survivalModifiers!.ghostVentRadiusMultiplier
+        : 1.0;
     game.world.spawnPatchPulse(
       pulsePosition,
       damage:
           (survivalModifiers?.pulseDamage ?? 1) +
           ventDamageBonus +
           frameDamageBonus +
+          redlineDamageBonus +
           dataSurgeDamageBonus,
-      radiusMultiplier: survivalModifiers?.pulseRadiusMultiplier ?? 1,
+      radiusMultiplier:
+          (survivalModifiers?.pulseRadiusMultiplier ?? 1) *
+          ghostVentRadiusMultiplier,
     );
     game.patchEffects.onPatchPulseEmitted(
       pulsePosition,

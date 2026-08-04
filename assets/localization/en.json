@@ -172,5 +172,8 @@
   "patch.duplicate_fault.survivalBenefit.tier3": "Duplicate bursts deal 2 in a 90 radius and duplicate rewards become 3x.",
   "patch.duplicate_fault.survivalRisk.tier3": "Larger chain reactions require accepting denser duplicate packs.",
   "patch.motionTax.title": "MOTION TAX",
-  "ending.final": "The machine wrote the rules. The human chose their meaning."
+  "ending.final": "The machine wrote the rules. The human chose their meaning.",
+  "fusion.ghost_vent.title": "GHOST VENT",
+  "fusion.echo_cascade.title": "ECHO CASCADE",
+  "fusion.redline.title": "REDLINE"
 }
