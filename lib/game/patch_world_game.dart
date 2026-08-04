@@ -82,6 +82,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     'SURVIVAL_QA_START_COMBO',
     defaultValue: 0,
   );
+  static const bool survivalQaPerfectDodgeDemo = bool.fromEnvironment(
+    'SURVIVAL_QA_PERFECT_DODGE_DEMO',
+    defaultValue: false,
+  );
 
   final RoomId initialRoom;
 
@@ -275,6 +279,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     // A survival run must always receive a fresh director timeline. This also
     // keeps QA start-second builds from replaying every earlier milestone.
     await world.loadRoom(currentRoom);
+    if (survivalQaPerfectDodgeDemo) {
+      recordSurvivalPerfectDodge(world.player.position.clone());
+    }
     publishUiSnapshot(force: true);
   }
 
@@ -390,6 +397,17 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     if (mode != PatchWorldMode.survival) return;
     survivalRun.recordHit();
     publishUiSnapshot(force: true);
+  }
+
+  int recordSurvivalPerfectDodge(Vector2 position) {
+    if (mode != PatchWorldMode.survival) return 0;
+    final scoreBefore = survivalRun.score;
+    survivalRun.recordPerfectDodge();
+    final gainedScore = math.max(0, survivalRun.score - scoreBefore);
+    world.spawnDataShards(position, count: 1, alternatingCorruption: false);
+    world.spawnPerfectDodgeBurst(position, score: gainedScore);
+    publishUiSnapshot(force: true);
+    return gainedScore;
   }
 
   void recordSurvivalMilestone(SurvivalMeaningfulEvent event) {

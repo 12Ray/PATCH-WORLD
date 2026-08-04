@@ -61,6 +61,30 @@ void main() {
     expect(SurvivalRunState.flowDataRewardForCombo(40), 2);
   });
 
+  test('perfect dodge rewards flow without faking kills or experience', () {
+    final state = SurvivalRunState();
+    for (var index = 0; index < 5; index += 1) {
+      state.recordKill();
+    }
+    state.update(1);
+    final killsBefore = state.kills;
+    final experienceBefore = state.experience;
+    final scoreBefore = state.score;
+
+    expect(state.recordPerfectDodge(), 240);
+    expect(state.perfectDodges, 1);
+    expect(state.score - scoreBefore, 240);
+    expect(state.kills, killsBefore);
+    expect(state.experience, experienceBefore);
+    expect(
+      state.comboRemaining,
+      SurvivalRunState.comboWindowForCombo(state.combo),
+    );
+
+    state.reset();
+    expect(state.perfectDodges, 0);
+  });
+
   test('critical flow activates at chain twenties and resets safely', () {
     final state = SurvivalRunState();
     state.seedComboForQa(19);

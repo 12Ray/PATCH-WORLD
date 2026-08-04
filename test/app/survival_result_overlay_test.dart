@@ -8,6 +8,10 @@ void main() {
   testWidgets('survival result presents run stats and retry choices', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final game = PatchWorldGame();
     await game.localization.load('en');
     game.survivalResult.value = const SurvivalResultSnapshot(
@@ -19,6 +23,7 @@ void main() {
       maxCombo: 12,
       hotCachesSpawned: 3,
       hotCachesCollected: 2,
+      perfectDodges: 7,
       patchTiers: <String, int>{'patch.motion_tax': 2, 'patch.phase_leak': 2},
       riskMultiplier: 1.24,
       firstPatchId: 'patch.motion_tax',
@@ -48,6 +53,8 @@ void main() {
     expect(find.text('11.9'), findsOneWidget);
     expect(find.text('HOT CACHES'), findsOneWidget);
     expect(find.text('2/3'), findsOneWidget);
+    expect(find.text('PERFECT DODGES'), findsOneWidget);
+    expect(find.text('7'), findsOneWidget);
     expect(find.text('PACING CLEAR // NO GAP OVER 20s'), findsOneWidget);
     expect(find.text('PLAYTEST SESSION  1/5'), findsOneWidget);
     expect(find.text('TOP PICK  MOTION TAX  100%'), findsOneWidget);

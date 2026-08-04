@@ -384,6 +384,8 @@ final class SurvivalArenaController extends Component
       entityId: 'survival-phase-hound-${_spawnId++}',
       position: _nextSpawn(),
       onDefeated: () => game.recordSurvivalKillAt(hound.position),
+      onPerfectDodge: () =>
+          game.recordSurvivalPerfectDodge(game.world.player.position.clone()),
     );
     await add(hound);
   }

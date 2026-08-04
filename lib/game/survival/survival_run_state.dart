@@ -28,6 +28,7 @@ final class SurvivalRunState {
   int hotCachesSpawned = 0;
   int hotCachesCollected = 0;
   int hotCachesExpired = 0;
+  int perfectDodges = 0;
   String? firstPatchId;
   double turboOverclockRemaining = 0;
   double frameOverclockRemaining = 0;
@@ -200,6 +201,15 @@ final class SurvivalRunState {
 
   void recordHotCacheExpired() => hotCachesExpired += 1;
 
+  int recordPerfectDodge() {
+    perfectDodges += 1;
+    final reward = 120 * flowMultiplier;
+    bonusScore += reward;
+    if (combo > 0) comboRemaining = comboWindowForCombo(combo);
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.perfectDodge);
+    return reward;
+  }
+
   int upgradePatch(String patchId, {required int riskTier}) {
     final nextTier = math.min(3, patchTier(patchId) + 1);
     if (nextTier == patchTier(patchId)) return nextTier;
@@ -226,6 +236,7 @@ final class SurvivalRunState {
     hotCachesSpawned = 0;
     hotCachesCollected = 0;
     hotCachesExpired = 0;
+    perfectDodges = 0;
     firstPatchId = null;
     turboOverclockRemaining = 0;
     frameOverclockRemaining = 0;
@@ -249,6 +260,7 @@ final class SurvivalResultSnapshot {
     required this.maxCombo,
     required this.hotCachesSpawned,
     required this.hotCachesCollected,
+    this.perfectDodges = 0,
     required this.patchTiers,
     required this.riskMultiplier,
     required this.firstPatchId,
@@ -274,6 +286,7 @@ final class SurvivalResultSnapshot {
       maxCombo: run.maxCombo,
       hotCachesSpawned: run.hotCachesSpawned,
       hotCachesCollected: run.hotCachesCollected,
+      perfectDodges: run.perfectDodges,
       patchTiers: Map<String, int>.unmodifiable(run.patchTiers),
       riskMultiplier: run.riskMultiplier,
       firstPatchId: run.firstPatchId,
@@ -293,6 +306,7 @@ final class SurvivalResultSnapshot {
   final int maxCombo;
   final int hotCachesSpawned;
   final int hotCachesCollected;
+  final int perfectDodges;
   final Map<String, int> patchTiers;
   final double riskMultiplier;
   final String? firstPatchId;

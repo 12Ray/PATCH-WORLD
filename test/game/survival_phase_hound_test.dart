@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
 import 'package:patch_world/game/components/effects/survival_score_popup_component.dart';
+import 'package:patch_world/game/components/effects/perfect_dodge_burst_component.dart';
 import 'package:patch_world/game/components/enemies/phase_hound_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
@@ -56,6 +57,33 @@ void main() {
     await tester.pump(const Duration(milliseconds: 16));
     final dataBefore = game.world.player.dataShardCharge;
 
+    game.survivalRun.seedComboForQa(5);
+    final scoreBeforeDodge = game.survivalRun.score;
+    final eventsBeforeDodge = game.survivalRun.telemetry
+        .snapshot(game.survivalRun.elapsedSeconds)
+        .meaningfulEventCount;
+    final dodgeScore = game.recordSurvivalPerfectDodge(
+      game.world.player.position.clone(),
+    );
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(dodgeScore, greaterThan(0));
+    expect(game.survivalRun.score - scoreBeforeDodge, dodgeScore);
+    expect(game.survivalRun.perfectDodges, 1);
+    expect(game.survivalRun.kills, 0);
+    expect(
+      game.world.children.whereType<PerfectDodgeBurstComponent>(),
+      hasLength(1),
+    );
+    expect(
+      game.survivalRun.telemetry
+              .snapshot(game.survivalRun.elapsedSeconds)
+              .meaningfulEventCount -
+          eventsBeforeDodge,
+      1,
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(game.world.player.dataShardCharge - dataBefore, 1);
+
     hound.receiveDamage(3);
     hound.receiveDamage(3);
     await tester.pump(const Duration(milliseconds: 16));
@@ -66,7 +94,7 @@ void main() {
     expect(popup.score, greaterThan(0));
     expect(popup.kind, SurvivalScorePopupKind.normal);
     await tester.pump(const Duration(milliseconds: 400));
-    expect(game.world.player.dataShardCharge - dataBefore, 3);
+    expect(game.world.player.dataShardCharge - dataBefore, 4);
 
     game.world.player.integrity = 999;
     game.survivalRun.elapsedSeconds = 119;

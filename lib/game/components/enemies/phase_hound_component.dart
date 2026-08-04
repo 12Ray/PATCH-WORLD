@@ -24,6 +24,7 @@ final class PhaseHoundComponent extends RectangleComponent
     required super.position,
     required this.onDefeated,
     this.targetPosition,
+    this.onPerfectDodge,
   }) : healthState = HealthState(max: maxHealth, current: maxHealth),
        super(
          size: Vector2(38, 30),
@@ -39,11 +40,14 @@ final class PhaseHoundComponent extends RectangleComponent
   static const double recoverySeconds = 0.85;
   static const double stalkSpeed = 82;
   static const double dashSpeed = 330;
+  static const double dashHitRadius = 30;
+  static const double perfectDodgeRadius = 70;
 
   @override
   final String entityId;
   final void Function() onDefeated;
   final Vector2 Function()? targetPosition;
+  final void Function()? onPerfectDodge;
   final HealthState healthState;
   final Vector2 _previousPosition = Vector2.zero();
   Vector2 _lockedDirection = Vector2(1, 0);
@@ -53,6 +57,8 @@ final class PhaseHoundComponent extends RectangleComponent
   bool _dashHitClaimed = false;
   bool _duplicateClaimed = false;
   bool _defeatReported = false;
+  bool _dodgeReported = false;
+  double _dashClosestApproach = double.infinity;
 
   Vector2 get lockedDirection => _lockedDirection.clone();
 
@@ -148,6 +154,12 @@ final class PhaseHoundComponent extends RectangleComponent
         if (stateTimer <= 0) _enterDash();
       case PhaseHoundState.dash:
         position += _lockedDirection * (dashSpeed * enemyDt);
+        _trackDashApproach(target, _previousPosition, position);
+        if (isMounted &&
+            _dashClosestApproach <= dashHitRadius &&
+            claimDashHit()) {
+          game.world.player.takeDamage(1, causeId: 'enemy.phase_hound.dash');
+        }
         _visual?.setStateTint(const Color(0xFFFFFFFF));
         if (stateTimer <= 0) _enterRecovery();
       case PhaseHoundState.recovery:
@@ -201,13 +213,42 @@ final class PhaseHoundComponent extends RectangleComponent
     state = PhaseHoundState.dash;
     stateTimer = dashSeconds;
     _dashHitClaimed = false;
+    _dodgeReported = false;
+    _dashClosestApproach = double.infinity;
     scale.setAll(1.18);
   }
 
-  void _enterRecovery() {
+  void _enterRecovery({bool allowPerfectDodge = true}) {
+    if (allowPerfectDodge &&
+        !_dashHitClaimed &&
+        !_dodgeReported &&
+        _dashClosestApproach > dashHitRadius &&
+        _dashClosestApproach <= perfectDodgeRadius) {
+      _dodgeReported = true;
+      onPerfectDodge?.call();
+    }
     state = PhaseHoundState.recovery;
     stateTimer = recoverySeconds;
     scale.setAll(1);
+  }
+
+  void _trackDashApproach(Vector2 target, Vector2 start, Vector2 end) {
+    _dashClosestApproach = math.min(
+      _dashClosestApproach,
+      distanceToDashPath(target: target, start: start, end: end),
+    );
+  }
+
+  static double distanceToDashPath({
+    required Vector2 target,
+    required Vector2 start,
+    required Vector2 end,
+  }) {
+    final segment = end - start;
+    if (segment.length2 == 0) return target.distanceTo(start);
+    final offset = target - start;
+    final projection = (offset.dot(segment) / segment.length2).clamp(0.0, 1.0);
+    return target.distanceTo(start + segment * projection);
   }
 
   @override
@@ -215,7 +256,9 @@ final class PhaseHoundComponent extends RectangleComponent
     if (other is WallComponent ||
         (other is PhaseWallComponent && other.isSolid)) {
       position.setFrom(_previousPosition);
-      if (state == PhaseHoundState.dash) _enterRecovery();
+      if (state == PhaseHoundState.dash) {
+        _enterRecovery(allowPerfectDodge: false);
+      }
     } else if (other is PlayerComponent && claimDashHit()) {
       other.takeDamage(1, causeId: 'enemy.phase_hound.dash');
     }

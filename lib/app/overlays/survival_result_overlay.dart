@@ -115,6 +115,12 @@ final class SurvivalResultOverlay extends StatelessWidget {
                             ),
                             _Stat(
                               label: game.localization.text(
+                                'survivalResult.perfectDodges',
+                              ),
+                              value: '${result.perfectDodges}',
+                            ),
+                            _Stat(
+                              label: game.localization.text(
                                 'survivalResult.risk',
                               ),
                               value:

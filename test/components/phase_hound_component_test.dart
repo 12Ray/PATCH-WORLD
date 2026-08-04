@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/components/enemies/phase_hound_component.dart';
+import 'package:patch_world/game/components/environment/wall_component.dart';
 
 void main() {
   test('phase hound locks a readable dash through all four states', () {
@@ -50,5 +51,100 @@ void main() {
 
     expect(hound.healthState.isDefeated, isTrue);
     expect(defeats, 1);
+  });
+
+  test('dash path geometry preserves hit and perfect dodge bands', () {
+    final start = Vector2.zero();
+    final end = Vector2(100, 0);
+
+    expect(
+      PhaseHoundComponent.distanceToDashPath(
+        target: Vector2(50, 30),
+        start: start,
+        end: end,
+      ),
+      PhaseHoundComponent.dashHitRadius,
+    );
+    expect(
+      PhaseHoundComponent.distanceToDashPath(
+        target: Vector2(50, 70),
+        start: start,
+        end: end,
+      ),
+      PhaseHoundComponent.perfectDodgeRadius,
+    );
+    expect(
+      PhaseHoundComponent.distanceToDashPath(
+        target: Vector2(140, 0),
+        start: start,
+        end: end,
+      ),
+      40,
+    );
+  });
+
+  test('near dash reports one dodge but hits and wall aborts do not', () {
+    var target = Vector2(220, 0);
+    var dodges = 0;
+    final hound = PhaseHoundComponent(
+      entityId: 'hound-dodge',
+      position: Vector2.zero(),
+      targetPosition: () => target,
+      onPerfectDodge: () => dodges += 1,
+      onDefeated: () {},
+    );
+
+    hound.update(1.01);
+    final locked = hound.lockedDirection;
+    hound.update(0.66);
+    final perpendicular = Vector2(-locked.y, locked.x);
+    target = hound.position + locked * 50 + perpendicular * 50;
+    hound.update(0.33);
+    expect(hound.state, PhaseHoundState.recovery);
+    expect(dodges, 1);
+    hound.update(0.1);
+    expect(dodges, 1);
+
+    target = Vector2(220, 0);
+    final hitHound = PhaseHoundComponent(
+      entityId: 'hound-hit-no-dodge',
+      position: Vector2.zero(),
+      targetPosition: () => target,
+      onPerfectDodge: () => dodges += 1,
+      onDefeated: () {},
+    );
+    hitHound.update(1.01);
+    final hitLocked = hitHound.lockedDirection;
+    hitHound.update(0.66);
+    target =
+        hitHound.position +
+        hitLocked * 50 +
+        Vector2(-hitLocked.y, hitLocked.x) * 50;
+    expect(hitHound.claimDashHit(), isTrue);
+    hitHound.update(0.33);
+    expect(dodges, 1);
+
+    target = Vector2(220, 0);
+    final blockedHound = PhaseHoundComponent(
+      entityId: 'hound-wall-no-dodge',
+      position: Vector2.zero(),
+      targetPosition: () => target,
+      onPerfectDodge: () => dodges += 1,
+      onDefeated: () {},
+    );
+    blockedHound.update(1.01);
+    final blockedLocked = blockedHound.lockedDirection;
+    blockedHound.update(0.66);
+    target =
+        blockedHound.position +
+        blockedLocked * 30 +
+        Vector2(-blockedLocked.y, blockedLocked.x) * 50;
+    blockedHound.update(0.1);
+    blockedHound.onCollision(
+      <Vector2>{},
+      WallComponent(position: Vector2.zero(), size: Vector2.all(20)),
+    );
+    expect(blockedHound.state, PhaseHoundState.recovery);
+    expect(dodges, 1);
   });
 }
