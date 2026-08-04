@@ -647,7 +647,17 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         RoomId.collisionArchive => localization.text(
           'objective.collisionArchive',
         ),
-        RoomId.optimizerCore => localization.text('objective.optimizerCore'),
+        RoomId.optimizerCore => switch (boss?.phase.name) {
+          'perfect' => localization.text(
+            'objective.optimizerPerfect',
+            parameters: <String, Object>{
+              'stability': boss?.stability.current ?? 75,
+            },
+          ),
+          'overflow' ||
+          'defeated' => localization.text('objective.optimizerOverflow'),
+          _ => localization.text('objective.optimizerDamage'),
+        },
       },
       selectedPatchIds: runState.selectedPatchIds,
       normalizedHeat: patchEffects.normalizedHeat,

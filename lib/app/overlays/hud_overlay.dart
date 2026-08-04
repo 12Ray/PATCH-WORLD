@@ -89,23 +89,33 @@ final class _RuleView extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     mainAxisSize: MainAxisSize.min,
     children: <Widget>[
-      Text(
-        snapshot.roomLabel,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Color(0xFFF4F7FF),
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-      Text(
-        snapshot.anomalyLabel,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Color(0xFFFF4FD8),
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Flexible(
+            child: Text(
+              snapshot.roomLabel,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFFF4F7FF),
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              snapshot.anomalyLabel,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFFFF4FD8),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
       Text(
         snapshot.objectiveLabel,
@@ -116,46 +126,68 @@ final class _RuleView extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
-      if (snapshot.normalizedHeat case final double heat)
-        SizedBox(
-          width: 190,
-          height: 4,
-          child: LinearProgressIndicator(
-            value: heat,
-            backgroundColor: const Color(0xFF25304A),
-            valueColor: AlwaysStoppedAnimation<Color>(
-              heat >= 0.75 ? const Color(0xFFFF6464) : const Color(0xFFFFC857),
-            ),
+      SizedBox(
+        height: 14,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (snapshot.normalizedHeat case final double heat) ...<Widget>[
+                SizedBox(
+                  width: 120,
+                  height: 4,
+                  child: LinearProgressIndicator(
+                    value: heat,
+                    backgroundColor: const Color(0xFF25304A),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      heat >= 0.75
+                          ? const Color(0xFFFF6464)
+                          : const Color(0xFFFFC857),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              if (snapshot.frameBurstPhase case final FrameBurstPhase phase)
+                Text(
+                  switch (phase) {
+                    FrameBurstPhase.normal => game.localization.text(
+                      'hud.frameStable',
+                    ),
+                    FrameBurstPhase.warning => game.localization.text(
+                      'hud.frameWarning',
+                    ),
+                    FrameBurstPhase.active => game.localization.text(
+                      'hud.frameActive',
+                    ),
+                  },
+                  style: TextStyle(
+                    color: phase == FrameBurstPhase.active
+                        ? const Color(0xFFFF6464)
+                        : const Color(0xFFFFC857),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              if (snapshot.frameBurstPhase != null &&
+                  snapshot.bossPhase != null)
+                const SizedBox(width: 12),
+              if (snapshot.bossPhase case final String phase)
+                Text(
+                  snapshot.bossStability == null
+                      ? '${game.localization.text('hud.boss')} ${phase.toUpperCase()}  HP ${snapshot.bossHealth}/${snapshot.bossMaxHealth}'
+                      : '${game.localization.text('hud.perfect')}  ${game.localization.text('hud.stability')} ${snapshot.bossStability}/150',
+                  style: const TextStyle(
+                    color: Color(0xFFFFC857),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+            ],
           ),
         ),
-      if (snapshot.frameBurstPhase case final FrameBurstPhase phase)
-        Text(
-          switch (phase) {
-            FrameBurstPhase.normal => game.localization.text('hud.frameStable'),
-            FrameBurstPhase.warning => game.localization.text(
-              'hud.frameWarning',
-            ),
-            FrameBurstPhase.active => game.localization.text('hud.frameActive'),
-          },
-          style: TextStyle(
-            color: phase == FrameBurstPhase.active
-                ? const Color(0xFFFF6464)
-                : const Color(0xFFFFC857),
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      if (snapshot.bossPhase case final String phase)
-        Text(
-          snapshot.bossStability == null
-              ? '${game.localization.text('hud.boss')} ${phase.toUpperCase()}  HP ${snapshot.bossHealth}/${snapshot.bossMaxHealth}'
-              : '${game.localization.text('hud.perfect')}  ${game.localization.text('hud.stability')} ${snapshot.bossStability}/150',
-          style: const TextStyle(
-            color: Color(0xFFFFC857),
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
+      ),
     ],
   );
 }
