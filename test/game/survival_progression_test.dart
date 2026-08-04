@@ -167,6 +167,10 @@ void main() {
     expect(game.survivalResult.value, isNotNull);
     expect(game.survivalResult.value!.elapsedSeconds, greaterThan(176));
     expect(game.survivalResult.value!.firstPatchId, firstPatchId);
+    expect(game.survivalResult.value!.meaningfulEventCount, greaterThan(0));
+    expect(game.survivalSessionHistory, hasLength(1));
+    expect(game.survivalSessionSummary.runCount, 1);
+    expect(game.survivalSessionSummary.topPatchId, firstPatchId);
     expect(game.paused, isTrue);
 
     game.retrySurvivalRun(keepStartingPatch: true);
@@ -176,6 +180,7 @@ void main() {
     expect(game.survivalRun.elapsedSeconds, lessThan(1));
     expect(game.survivalRun.patchTier(firstPatchId!), 1);
     expect(game.runState.hasPatch(firstPatchId), isTrue);
+    expect(game.survivalSessionHistory, hasLength(1));
   });
 }
 

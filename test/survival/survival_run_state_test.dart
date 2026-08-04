@@ -45,6 +45,9 @@ void main() {
     expect(result.maxCombo, 1);
     expect(result.patchTiers, <String, int>{'patch.motion_tax': 1});
     expect(result.firstPatchId, 'patch.motion_tax');
+    expect(result.meaningfulEventCount, 2);
+    expect(result.longestQuietSeconds, 91.8);
+    expect(result.hasPacingGap, isTrue);
   });
 
   test('reward multiplier grants bonus experience and score', () {

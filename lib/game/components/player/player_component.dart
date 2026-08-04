@@ -187,6 +187,9 @@ final class PlayerComponent extends RectangleComponent
     final appliedDamage = math.min(integrity, amount);
     integrity = math.max(0, integrity - amount);
     if (isMounted) game.runMetrics.recordDamage(appliedDamage);
+    if (isMounted && game.mode == PatchWorldMode.survival) {
+      game.recordSurvivalHit();
+    }
     if (isMounted) {
       unawaited(game.audio.playDamage());
       game.triggerImpactFeedback();

@@ -1,8 +1,11 @@
 import 'dart:math' as math;
 
+import 'package:patch_world/game/survival/survival_playtest_telemetry.dart';
+
 enum PatchWorldMode { campaign, survival }
 
 final class SurvivalRunState {
+  final SurvivalPlaytestTelemetry telemetry = SurvivalPlaytestTelemetry();
   final Map<String, int> _patchTiers = <String, int>{};
   final List<double> _killTimes = <double>[];
   double elapsedSeconds = 0;
@@ -64,6 +67,7 @@ final class SurvivalRunState {
     bool miniBoss = false,
     int rewardMultiplier = 1,
   }) {
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.kill);
     final safeRewardMultiplier = math.max(1, rewardMultiplier);
     kills += 1;
     _killTimes.add(elapsedSeconds);
@@ -96,6 +100,7 @@ final class SurvivalRunState {
   }
 
   void recordHit() {
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.hit);
     combo = combo ~/ 2;
     comboRemaining = combo == 0 ? 0 : 3;
   }
@@ -114,6 +119,7 @@ final class SurvivalRunState {
     final nextTier = math.min(3, patchTier(patchId) + 1);
     if (nextTier == patchTier(patchId)) return nextTier;
     _patchTiers[patchId] = nextTier;
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.patchInstalled);
     firstPatchId ??= patchId;
     addRiskTier(riskTier);
     return nextTier;
@@ -137,6 +143,7 @@ final class SurvivalRunState {
     frameOverclockRemaining = 0;
     _patchTiers.clear();
     _killTimes.clear();
+    telemetry.reset();
   }
 }
 
@@ -153,25 +160,34 @@ final class SurvivalResultSnapshot {
     required this.firstPatchId,
     required this.isBestScore,
     required this.isBestTime,
+    required this.meaningfulEventCount,
+    required this.longestQuietSeconds,
+    required this.eventsPerMinute,
   });
 
   factory SurvivalResultSnapshot.fromRun(
     SurvivalRunState run, {
     required bool isBestScore,
     required bool isBestTime,
-  }) => SurvivalResultSnapshot(
-    elapsedSeconds: run.elapsedSeconds,
-    kills: run.kills,
-    eliteKills: run.eliteKills,
-    miniBossKills: run.miniBossKills,
-    score: run.score,
-    maxCombo: run.maxCombo,
-    patchTiers: Map<String, int>.unmodifiable(run.patchTiers),
-    riskMultiplier: run.riskMultiplier,
-    firstPatchId: run.firstPatchId,
-    isBestScore: isBestScore,
-    isBestTime: isBestTime,
-  );
+  }) {
+    final pacing = run.telemetry.snapshot(run.elapsedSeconds);
+    return SurvivalResultSnapshot(
+      elapsedSeconds: run.elapsedSeconds,
+      kills: run.kills,
+      eliteKills: run.eliteKills,
+      miniBossKills: run.miniBossKills,
+      score: run.score,
+      maxCombo: run.maxCombo,
+      patchTiers: Map<String, int>.unmodifiable(run.patchTiers),
+      riskMultiplier: run.riskMultiplier,
+      firstPatchId: run.firstPatchId,
+      isBestScore: isBestScore,
+      isBestTime: isBestTime,
+      meaningfulEventCount: pacing.meaningfulEventCount,
+      longestQuietSeconds: pacing.longestQuietSeconds,
+      eventsPerMinute: pacing.eventsPerMinute,
+    );
+  }
 
   final double elapsedSeconds;
   final int kills;
@@ -184,6 +200,11 @@ final class SurvivalResultSnapshot {
   final String? firstPatchId;
   final bool isBestScore;
   final bool isBestTime;
+  final int meaningfulEventCount;
+  final double longestQuietSeconds;
+  final double eventsPerMinute;
+
+  bool get hasPacingGap => longestQuietSeconds > 20;
 
   String get formattedTime {
     final total = elapsedSeconds.floor();

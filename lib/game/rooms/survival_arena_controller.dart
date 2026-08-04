@@ -15,6 +15,7 @@ import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/systems/phase_leak_controller.dart';
 import 'package:patch_world/game/survival/wave_director.dart';
+import 'package:patch_world/game/survival/survival_playtest_telemetry.dart';
 
 final class SurvivalArenaController extends Component
     with HasGameReference<PatchWorldGame> {
@@ -132,6 +133,9 @@ final class SurvivalArenaController extends Component
     final minute = game.survivalRun.elapsedSeconds.floor() ~/ 60;
     if (minute <= _lastCelebratedMinute) return;
     _lastCelebratedMinute = minute;
+    if (minute >= 10) {
+      game.recordSurvivalMilestone(SurvivalMeaningfulEvent.endlessTier);
+    }
     final label = minute >= 10
         ? 'ENDLESS T${minute - 9} // ${minute * 60}s // RISK x${game.survivalRun.riskMultiplier.toStringAsFixed(2)}'
         : '${minute * 60}s SURVIVED // RISK x${game.survivalRun.riskMultiplier.toStringAsFixed(2)}';
@@ -180,17 +184,23 @@ final class SurvivalArenaController extends Component
       recentKillsPerSecond: state.recentKillsPerSecond(),
     );
     if (milestones.activateTemporalStorm) {
+      game.recordSurvivalMilestone(SurvivalMeaningfulEvent.temporalStorm);
       _showAlert('TEMPORAL STORM // 300s', const Color(0xFF36E1FF));
     }
     if (milestones.spawnOptimizerFragment) {
+      game.recordSurvivalMilestone(SurvivalMeaningfulEvent.optimizerFragment);
       await _spawnOptimizerFragment();
       return;
     }
     if (milestones.spawnComposite) {
+      game.recordSurvivalMilestone(SurvivalMeaningfulEvent.composite);
       await _spawnComposite();
       return;
     }
-    if (milestones.spawnElite) await _spawnEliteSentinel();
+    if (milestones.spawnElite) {
+      game.recordSurvivalMilestone(SurvivalMeaningfulEvent.elite);
+      await _spawnEliteSentinel();
+    }
 
     final activeEnemies = children
         .where(

@@ -30,6 +30,7 @@ import 'package:patch_world/game/systems/patch_effects_system.dart';
 import 'package:patch_world/game/systems/player_pattern_tracker.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
 import 'package:patch_world/game/survival/survival_patch_modifiers.dart';
+import 'package:patch_world/game/survival/survival_playtest_telemetry.dart';
 import 'package:patch_world/game/survival/survival_upgrade_request.dart';
 import 'package:patch_world/services/audio_service.dart';
 import 'package:patch_world/services/game_settings.dart';
@@ -95,6 +96,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       ValueNotifier<DefeatSnapshot?>(null);
   final ValueNotifier<SurvivalResultSnapshot?> survivalResult =
       ValueNotifier<SurvivalResultSnapshot?>(null);
+  final List<SurvivalResultSnapshot> survivalSessionHistory =
+      <SurvivalResultSnapshot>[];
   final ValueNotifier<RunSummary?> completedRun = ValueNotifier<RunSummary?>(
     null,
   );
@@ -318,6 +321,22 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       _openSurvivalUpgrade();
     }
   }
+
+  void recordSurvivalHit() {
+    if (mode != PatchWorldMode.survival) return;
+    survivalRun.recordHit();
+    publishUiSnapshot(force: true);
+  }
+
+  void recordSurvivalMilestone(SurvivalMeaningfulEvent event) {
+    if (mode != PatchWorldMode.survival) return;
+    survivalRun.telemetry.record(survivalRun.elapsedSeconds, event);
+  }
+
+  SurvivalSessionSummary get survivalSessionSummary =>
+      SurvivalSessionSummary.fromPatchRuns(
+        survivalSessionHistory.map((result) => result.patchTiers.keys.toSet()),
+      );
 
   void _openSurvivalUpgrade() {
     final choices = SurvivalUpgradeCatalog.choicesForLevel(
@@ -787,11 +806,16 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       bestSurvivalTime = elapsedSeconds;
       unawaited(settingsService.saveBestSurvivalTime(elapsedSeconds));
     }
-    survivalResult.value = SurvivalResultSnapshot.fromRun(
+    final result = SurvivalResultSnapshot.fromRun(
       survivalRun,
       isBestScore: isBestScore,
       isBestTime: isBestTime,
     );
+    survivalSessionHistory.add(result);
+    if (survivalSessionHistory.length > 5) {
+      survivalSessionHistory.removeAt(0);
+    }
+    survivalResult.value = result;
     input.clearAll();
     pendingSurvivalUpgrade = null;
     overlays.remove(OverlayIds.survivalUpgrade);

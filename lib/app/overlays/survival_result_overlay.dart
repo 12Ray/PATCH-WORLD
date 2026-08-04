@@ -14,6 +14,7 @@ final class SurvivalResultOverlay extends StatelessWidget {
     valueListenable: game.survivalResult,
     builder: (context, result, _) {
       if (result == null) return const SizedBox.shrink();
+      final session = game.survivalSessionSummary;
       return ColoredBox(
         color: const Color(0xF2080B14),
         child: SafeArea(
@@ -112,8 +113,51 @@ final class SurvivalResultOverlay extends StatelessWidget {
                               value:
                                   'x${result.riskMultiplier.toStringAsFixed(2)}',
                             ),
+                            _Stat(
+                              label: game.localization.text(
+                                'survivalResult.quietGap',
+                              ),
+                              value:
+                                  '${result.longestQuietSeconds.toStringAsFixed(1)}s',
+                            ),
+                            _Stat(
+                              label: game.localization.text(
+                                'survivalResult.eventsPerMinute',
+                              ),
+                              value: result.eventsPerMinute.toStringAsFixed(1),
+                            ),
                           ],
                         ),
+                        const SizedBox(height: 12),
+                        _PacingBadge(
+                          label: game.localization.text(
+                            result.hasPacingGap
+                                ? 'survivalResult.pacingGap'
+                                : 'survivalResult.pacingClear',
+                          ),
+                          warning: result.hasPacingGap,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          '${game.localization.text('survivalResult.session')}  ${session.runCount}/5',
+                          style: const TextStyle(
+                            color: Color(0xFFA9B4C8),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        if (session.topPatchId case final String patchId) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '${game.localization.text('survivalResult.topPick')}  ${game.localization.text('$patchId.title')}  ${(session.topPatchSelectionRate * 100).round()}%${session.hasSelectionBias ? '  // ${game.localization.text('survivalResult.selectionBias')}' : ''}',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: session.hasSelectionBias
+                                  ? const Color(0xFFFFC857)
+                                  : const Color(0xFF45F3A6),
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 18),
                         Align(
                           alignment: Alignment.centerLeft,
@@ -286,4 +330,29 @@ final class _BestBadge extends StatelessWidget {
       ),
     ),
   );
+}
+
+final class _PacingBadge extends StatelessWidget {
+  const _PacingBadge({required this.label, required this.warning});
+
+  final String label;
+  final bool warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = warning ? const Color(0xFFFFC857) : const Color(0xFF45F3A6);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        border: Border.all(color: color),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: TextStyle(color: color, fontWeight: FontWeight.w900),
+      ),
+    );
+  }
 }

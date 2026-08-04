@@ -22,7 +22,11 @@ void main() {
       firstPatchId: 'patch.motion_tax',
       isBestScore: true,
       isBestTime: true,
+      meaningfulEventCount: 18,
+      longestQuietSeconds: 12.5,
+      eventsPerMinute: 11.9,
     );
+    game.survivalSessionHistory.add(game.survivalResult.value!);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -35,6 +39,11 @@ void main() {
     expect(find.text('1:31'), findsOneWidget);
     expect(find.text('4242'), findsOneWidget);
     expect(find.text('MOTION TAX  T2'), findsOneWidget);
+    expect(find.text('12.5s'), findsOneWidget);
+    expect(find.text('11.9'), findsOneWidget);
+    expect(find.text('PACING CLEAR // NO GAP OVER 20s'), findsOneWidget);
+    expect(find.text('PLAYTEST SESSION  1/5'), findsOneWidget);
+    expect(find.text('TOP PICK  MOTION TAX  100%'), findsOneWidget);
     expect(find.text('INSTANT RETRY'), findsOneWidget);
     expect(find.text('KEEP FIRST PATCH'), findsOneWidget);
   });
