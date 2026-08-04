@@ -12,6 +12,9 @@ void main() {
     final game = PatchWorldGame();
     await game.localization.load('en');
     game.survivalRun.upgradePatch(PatchCatalog.motionTax.id, riskTier: 1);
+    game.survivalRun
+      ..upgradePatch(PatchCatalog.phaseLeak.id, riskTier: 2)
+      ..upgradePatch(PatchCatalog.phaseLeak.id, riskTier: 2);
     game.pendingSurvivalUpgrade = const SurvivalUpgradeRequest(
       level: 3,
       choices: <PatchDefinition>[PatchCatalog.motionTax],
@@ -30,5 +33,8 @@ void main() {
       find.textContaining('overheating still causes damage'),
       findsOneWidget,
     );
+    expect(find.text('FUSION READY'), findsOneWidget);
+    expect(find.text('GHOST VENT'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

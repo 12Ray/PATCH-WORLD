@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:patch_world/game/core/run_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/survival/survival_patch_fusions.dart';
 
 final class SurvivalUpgradeOverlay extends StatelessWidget {
   const SurvivalUpgradeOverlay({required this.game, super.key});
@@ -95,6 +96,15 @@ final class _UpgradeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nextTier = (game.survivalRun.patchTier(patch.id) + 1).clamp(1, 3);
+    final fusion = SurvivalPatchFusions.definitionForPatch(patch.id);
+    final fusionActive =
+        fusion != null &&
+        game.survivalModifiers.activeFusionIds.contains(fusion.id);
+    final fusionReady = SurvivalPatchFusions.willUnlockAfterUpgrade(
+      patchId: patch.id,
+      nextTier: nextTier,
+      patchTiers: game.survivalRun.patchTiers,
+    );
     return Material(
       color: const Color(0xFF111827),
       borderRadius: BorderRadius.circular(14),
@@ -144,6 +154,30 @@ final class _UpgradeCard extends StatelessWidget {
                   patch.sideEffect,
                 ),
               ),
+              if (fusion != null && !fusionActive) ...<Widget>[
+                const SizedBox(height: 12),
+                _FusionHint(
+                  ready: fusionReady,
+                  label: game.localization.text(
+                    fusionReady
+                        ? 'survivalUpgrade.fusionReady'
+                        : 'survivalUpgrade.fusionPath',
+                  ),
+                  body: fusionReady
+                      ? game.localization.text('${fusion.id}.title')
+                      : game.localization.text(
+                          'survivalUpgrade.fusionRequirement',
+                          parameters: <String, Object>{
+                            'fusion': game.localization.text(
+                              '${fusion.id}.title',
+                            ),
+                            'partner': game.localization.text(
+                              '${fusion.partnerOf(patch.id)}.title',
+                            ),
+                          },
+                        ),
+                ),
+              ],
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
@@ -169,6 +203,49 @@ final class _UpgradeCard extends StatelessWidget {
     if (!tierValue.startsWith('[')) return tierValue;
     return _localized(field, fallback);
   }
+}
+
+final class _FusionHint extends StatelessWidget {
+  const _FusionHint({
+    required this.ready,
+    required this.label,
+    required this.body,
+  });
+
+  final bool ready;
+  final String label;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(
+      color: ready ? const Color(0x22FFC857) : const Color(0x182D3B56),
+      border: Border.all(
+        color: ready ? const Color(0xFFFFC857) : const Color(0xFF596780),
+      ),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          label,
+          style: TextStyle(
+            color: ready ? const Color(0xFFFFC857) : const Color(0xFFA9B4C8),
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          body,
+          style: const TextStyle(color: Color(0xFFF4F7FF), fontSize: 12),
+        ),
+      ],
+    ),
+  );
 }
 
 final class _EffectSection extends StatelessWidget {

@@ -175,5 +175,9 @@
   "ending.final": "기계는 규칙을 썼고, 인간은 그 의미를 선택했다.",
   "fusion.ghost_vent.title": "고스트 벤트",
   "fusion.echo_cascade.title": "에코 캐스케이드",
-  "fusion.redline.title": "레드라인"
+  "fusion.redline.title": "레드라인",
+  "survivalUpgrade.fusionPath": "퓨전 경로",
+  "survivalUpgrade.fusionReady": "퓨전 준비 완료",
+  "survivalUpgrade.fusionRequirement": "{fusion} // {partner} T2와 연결",
+  "survivalResult.fusions": "활성 퓨전"
 }

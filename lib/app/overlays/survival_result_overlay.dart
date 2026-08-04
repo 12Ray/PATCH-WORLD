@@ -201,6 +201,42 @@ final class SurvivalResultOverlay extends StatelessWidget {
                                       .toList(growable: false),
                                 ),
                         ),
+                        if (result.activeFusionIds.isNotEmpty) ...<Widget>[
+                          const SizedBox(height: 14),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              game.localization.text('survivalResult.fusions'),
+                              style: const TextStyle(
+                                color: Color(0xFFFFC857),
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: result.activeFusionIds
+                                  .map(
+                                    (fusionId) => Chip(
+                                      label: Text(
+                                        game.localization.text(
+                                          '$fusionId.title',
+                                        ),
+                                      ),
+                                      backgroundColor: const Color(0xFF332817),
+                                      side: const BorderSide(
+                                        color: Color(0xFFFFC857),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 22),
                         LayoutBuilder(
                           builder: (context, constraints) {

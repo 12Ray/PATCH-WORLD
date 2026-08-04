@@ -17,7 +17,7 @@ void main() {
       miniBossKills: 0,
       score: 4242,
       maxCombo: 12,
-      patchTiers: <String, int>{'patch.motion_tax': 2},
+      patchTiers: <String, int>{'patch.motion_tax': 2, 'patch.phase_leak': 2},
       riskMultiplier: 1.24,
       firstPatchId: 'patch.motion_tax',
       isBestScore: true,
@@ -39,6 +39,9 @@ void main() {
     expect(find.text('1:31'), findsOneWidget);
     expect(find.text('4242'), findsOneWidget);
     expect(find.text('MOTION TAX  T2'), findsOneWidget);
+    expect(find.text('PHASE LEAK  T2'), findsOneWidget);
+    expect(find.text('ACTIVE FUSIONS'), findsOneWidget);
+    expect(find.text('GHOST VENT'), findsOneWidget);
     expect(find.text('12.5s'), findsOneWidget);
     expect(find.text('11.9'), findsOneWidget);
     expect(find.text('PACING CLEAR // NO GAP OVER 20s'), findsOneWidget);
@@ -46,5 +49,6 @@ void main() {
     expect(find.text('TOP PICK  MOTION TAX  100%'), findsOneWidget);
     expect(find.text('INSTANT RETRY'), findsOneWidget);
     expect(find.text('KEEP FIRST PATCH'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

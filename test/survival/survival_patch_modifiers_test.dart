@@ -95,4 +95,28 @@ void main() {
       ],
     );
   });
+
+  test('fusion readiness predicts the next tier without mutating the run', () {
+    const tiers = <String, int>{RuleIds.motionTax: 1, RuleIds.phaseLeak: 2};
+    expect(
+      SurvivalPatchFusions.willUnlockAfterUpgrade(
+        patchId: RuleIds.motionTax,
+        nextTier: 2,
+        patchTiers: tiers,
+      ),
+      isTrue,
+    );
+    expect(tiers[RuleIds.motionTax], 1);
+    expect(
+      SurvivalPatchFusions.willUnlockAfterUpgrade(
+        patchId: RuleIds.motionTax,
+        nextTier: 3,
+        patchTiers: const <String, int>{
+          RuleIds.motionTax: 2,
+          RuleIds.phaseLeak: 2,
+        },
+      ),
+      isFalse,
+    );
+  });
 }

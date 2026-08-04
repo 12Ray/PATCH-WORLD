@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:patch_world/game/survival/survival_playtest_telemetry.dart';
+import 'package:patch_world/game/survival/survival_patch_fusions.dart';
 
 enum PatchWorldMode { campaign, survival }
 
@@ -216,6 +217,8 @@ final class SurvivalResultSnapshot {
   final double eventsPerMinute;
 
   bool get hasPacingGap => longestQuietSeconds > 20;
+  List<String> get activeFusionIds =>
+      SurvivalPatchFusions.activeFor(patchTiers);
 
   String get formattedTime {
     final total = elapsedSeconds.floor();

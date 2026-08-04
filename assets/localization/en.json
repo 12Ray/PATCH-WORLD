@@ -175,5 +175,9 @@
   "ending.final": "The machine wrote the rules. The human chose their meaning.",
   "fusion.ghost_vent.title": "GHOST VENT",
   "fusion.echo_cascade.title": "ECHO CASCADE",
-  "fusion.redline.title": "REDLINE"
+  "fusion.redline.title": "REDLINE",
+  "survivalUpgrade.fusionPath": "FUSION PATH",
+  "survivalUpgrade.fusionReady": "FUSION READY",
+  "survivalUpgrade.fusionRequirement": "{fusion} // Pair T2 with {partner}",
+  "survivalResult.fusions": "ACTIVE FUSIONS"
 }

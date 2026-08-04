@@ -6,11 +6,15 @@ import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/survival/survival_upgrade_request.dart';
 
 void main() {
-  testWidgets('survival cards explain both power and side effect', (
+  testWidgets('fusion paths remain scrollable on a compact viewport', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final game = PatchWorldGame();
-    await game.localization.load('en');
+    await game.localization.load('ko');
     game.pendingSurvivalUpgrade = const SurvivalUpgradeRequest(
       level: 2,
       choices: <PatchDefinition>[
@@ -27,12 +31,7 @@ void main() {
       ),
     );
 
-    expect(find.text('LEVEL 2 // CHOOSE A PATCH'), findsOneWidget);
-    expect(find.text('FIX / POWER'), findsNWidgets(3));
-    expect(find.text('SIDE EFFECT'), findsNWidgets(3));
-    expect(find.textContaining('Pulse deals +1 damage'), findsOneWidget);
-    expect(find.textContaining('Moving builds Heat'), findsOneWidget);
+    expect(find.text('퓨전 경로'), findsWidgets);
     expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox.shrink());
   });
 }
