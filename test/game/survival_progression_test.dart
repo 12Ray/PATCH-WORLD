@@ -34,6 +34,7 @@ void main() {
             OverlayIds.hud: (_, _) => const SizedBox.shrink(),
             OverlayIds.touchControls: (_, _) => const SizedBox.shrink(),
             OverlayIds.survivalUpgrade: (_, _) => const SizedBox.shrink(),
+            OverlayIds.survivalResult: (_, _) => const SizedBox.shrink(),
           },
         ),
       ),
@@ -116,6 +117,23 @@ void main() {
       () => arena.children.whereType<CompositeComponent>().isNotEmpty,
     );
     expect(arena.children.whereType<CompositeComponent>().first.health.max, 10);
+
+    final firstPatchId = game.survivalRun.firstPatchId;
+    game.handlePlayerDefeat(causeId: 'test.survival');
+    await tester.pump();
+    expect(game.overlays.isActive(OverlayIds.survivalResult), isTrue);
+    expect(game.survivalResult.value, isNotNull);
+    expect(game.survivalResult.value!.elapsedSeconds, greaterThan(176));
+    expect(game.survivalResult.value!.firstPatchId, firstPatchId);
+    expect(game.paused, isTrue);
+
+    game.retrySurvivalRun(keepStartingPatch: true);
+    await _waitForSurvival(tester, game);
+    expect(game.overlays.isActive(OverlayIds.survivalResult), isFalse);
+    expect(game.survivalResult.value, isNull);
+    expect(game.survivalRun.elapsedSeconds, lessThan(1));
+    expect(game.survivalRun.patchTier(firstPatchId!), 1);
+    expect(game.runState.hasPatch(firstPatchId), isTrue);
   });
 }
 

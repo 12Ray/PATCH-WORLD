@@ -81,6 +81,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   );
   final ValueNotifier<DefeatSnapshot?> defeatSnapshot =
       ValueNotifier<DefeatSnapshot?>(null);
+  final ValueNotifier<SurvivalResultSnapshot?> survivalResult =
+      ValueNotifier<SurvivalResultSnapshot?>(null);
   final ValueNotifier<RunSummary?> completedRun = ValueNotifier<RunSummary?>(
     null,
   );
@@ -102,6 +104,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   dart_async.Timer? _patchNoticeTimer;
   int _consecutiveRoomDeaths = 0;
   int bestScore = 0;
+  int bestSurvivalScore = 0;
+  double bestSurvivalTime = 0;
   double _screenShakeRemaining = 0;
   double _screenShakePhase = 0;
   String _settingsReturnOverlay = OverlayIds.pause;
@@ -121,6 +125,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     try {
       loadedSettings = await settingsService.load();
       bestScore = await settingsService.loadBestScore();
+      bestSurvivalScore = await settingsService.loadBestSurvivalScore();
+      bestSurvivalTime = await settingsService.loadBestSurvivalTime();
     } catch (_) {
       loadedSettings = const GameSettings();
     }
@@ -217,6 +223,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     mode = PatchWorldMode.survival;
     runState.reset();
     survivalRun.reset();
+    survivalResult.value = null;
     survivalRun.elapsedSeconds = survivalQaStartSecond.toDouble();
     completedRun.value = null;
     ruleEngine.setRules(const <GameRule>[]);
@@ -532,11 +539,16 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
 
   Future<void> _returnToTitle() async {
     overlays.remove(OverlayIds.ending);
+    overlays.remove(OverlayIds.survivalResult);
     overlays.remove(OverlayIds.hud);
     overlays.remove(OverlayIds.touchControls);
     runState.reset();
     runMetrics.reset();
     completedRun.value = null;
+    survivalResult.value = null;
+    survivalRun.reset();
+    pendingSurvivalUpgrade = null;
+    overlays.remove(OverlayIds.survivalUpgrade);
     patternTracker.reset();
     patchEffects.resetForRoomRestart();
     enemyTempo.resetForRoomRestart();
@@ -645,6 +657,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void handlePlayerDefeat({required String causeId}) {
+    if (mode == PatchWorldMode.survival) {
+      _handleSurvivalDefeat();
+      return;
+    }
     if (defeatSnapshot.value != null) return;
     runMetrics.recordDeath();
     _consecutiveRoomDeaths += 1;
@@ -660,6 +676,64 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       const Duration(seconds: 2),
       restartDefeatedRoom,
     );
+  }
+
+  void _handleSurvivalDefeat() {
+    if (survivalResult.value != null) return;
+    final score = survivalRun.score;
+    final elapsedSeconds = survivalRun.elapsedSeconds;
+    final isBestScore = score > bestSurvivalScore;
+    final isBestTime = elapsedSeconds > bestSurvivalTime;
+    if (isBestScore) {
+      bestSurvivalScore = score;
+      unawaited(settingsService.saveBestSurvivalScore(score));
+    }
+    if (isBestTime) {
+      bestSurvivalTime = elapsedSeconds;
+      unawaited(settingsService.saveBestSurvivalTime(elapsedSeconds));
+    }
+    survivalResult.value = SurvivalResultSnapshot.fromRun(
+      survivalRun,
+      isBestScore: isBestScore,
+      isBestTime: isBestTime,
+    );
+    input.clearAll();
+    pendingSurvivalUpgrade = null;
+    overlays.remove(OverlayIds.survivalUpgrade);
+    pauseEngine();
+    overlays.add(OverlayIds.survivalResult);
+  }
+
+  void retrySurvivalRun({bool keepStartingPatch = false}) =>
+      unawaited(_retrySurvivalRun(keepStartingPatch: keepStartingPatch));
+
+  Future<void> _retrySurvivalRun({required bool keepStartingPatch}) async {
+    final retainedPatchId = keepStartingPatch
+        ? survivalResult.value?.firstPatchId
+        : null;
+    overlays.remove(OverlayIds.survivalResult);
+    survivalResult.value = null;
+    runState.reset();
+    survivalRun.reset();
+    pendingSurvivalUpgrade = null;
+    ruleEngine.setRules(const <GameRule>[]);
+    if (retainedPatchId != null) {
+      final patch = SurvivalUpgradeCatalog.all.singleWhere(
+        (candidate) => candidate.id == retainedPatchId,
+      );
+      runState.selectPatch(patch.id);
+      survivalRun.upgradePatch(
+        patch.id,
+        riskTier: SurvivalUpgradeCatalog.riskTierFor(patch),
+      );
+    }
+    patchEffects.resetForRoomRestart();
+    enemyTempo.resetForRoomRestart();
+    input.clearAll();
+    resumeEngine();
+    await world.restartCurrentRoom();
+    publishUiSnapshot(force: true);
+    resumeEngine();
   }
 
   void restartDefeatedRoom() {

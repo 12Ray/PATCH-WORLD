@@ -13,6 +13,7 @@ import 'package:patch_world/app/overlays/settings_overlay.dart';
 import 'package:patch_world/app/overlays/title_overlay.dart';
 import 'package:patch_world/app/overlays/touch_controls_overlay.dart';
 import 'package:patch_world/app/overlays/survival_upgrade_overlay.dart';
+import 'package:patch_world/app/overlays/survival_result_overlay.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/services/game_settings.dart';
@@ -101,6 +102,8 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
                             PatchAppliedOverlay(game: game),
                         OverlayIds.survivalUpgrade: (context, game) =>
                             SurvivalUpgradeOverlay(game: game),
+                        OverlayIds.survivalResult: (context, game) =>
+                            SurvivalResultOverlay(game: game),
                       },
                   loadingBuilder: (context) => const _LoadingView(),
                   errorBuilder: (context, error) => _ErrorView(error: error),

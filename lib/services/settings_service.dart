@@ -39,4 +39,16 @@ final class SettingsService {
   Future<int> loadBestScore() async => await _store.getInt('bestScore') ?? 0;
 
   Future<void> saveBestScore(int score) => _store.setInt('bestScore', score);
+
+  Future<int> loadBestSurvivalScore() async =>
+      await _store.getInt('bestSurvivalScore') ?? 0;
+
+  Future<double> loadBestSurvivalTime() async =>
+      await _store.getDouble('bestSurvivalTime') ?? 0;
+
+  Future<void> saveBestSurvivalScore(int score) =>
+      _store.setInt('bestSurvivalScore', score);
+
+  Future<void> saveBestSurvivalTime(double seconds) =>
+      _store.setDouble('bestSurvivalTime', seconds);
 }

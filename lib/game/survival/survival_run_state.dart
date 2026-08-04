@@ -9,12 +9,14 @@ final class SurvivalRunState {
   int eliteKills = 0;
   int miniBossKills = 0;
   int combo = 0;
+  int maxCombo = 0;
   double comboRemaining = 0;
   int level = 1;
   int experience = 0;
   int experienceToNext = 6;
   int riskTierTotal = 0;
   int bonusScore = 0;
+  String? firstPatchId;
 
   Map<String, int> get patchTiers => Map<String, int>.unmodifiable(_patchTiers);
 
@@ -49,6 +51,7 @@ final class SurvivalRunState {
     if (elite) eliteKills += 1;
     if (miniBoss) miniBossKills += 1;
     combo += 1;
+    maxCombo = math.max(maxCombo, combo);
     comboRemaining = 3;
     final baseExperience = miniBoss
         ? 20
@@ -86,6 +89,7 @@ final class SurvivalRunState {
     final nextTier = math.min(3, patchTier(patchId) + 1);
     if (nextTier == patchTier(patchId)) return nextTier;
     _patchTiers[patchId] = nextTier;
+    firstPatchId ??= patchId;
     addRiskTier(riskTier);
     return nextTier;
   }
@@ -96,12 +100,67 @@ final class SurvivalRunState {
     eliteKills = 0;
     miniBossKills = 0;
     combo = 0;
+    maxCombo = 0;
     comboRemaining = 0;
     level = 1;
     experience = 0;
     experienceToNext = 6;
     riskTierTotal = 0;
     bonusScore = 0;
+    firstPatchId = null;
     _patchTiers.clear();
+  }
+}
+
+final class SurvivalResultSnapshot {
+  const SurvivalResultSnapshot({
+    required this.elapsedSeconds,
+    required this.kills,
+    required this.eliteKills,
+    required this.miniBossKills,
+    required this.score,
+    required this.maxCombo,
+    required this.patchTiers,
+    required this.riskMultiplier,
+    required this.firstPatchId,
+    required this.isBestScore,
+    required this.isBestTime,
+  });
+
+  factory SurvivalResultSnapshot.fromRun(
+    SurvivalRunState run, {
+    required bool isBestScore,
+    required bool isBestTime,
+  }) => SurvivalResultSnapshot(
+    elapsedSeconds: run.elapsedSeconds,
+    kills: run.kills,
+    eliteKills: run.eliteKills,
+    miniBossKills: run.miniBossKills,
+    score: run.score,
+    maxCombo: run.maxCombo,
+    patchTiers: Map<String, int>.unmodifiable(run.patchTiers),
+    riskMultiplier: run.riskMultiplier,
+    firstPatchId: run.firstPatchId,
+    isBestScore: isBestScore,
+    isBestTime: isBestTime,
+  );
+
+  final double elapsedSeconds;
+  final int kills;
+  final int eliteKills;
+  final int miniBossKills;
+  final int score;
+  final int maxCombo;
+  final Map<String, int> patchTiers;
+  final double riskMultiplier;
+  final String? firstPatchId;
+  final bool isBestScore;
+  final bool isBestTime;
+
+  String get formattedTime {
+    final total = elapsedSeconds.floor();
+    final minutes = total ~/ 60;
+    final seconds = total % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }

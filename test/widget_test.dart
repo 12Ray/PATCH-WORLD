@@ -28,6 +28,7 @@ void main() {
     expect(gameWidget.overlayBuilderMap, contains(OverlayIds.patchSelection));
     expect(gameWidget.overlayBuilderMap, contains(OverlayIds.ending));
     expect(gameWidget.overlayBuilderMap, contains(OverlayIds.defeat));
+    expect(gameWidget.overlayBuilderMap, contains(OverlayIds.survivalResult));
     expect(gameWidget.overlayBuilderMap, contains(OverlayIds.credits));
   });
 }

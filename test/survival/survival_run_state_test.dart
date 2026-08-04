@@ -25,6 +25,26 @@ void main() {
     expect(state.combo, 3);
     state.update(3.01);
     expect(state.combo, 0);
+    expect(state.maxCombo, 6);
+  });
+
+  test('result snapshot preserves run data after the live state resets', () {
+    final state = SurvivalRunState()
+      ..elapsedSeconds = 91.8
+      ..upgradePatch('patch.motion_tax', riskTier: 1);
+    state.recordKill(elite: true);
+    final result = SurvivalResultSnapshot.fromRun(
+      state,
+      isBestScore: true,
+      isBestTime: true,
+    );
+
+    state.reset();
+    expect(result.formattedTime, '1:31');
+    expect(result.eliteKills, 1);
+    expect(result.maxCombo, 1);
+    expect(result.patchTiers, <String, int>{'patch.motion_tax': 1});
+    expect(result.firstPatchId, 'patch.motion_tax');
   });
 
   test('reward multiplier grants bonus experience and score', () {
