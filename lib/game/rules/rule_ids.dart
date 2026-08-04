@@ -8,4 +8,5 @@ abstract final class RuleIds {
   static const String frameBurst = 'patch.frame_burst';
   static const String phaseLeak = 'patch.phase_leak';
   static const String duplicateFault = 'patch.duplicate_fault';
+  static const String legacyDamageInverted = 'boss.legacy_damage_inverted';
 }

@@ -6,16 +6,21 @@ import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/core/health_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
+import 'package:patch_world/game/systems/duplicate_fault_system.dart';
 
 final class CrawlerComponent extends RectangleComponent
     with CollisionCallbacks, HasGameReference<PatchWorldGame>
-    implements CombatTarget {
+    implements CombatTarget, DuplicateSource {
   CrawlerComponent({
     required this.entityId,
     required super.position,
     int initialHealth = maxHealth,
     this.onOverflow,
-  }) : healthState = HealthState(max: maxHealth, current: initialHealth),
+    this.mergeShielded = false,
+    this.canDuplicate = true,
+    this.speedMultiplier = 1,
+    int healthMaximum = maxHealth,
+  }) : healthState = HealthState(max: healthMaximum, current: initialHealth),
        super(
          size: Vector2.all(32),
          anchor: Anchor.center,
@@ -31,14 +36,35 @@ final class CrawlerComponent extends RectangleComponent
   final String entityId;
   final HealthState healthState;
   final void Function(CrawlerComponent crawler)? onOverflow;
+  final bool mergeShielded;
+  final bool canDuplicate;
+  final double speedMultiplier;
   final Vector2 _previousPosition = Vector2.zero();
 
   bool _overflowStarted = false;
   double _overflowTimer = 0;
+  bool _mergeConsumed = false;
+  bool _duplicateClaimed = false;
 
   int get health => healthState.current;
   bool get isDefeated => healthState.isDefeated;
   bool get isOverflowing => _overflowStarted;
+  bool get canMerge => mergeShielded && !_mergeConsumed && !isRemoving;
+
+  @override
+  Vector2 get duplicatePosition => position;
+
+  @override
+  DuplicateArchetype get duplicateArchetype => DuplicateArchetype.crawler;
+
+  @override
+  bool claimDuplicate() {
+    if (!canDuplicate || _duplicateClaimed || isRemoving) return false;
+    _duplicateClaimed = true;
+    return true;
+  }
+
+  void consumeForMerge() => _mergeConsumed = true;
 
   @override
   Future<void> onLoad() async {
@@ -57,6 +83,7 @@ final class CrawlerComponent extends RectangleComponent
 
   @override
   void receiveDamage(int amount) {
+    if (mergeShielded) return;
     final mutation = healthState.applyDamage(amount);
     if (mutation == HealthMutation.defeated) {
       removeFromParent();
@@ -101,7 +128,7 @@ final class CrawlerComponent extends RectangleComponent
       final direction = game.world.player.position - position;
       if (direction.length2 > 16) {
         direction.normalize();
-        position += direction * (moveSpeed * enemyDt);
+        position += direction * (moveSpeed * speedMultiplier * enemyDt);
       }
     }
     if (paint.color == const Color(0xFFFFFFFF) ||
@@ -117,6 +144,17 @@ final class CrawlerComponent extends RectangleComponent
       position.setFrom(_previousPosition);
     }
     super.onCollision(intersectionPoints, other);
+  }
+
+  @override
+  void onCollisionStart(
+    Set<Vector2> intersectionPoints,
+    PositionComponent other,
+  ) {
+    if (other is CrawlerComponent && canMerge && other.canMerge) {
+      game.world.tryMergeCrawlers(this, other);
+    }
+    super.onCollisionStart(intersectionPoints, other);
   }
 
   @override

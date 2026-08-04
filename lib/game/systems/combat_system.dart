@@ -9,11 +9,18 @@ abstract interface class CombatTarget {
   void receiveHealing(int amount);
 }
 
+typedef PlayerDamageCommitted = void Function(CombatTarget target);
+
 final class CombatSystem {
-  CombatSystem({required this.ruleEngine, required this.contextProvider});
+  CombatSystem({
+    required this.ruleEngine,
+    required this.contextProvider,
+    this.onPlayerDamageCommitted,
+  });
 
   final RuleEngine ruleEngine;
   final RuleContext Function() contextProvider;
+  final PlayerDamageCommitted? onPlayerDamageCommitted;
 
   RuleResolution applyPlayerPulse(CombatTarget target) {
     final resolution = ruleEngine.resolve(
@@ -39,6 +46,9 @@ final class CombatSystem {
     switch (event) {
       case DamageEvent(:final amount):
         target.receiveDamage(amount);
+        if (event.sourceFaction == EventFaction.player) {
+          onPlayerDamageCommitted?.call(target);
+        }
       case HealEvent(:final amount):
         target.receiveHealing(amount);
     }

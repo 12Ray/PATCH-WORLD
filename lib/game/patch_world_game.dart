@@ -19,7 +19,9 @@ import 'package:patch_world/game/rules/rule_engine.dart';
 import 'package:patch_world/game/rules/rule_ids.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
 import 'package:patch_world/game/systems/enemy_tempo_system.dart';
+import 'package:patch_world/game/systems/duplicate_fault_system.dart';
 import 'package:patch_world/game/systems/patch_effects_system.dart';
+import 'package:patch_world/game/systems/player_pattern_tracker.dart';
 
 final class PatchWorldGame extends FlameGame<PatchWorld>
     with HasCollisionDetection, KeyboardEvents {
@@ -42,6 +44,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   final RunState runState = RunState();
   final RuleEngine ruleEngine = RuleEngine();
   final GameClock clock = GameClock();
+  final PlayerPatternTracker patternTracker = PlayerPatternTracker();
   final ValueNotifier<UiSnapshot> uiSnapshot = ValueNotifier<UiSnapshot>(
     UiSnapshot.initial(),
   );
@@ -49,6 +52,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   late final CombatSystem combatSystem;
   late final PatchEffectsSystem patchEffects;
   late final EnemyTempoSystem enemyTempo;
+  late final DuplicateFaultSystem duplicateFault;
   RoomId currentRoom = RoomId.damageLab;
   PatchSelectionRequest? pendingPatchSelection;
   double _uiPublishAccumulator = 0;
@@ -62,9 +66,23 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   @override
   Future<void> onLoad() async {
     ruleEngine.setRules(const <GameRule>[DamageSignInvertedRule()]);
+    duplicateFault = DuplicateFaultSystem(
+      runState: runState,
+      spawnDuplicate:
+          ({required archetype, required position, required sourceEntityId}) {
+            unawaited(
+              world.spawnDuplicate(
+                archetype: archetype,
+                position: position,
+                sourceEntityId: sourceEntityId,
+              ),
+            );
+          },
+    );
     combatSystem = CombatSystem(
       ruleEngine: ruleEngine,
       contextProvider: () => ruleContext,
+      onPlayerDamageCommitted: duplicateFault.onPlayerDamageCommitted,
     );
     patchEffects = PatchEffectsSystem(
       runState: runState,
@@ -123,11 +141,18 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       enemySpeedMultiplier: enemyTempo.speedMultiplier,
     );
     world.player.setMovementInput(movement);
+    patternTracker.update(clock.realDt);
+    if (movement.length2 > 0) {
+      patternTracker.recordMovement(movement.x, movement.y);
+    }
     patchEffects.update(
       playerStatusDt: clock.playerStatusDt,
       isPlayerMoving: movement.length2 > 0,
     );
-    if (input.consumeAttack()) world.player.tryAttack();
+    if (input.consumeAttack()) {
+      patternTracker.recordAttack();
+      world.player.tryAttack();
+    }
     if (input.consumeInteract()) world.player.tryInteract();
     _uiPublishAccumulator += clock.realDt;
     if (_uiPublishAccumulator >= 0.10) {
@@ -172,6 +197,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       enemyTempo.resetForRoomRestart();
       patchEffects.resetTransientForRoomTransition();
       currentRoom = RoomId.collisionArchive;
+      await world.loadRoom(currentRoom);
+    } else if (request.roomId == 'collision-archive') {
+      enemyTempo.resetForRoomRestart();
+      patchEffects.resetTransientForRoomTransition();
+      currentRoom = RoomId.optimizerCore;
+      await world.loadRoom(currentRoom);
     } else {
       throw StateError('Unknown patch room: ${request.roomId}');
     }
@@ -188,6 +219,39 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     input.clearAll();
     pauseEngine();
     overlays.add(OverlayIds.patchSelection);
+  }
+
+  void openRoomThreePatchSelection() {
+    if (pendingPatchSelection != null) return;
+    pendingPatchSelection = const PatchSelectionRequest(
+      roomId: 'collision-archive',
+      choices: PatchCatalog.roomThreeChoices,
+    );
+    input.clearAll();
+    pauseEngine();
+    overlays.add(OverlayIds.patchSelection);
+  }
+
+  void showEnding() {
+    ruleEngine.removeRule(RuleIds.legacyDamageInverted);
+    input.clearAll();
+    pauseEngine();
+    overlays.add(OverlayIds.ending);
+  }
+
+  void restartRun() => unawaited(_restartRun());
+
+  Future<void> _restartRun() async {
+    overlays.remove(OverlayIds.ending);
+    runState.reset();
+    patternTracker.reset();
+    patchEffects.resetForRoomRestart();
+    enemyTempo.resetForRoomRestart();
+    ruleEngine.setRules(const <GameRule>[DamageSignInvertedRule()]);
+    currentRoom = RoomId.damageLab;
+    await world.loadRoom(currentRoom);
+    publishUiSnapshot(force: true);
+    resumeEngine();
   }
 
   void openPauseMenu() {
@@ -232,6 +296,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       return;
     }
     final burst = enemyTempo.frameBurstSnapshot;
+    final boss = world.activeBoss;
+    final pattern = patternTracker.snapshot;
     final next = UiSnapshot(
       integrity: world.player.integrity,
       maxIntegrity: world.player.maxIntegrity,
@@ -255,6 +321,13 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       echoPulseCount: patchEffects.echoPulseCount,
       frameBurstPhase: burst?.phase,
       frameBurstProgress: burst?.phaseProgress,
+      bossHealth: boss?.health,
+      bossMaxHealth: boss == null ? null : 20,
+      bossStability: boss?.phase.name == 'perfect'
+          ? boss?.stability.current
+          : null,
+      patternConfidence: boss == null ? null : pattern.confidence,
+      bossPhase: boss?.phase.name,
     );
     if (force || uiSnapshot.value != next) {
       uiSnapshot.value = next;

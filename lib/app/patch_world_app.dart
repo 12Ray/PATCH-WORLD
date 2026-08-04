@@ -1,6 +1,7 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:patch_world/app/overlay_ids.dart';
+import 'package:patch_world/app/overlays/ending_overlay.dart';
 import 'package:patch_world/app/overlays/hud_overlay.dart';
 import 'package:patch_world/app/overlays/patch_selection_overlay.dart';
 import 'package:patch_world/app/overlays/pause_overlay.dart';
@@ -46,6 +47,8 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
                       OverlayIds.hud: (context, game) => HudOverlay(game: game),
                       OverlayIds.pause: (context, game) =>
                           PauseOverlay(game: game),
+                      OverlayIds.ending: (context, game) =>
+                          EndingOverlay(game: game),
                       OverlayIds.patchSelection: (context, game) =>
                           PatchSelectionOverlay(game: game),
                     },

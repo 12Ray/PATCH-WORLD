@@ -4,13 +4,19 @@ import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/game/rules/rule_ids.dart';
 
 final class DamageSignInvertedRule implements GameRule {
-  const DamageSignInvertedRule();
+  const DamageSignInvertedRule({
+    this.ruleId = RuleIds.damageSignInverted,
+    this.rulePriority = 300,
+  });
+
+  final String ruleId;
+  final int rulePriority;
 
   @override
-  String get id => RuleIds.damageSignInverted;
+  String get id => ruleId;
 
   @override
-  int get priority => 300;
+  int get priority => rulePriority;
 
   @override
   bool applies(GameEvent event, RuleContext context) =>

@@ -130,6 +130,17 @@ final class _RuleView extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
         ),
+      if (snapshot.bossPhase case final String phase)
+        Text(
+          snapshot.bossStability == null
+              ? 'BOSS ${phase.toUpperCase()}  HP ${snapshot.bossHealth}/${snapshot.bossMaxHealth}'
+              : 'PERFECT  STABILITY ${snapshot.bossStability}/150',
+          style: const TextStyle(
+            color: Color(0xFFFFC857),
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
     ],
   );
 }

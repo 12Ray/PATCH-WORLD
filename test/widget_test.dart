@@ -21,6 +21,7 @@ void main() {
     expect(gameWidget.initialActiveOverlays, contains(OverlayIds.hud));
     expect(gameWidget.overlayBuilderMap, contains(OverlayIds.pause));
     expect(gameWidget.overlayBuilderMap, contains(OverlayIds.patchSelection));
+    expect(gameWidget.overlayBuilderMap, contains(OverlayIds.ending));
     expect(find.text('PATCH//WORLD'), findsNothing);
   });
 }

@@ -64,6 +64,29 @@ abstract final class PatchCatalog {
     hostileTurbo,
     frameBurst,
   ];
+
+  static const PatchDefinition phaseLeak = PatchDefinition(
+    id: RuleIds.phaseLeak,
+    title: 'PHASE LEAK',
+    fix: 'Enemies no longer merge on collision.',
+    sideEffect: 'Marked walls vanish for 1.5 seconds every 6 seconds.',
+    tactic: 'Use the opening as a shortcut or emergency escape.',
+    riskLabel: 'RISKY',
+  );
+
+  static const PatchDefinition duplicateFault = PatchDefinition(
+    id: RuleIds.duplicateFault,
+    title: 'DUPLICATE FAULT',
+    fix: 'Enemies no longer merge on collision.',
+    sideEffect: 'Each enemy creates one 1-HP echo on its first hit.',
+    tactic: 'Lead echoes into other hazards.',
+    riskLabel: 'CHAOTIC',
+  );
+
+  static const List<PatchDefinition> roomThreeChoices = <PatchDefinition>[
+    phaseLeak,
+    duplicateFault,
+  ];
 }
 
 final class RunState {

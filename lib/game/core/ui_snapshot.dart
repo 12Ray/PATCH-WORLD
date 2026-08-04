@@ -13,6 +13,11 @@ final class UiSnapshot {
     this.echoPulseCount,
     this.frameBurstPhase,
     this.frameBurstProgress,
+    this.bossHealth,
+    this.bossMaxHealth,
+    this.bossStability,
+    this.patternConfidence,
+    this.bossPhase,
   });
 
   factory UiSnapshot.initial() => const UiSnapshot(
@@ -32,6 +37,11 @@ final class UiSnapshot {
   final int? echoPulseCount;
   final FrameBurstPhase? frameBurstPhase;
   final double? frameBurstProgress;
+  final int? bossHealth;
+  final int? bossMaxHealth;
+  final int? bossStability;
+  final double? patternConfidence;
+  final String? bossPhase;
 
   @override
   bool operator ==(Object other) =>
@@ -45,7 +55,12 @@ final class UiSnapshot {
           normalizedHeat == other.normalizedHeat &&
           echoPulseCount == other.echoPulseCount &&
           frameBurstPhase == other.frameBurstPhase &&
-          frameBurstProgress == other.frameBurstProgress;
+          frameBurstProgress == other.frameBurstProgress &&
+          bossHealth == other.bossHealth &&
+          bossMaxHealth == other.bossMaxHealth &&
+          bossStability == other.bossStability &&
+          patternConfidence == other.patternConfidence &&
+          bossPhase == other.bossPhase;
 
   @override
   int get hashCode => Object.hash(
@@ -58,5 +73,10 @@ final class UiSnapshot {
     echoPulseCount,
     frameBurstPhase,
     frameBurstProgress,
+    bossHealth,
+    bossMaxHealth,
+    bossStability,
+    patternConfidence,
+    bossPhase,
   );
 }

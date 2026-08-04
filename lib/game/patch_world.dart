@@ -2,15 +2,20 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
+import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/effects/retaliation_echo_component.dart';
 import 'package:patch_world/game/components/effects/time_freeze_overlay_component.dart';
+import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/room_one_controller.dart';
+import 'package:patch_world/game/rooms/boss_room_controller.dart';
+import 'package:patch_world/game/rooms/room_three_controller.dart';
 import 'package:patch_world/game/rooms/room_two_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
+import 'package:patch_world/game/systems/duplicate_fault_system.dart';
 
 final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   late final PlayerComponent player;
@@ -18,6 +23,10 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   bool _isReady = false;
 
   bool get isReady => _isReady;
+  OptimizerBossComponent? get activeBoss {
+    final room = _activeRoom;
+    return room is BossRoomController ? room.boss : null;
+  }
 
   @override
   Future<void> onLoad() async {
@@ -61,6 +70,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     _isReady = false;
     final existing = _activeRoom;
     if (existing != null) {
+      if (existing is BossRoomController) existing.disposeLegacyRule();
       existing.removeFromParent();
       await existing.removed;
     }
@@ -70,12 +80,8 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     final nextRoom = switch (roomId) {
       RoomId.damageLab => RoomOneController(),
       RoomId.temporalHall => RoomTwoController(),
-      RoomId.collisionArchive => throw UnimplementedError(
-        'Room 3 is not loaded yet.',
-      ),
-      RoomId.optimizerCore => throw UnimplementedError(
-        'Boss is not loaded yet.',
-      ),
+      RoomId.collisionArchive => RoomThreeController(),
+      RoomId.optimizerCore => BossRoomController(),
     };
     _activeRoom = nextRoom;
     await add(nextRoom);
@@ -93,7 +99,36 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
 
   bool tryInteract(PlayerComponent player) {
     final room = _activeRoom;
-    return room is RoomTwoController ? room.tryInteract(player) : false;
+    return switch (room) {
+      RoomTwoController controller => controller.tryInteract(player),
+      RoomThreeController controller => controller.tryInteract(player),
+      BossRoomController controller => controller.tryInteract(player),
+      _ => false,
+    };
+  }
+
+  bool tryMergeCrawlers(CrawlerComponent first, CrawlerComponent second) {
+    final room = _activeRoom;
+    return room is RoomThreeController ? room.tryMerge(first, second) : false;
+  }
+
+  Future<void> spawnDuplicate({
+    required DuplicateArchetype archetype,
+    required Vector2 position,
+    required String sourceEntityId,
+  }) async {
+    final room = _activeRoom;
+    if (room == null) return;
+    await room.add(
+      CrawlerComponent(
+        entityId: '$sourceEntityId.echo',
+        position: position + Vector2(38, 24),
+        initialHealth: 1,
+        healthMaximum: 1,
+        canDuplicate: false,
+        speedMultiplier: 1.15,
+      ),
+    );
   }
 
   Future<void> restartCurrentRoom() => loadRoom(game.currentRoom);

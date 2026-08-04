@@ -50,6 +50,18 @@ void main() {
       throwsStateError,
     );
   });
+
+  test('legacy inversion uses boss override priority 400', () {
+    const legacy = DamageSignInvertedRule(
+      ruleId: RuleIds.legacyDamageInverted,
+      rulePriority: 400,
+    );
+    final engine = RuleEngine()..setRules(const <GameRule>[legacy]);
+    final result = engine.resolve(_playerDamage, context);
+    expect(result.primary, isA<HealEvent>());
+    expect(result.appliedRuleIds, <String>[RuleIds.legacyDamageInverted]);
+    expect(legacy.priority, 400);
+  });
 }
 
 const _playerDamage = DamageEvent(

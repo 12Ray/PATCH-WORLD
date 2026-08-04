@@ -38,4 +38,17 @@ void main() {
     expect(find.text('HOSTILE TURBO'), findsOneWidget);
     expect(find.text('FRAME BURST'), findsOneWidget);
   });
+
+  testWidgets('shows both Room 3 collision-fix choices', (tester) async {
+    final game = PatchWorldGame()
+      ..pendingPatchSelection = const PatchSelectionRequest(
+        roomId: 'collision-archive',
+        choices: PatchCatalog.roomThreeChoices,
+      );
+    await tester.pumpWidget(
+      MaterialApp(home: PatchSelectionOverlay(game: game)),
+    );
+    expect(find.text('PHASE LEAK'), findsOneWidget);
+    expect(find.text('DUPLICATE FAULT'), findsOneWidget);
+  });
 }
