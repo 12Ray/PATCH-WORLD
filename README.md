@@ -2,70 +2,76 @@
 
 ![PATCH//WORLD key art](assets/images/ui/patch_world_key_art.png)
 
-《PATCH//WORLD: 인간이 마지막으로 정한 규칙》은 피해·시간·충돌 규칙의 오류를 역이용하고, 패치의 부작용으로 `THE OPTIMIZER`를 무너뜨리는 5~8분 분량의 탑다운 액션 퍼즐입니다.
+최적화 AI가 망가뜨린 게임 세계에서, 마지막 인간 QA가 규칙의 오류를 이해하고 패치의 부작용까지 전투 도구로 바꾸는 탑다운 2D 액션 게임입니다.
 
 > 하나를 고치면, 다른 하나가 망가진다.
 
-## 핵심 게임플레이
+## 플레이
 
-- 공격이 적을 회복시키는 `DAMAGE_SIGN_INVERTED`를 이용해 최대 체력을 넘기고 오버플로시킵니다.
-- 룸을 해결할 때마다 하나의 패치를 선택하지만, 고친 규칙은 새로운 부작용을 다음 전투에 남깁니다.
-- 적이 방출한 데이터 조각 6개를 회수하면 펄스 대기시간이 초기화되고 무결성 1을 회복합니다.
-- Damage Lab, Temporal Hall, Collision Archive, Optimizer Core가 서로 다른 규칙과 공간 언어를 사용합니다.
-- QA 주인공과 Crawler는 픽셀 프레임 애니메이션을 사용하고, Sentinel과 Optimizer는 상태별 텔레그래프와 반동으로 행동을 예고합니다.
+- **PATCH//STORY:** Damage Lab, Temporal Hall, Collision Archive를 지나 `THE OPTIMIZER`와 싸우는 3개 룸 + 보스 캠페인
+- **PATCH//SURVIVE:** 적 웨이브와 시간 변칙 속에서 패치를 조합하고 Fusion을 완성하는 무한 생존 모드
+- 적을 공격하면 회복시키는 `DAMAGE_SIGN_INVERTED`, 시간 정지, 충돌 융합 등 룸마다 다른 규칙을 역이용합니다.
+- 룸을 해결할 때마다 패치 하나를 선택합니다. 규칙 하나는 고쳐지지만 새로운 부작용이 다음 전투를 바꿉니다.
+- 생존 모드에서는 6개 패치를 Tier 3까지 성장시키고 `GHOST VENT`, `ECHO CASCADE`, `REDLINE` Fusion을 만들 수 있습니다.
 
 ![PATCH//WORLD gameplay concept](docs/visual-concepts/patchworld-gameplay-concept-v1.png)
 
-## 현재 구성
+## 공개 웹 빌드
 
-- Flutter 3.44.8 stable · Dart 3.12.2 · Flame 1.38.0
-- 960×540 고정 논리 해상도, 데스크톱 웹 우선
-- 3개 룸 + 보스 룸, 일반 적 2종, 패치 카드 6개, 8개 조합
-- 키보드·마우스·터치 입력
-- 한국어/영어, 텍스트 배율, 볼륨, 화면 흔들림, 플래시 감소, Assist Mode
-- Tiled 객체 레이어 기반 스폰·충돌·상호작용 좌표
-- 타이틀, 설정, 크레딧, 패배, 엔딩 선택, 런 요약, 최고 점수
+[GitHub Pages에서 실행](https://12ray.github.io/PATCH-WORLD/)
+
+Pages가 아직 활성화되지 않았다면 저장소의 **Settings → Pages → Build and deployment → Source**를 **GitHub Actions**로 설정해야 합니다. `main`에 push하면 `.github/workflows/pages.yml`이 분석, 테스트, 웹 빌드와 배포를 순서대로 실행합니다.
 
 ## 조작
 
 | 행동 | 키보드 | 마우스·터치 |
 |---|---|---|
 | 이동 | `WASD` / 방향키 | 화면 이동 패드 |
-| 패치 펄스 | `Space` / `J` | 왼쪽 클릭 / 공격 버튼 |
+| 패치 펄스 | `Space` / `J` | 공격 버튼 또는 왼쪽 클릭 |
 | 상호작용 | `E` / `Enter` | 상호작용 버튼 |
 | 일시정지 | `Esc` / `P` | 일시정지 버튼 |
 
-## 실행
+## 로컬 실행
+
+필수 환경은 Flutter 3.44.8 stable, Dart 3.12.2, Flame 1.38.0입니다.
 
 ```powershell
 flutter pub get
 flutter run -d chrome
 ```
 
-## 전체 검증
+GitHub Pages의 하위 경로 조건까지 확인하려면 다음 release build를 사용합니다.
+
+```powershell
+flutter build web --release --base-href "/PATCH-WORLD/"
+```
+
+## 검증
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tool/check.ps1
 ```
 
-Linux/macOS에서는 `./tool/check.sh`를 사용합니다.
+Linux/macOS에서는 `./tool/check.sh`를 사용합니다. 현재 기준은 `flutter analyze`, 자동 테스트 114개, release web build 통과입니다.
 
-현재 기준 `flutter analyze`, 자동 테스트 67개, 릴리스 웹 빌드와 Room 1·2 브라우저 스모크를 통과했습니다.
+## 배포
 
-## 릴리스
+- GitHub Pages: `.github/workflows/pages.yml`
+- Firebase Hosting 대체 경로: `.github/workflows/firebase-hosting.yml`, `firebase.json`
+- 로컬 릴리스 패키징: `./tool/release_web.sh 0.2.0-rc1`
 
-```bash
-./tool/release_web.sh 0.2.0-rc1
+GitHub CLI로 비공개 저장소의 Actions와 Pages 상태를 확인하려면 먼저 로그인합니다.
+
+```powershell
+gh auth login
+gh run list --repo 12Ray/PATCH-WORLD --limit 10
 ```
 
-Firebase Hosting 설정은 `firebase.json`, GitHub Pages 배포는 `.github/workflows/pages.yml`에 있습니다. GitHub 원격 저장소는 연결되어 있으며, 공개 배포에는 Pages 활성화 또는 Firebase 프로젝트 ID가 필요합니다.
-
-## 제출 자료
+## 문서와 라이선스
 
 - [제출 소개·영상 구성](docs/submission/SUBMISSION.md)
 - [Codex 협업 기록](docs/CODEX_COLLABORATION.md)
 - [서드파티 고지](THIRD_PARTY_NOTICES.md)
 - [에셋 권리 원장](assets/licenses/ASSET_LEDGER.md)
 - [게임플레이·비주얼 방향](docs/VISUAL_DIRECTION.md)
-
-프로젝트 기준 문서: [PATCH//WORLD Project HQ](https://app.notion.com/p/3b2299e2188881ec8e45d6d7fa5ee356)
+- [PATCH//WORLD Project HQ](https://app.notion.com/p/3b2299e2188881ec8e45d6d7fa5ee356)
