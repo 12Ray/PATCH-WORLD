@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -36,13 +37,49 @@ SPECS = (
     AnimationSpec("sentinel-scan", "sentinel-scan-source.png", 4, 6, True),
     AnimationSpec("sentinel-fire", "sentinel-fire-source.png", 4, 10, False),
     AnimationSpec("sentinel-cooldown", "sentinel-cooldown-source.png", 3, 8, False),
+    AnimationSpec("composite-stalk", "composite-stalk-source.png", 6, 8, True),
+    AnimationSpec("composite-shockwave", "composite-shockwave-source.png", 5, 10, False),
 )
 
 
 def remove_green(image: Image.Image) -> Image.Image:
     rgba = image.convert("RGBA")
+    source = rgba.load()
+    background = set()
+    queue: deque[tuple[int, int]] = deque()
+
+    def is_background(x: int, y: int) -> bool:
+        r, g, b, _ = source[x, y]
+        return (g > 105 and g - max(r, b) > 34) or (r > 242 and g > 242 and b > 242)
+
+    for x in range(rgba.width):
+        queue.append((x, 0))
+        queue.append((x, rgba.height - 1))
+    for y in range(rgba.height):
+        queue.append((0, y))
+        queue.append((rgba.width - 1, y))
+
+    while queue:
+        x, y = queue.popleft()
+        if (x, y) in background or not is_background(x, y):
+            continue
+        background.add((x, y))
+        if x > 0:
+            queue.append((x - 1, y))
+        if x + 1 < rgba.width:
+            queue.append((x + 1, y))
+        if y > 0:
+            queue.append((x, y - 1))
+        if y + 1 < rgba.height:
+            queue.append((x, y + 1))
+
     pixels = []
-    for r, g, b, _ in rgba.get_flattened_data():
+    for index, (r, g, b, _) in enumerate(rgba.get_flattened_data()):
+        x = index % rgba.width
+        y = index // rgba.width
+        if (x, y) in background:
+            pixels.append((r, g, b, 0))
+            continue
         dominance = g - max(r, b)
         if g > 105 and dominance > 34:
             alpha = max(0, min(255, int((82 - dominance) * 5.3)))
@@ -84,9 +121,46 @@ def split_frames(source: Image.Image, count: int) -> list[Image.Image]:
     return frames
 
 
+def clear_panel_seams(frame: Image.Image, width: int = 16) -> Image.Image:
+    """Remove generator-owned divider pixels at the edge of each panel."""
+    cleaned = frame.copy()
+    transparent = Image.new("RGBA", cleaned.size, (0, 0, 0, 0))
+    if cleaned.width > width * 2 and cleaned.height > width * 2:
+        interior = cleaned.crop(
+            (width, width, cleaned.width - width, cleaned.height - width)
+        )
+        transparent.alpha_composite(interior, (width, width))
+    return transparent
+
+
+def remove_tall_dividers(frame: Image.Image) -> Image.Image:
+    """Erase narrow, nearly full-height divider remnants inside a panel."""
+    cleaned = frame.copy()
+    alpha = cleaned.getchannel("A")
+    suspicious = []
+    for x in range(cleaned.width):
+        occupied = sum(alpha.getpixel((x, y)) > 20 for y in range(cleaned.height))
+        if occupied > cleaned.height * 0.55:
+            suspicious.append(x)
+    if not suspicious:
+        return cleaned
+    pixels = cleaned.load()
+    for divider_x in suspicious:
+        for x in range(max(0, divider_x - 3), min(cleaned.width, divider_x + 4)):
+            for y in range(cleaned.height):
+                pixels[x, y] = (0, 0, 0, 0)
+    return cleaned
+
+
 def process(spec: AnimationSpec) -> dict[str, object]:
-    source = remove_green(Image.open(SOURCE_DIR / spec.source))
-    raw_frames = split_frames(source, spec.frames)
+    source = Image.open(SOURCE_DIR / spec.source).convert("RGBA")
+    # ImageGen sometimes draws pale dividers between filmstrip panels. Removing
+    # border-connected backgrounds per panel makes those dividers reachable
+    # without erasing white highlights enclosed inside the character artwork.
+    raw_frames = [
+        remove_tall_dividers(clear_panel_seams(remove_green(frame)))
+        for frame in split_frames(source, spec.frames)
+    ]
     crops = [frame.crop(alpha_bbox(frame)) for frame in raw_frames]
     max_width = max(frame.width for frame in crops)
     max_height = max(frame.height for frame in crops)
@@ -106,6 +180,12 @@ def process(spec: AnimationSpec) -> dict[str, object]:
         y = BOTTOM - resized.height
         frame = Image.new("RGBA", (FRAME_SIZE, FRAME_SIZE), (0, 0, 0, 0))
         frame.alpha_composite(resized, (x, y))
+        final_bbox = alpha_bbox(frame)
+        baseline_delta = BOTTOM - final_bbox[3]
+        if baseline_delta:
+            aligned = Image.new("RGBA", (FRAME_SIZE, FRAME_SIZE), (0, 0, 0, 0))
+            aligned.alpha_composite(frame, (0, baseline_delta))
+            frame = aligned
         normalized.append(frame)
         bbox = alpha_bbox(frame)
         centers.append(round(weighted_center_x(frame), 2))

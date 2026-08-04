@@ -354,5 +354,84 @@
       ],
       "transparentCorners": true
     }
+  },
+  "composite-stalk": {
+    "asset": "images/sprites/animations/composite-stalk.png",
+    "frames": 6,
+    "fps": 8,
+    "loop": true,
+    "frameSize": [
+      256,
+      256
+    ],
+    "pivot": [
+      0.5,
+      0.9609
+    ],
+    "validation": {
+      "centroidX": [
+        127.74,
+        128.49,
+        127.59,
+        127.65,
+        127.97,
+        127.64
+      ],
+      "baseline": [
+        246,
+        246,
+        246,
+        246,
+        246,
+        246
+      ],
+      "alphaCoverage": [
+        0.2724,
+        0.2753,
+        0.2676,
+        0.269,
+        0.2729,
+        0.2715
+      ],
+      "transparentCorners": true
+    }
+  },
+  "composite-shockwave": {
+    "asset": "images/sprites/animations/composite-shockwave.png",
+    "frames": 5,
+    "fps": 10,
+    "loop": false,
+    "frameSize": [
+      256,
+      256
+    ],
+    "pivot": [
+      0.5,
+      0.9609
+    ],
+    "validation": {
+      "centroidX": [
+        128.45,
+        128.1,
+        127.77,
+        128.46,
+        127.67
+      ],
+      "baseline": [
+        246,
+        246,
+        246,
+        246,
+        246
+      ],
+      "alphaCoverage": [
+        0.2157,
+        0.2146,
+        0.4071,
+        0.2144,
+        0.2154
+      ],
+      "transparentCorners": true
+    }
   }
 }

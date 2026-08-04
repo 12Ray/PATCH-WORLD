@@ -37,8 +37,8 @@ final class CompositeComponent extends RectangleComponent
   double _telegraphRemaining = 0;
   bool _telegraphing = false;
   bool _duplicateClaimed = false;
-  EntitySpriteVisual? _leftVisual;
-  EntitySpriteVisual? _rightVisual;
+  EntitySpriteVisual? _visual;
+  List<Sprite>? _shockwaveFrames;
 
   @override
   Vector2 get duplicatePosition => position;
@@ -67,32 +67,39 @@ final class CompositeComponent extends RectangleComponent
 
   Future<void> _loadVisuals() async {
     try {
-      final sprite = await game.loadSprite('sprites/crawler.png');
-      final leftVisual = EntitySpriteVisual(
-        sprite: sprite,
-        size: Vector2.all(62),
+      final visual = EntitySpriteVisual(
+        sprite: await game.loadSprite('sprites/composite.png'),
+        size: Vector2.all(104),
         parentSize: size,
-        bobAmplitude: 1.8,
-        bobSpeed: 4.8,
-        phaseOffset: 0.7,
-        offset: Vector2(-10, 0),
+        bobAmplitude: 1.3,
+        bobSpeed: 3.7,
+        rotationAmplitude: 0.018,
       );
-      final rightVisual = EntitySpriteVisual(
-        sprite: sprite,
-        size: Vector2.all(62),
-        parentSize: size,
-        bobAmplitude: 1.8,
-        bobSpeed: 4.8,
-        phaseOffset: 3.4,
-        offset: Vector2(10, 0),
-      )..scale.x = -1;
-      _leftVisual = leftVisual;
-      _rightVisual = rightVisual;
-      await addAll(<Component>[leftVisual, rightVisual]);
+      if (isRemoving) return;
+      _visual = visual;
+      await add(visual);
+      final stalkImage = await game.images.load(
+        'sprites/animations/composite-stalk.png',
+      );
+      final shockwaveImage = await game.images.load(
+        'sprites/animations/composite-shockwave.png',
+      );
+      if (isRemoving) return;
+      visual.setDefaultAnimation(_frames(stalkImage, 6), fps: 8);
+      _shockwaveFrames = _frames(shockwaveImage, 5);
     } catch (_) {
       paint.color = const Color(0xFFFF4FD8);
     }
   }
+
+  List<Sprite> _frames(Image image, int count) => List.generate(
+    count,
+    (index) => Sprite(
+      image,
+      srcPosition: Vector2(index * 256.0, 0),
+      srcSize: Vector2.all(256),
+    ),
+  );
 
   @override
   void update(double dt) {
@@ -106,16 +113,17 @@ final class CompositeComponent extends RectangleComponent
       final tint = (_telegraphRemaining * 12).floor().isEven
           ? const Color(0xFFFFFFFF)
           : const Color(0xFFFF4FD8);
-      _leftVisual?.setStateTint(tint);
-      _rightVisual?.setStateTint(tint);
+      _visual?.setStateTint(tint);
       scale.setAll(1 + (1 - _telegraphRemaining / 0.55) * 0.12);
       if (_telegraphRemaining <= 0) {
         _telegraphing = false;
         scale.setAll(1);
-        _leftVisual?.setStateTint(null);
-        _leftVisual?.squash(seconds: 0.22);
-        _rightVisual?.setStateTint(null);
-        _rightVisual?.squash(seconds: 0.22);
+        _visual?.setStateTint(null);
+        _visual?.squash(seconds: 0.22);
+        final shockwaveFrames = _shockwaveFrames;
+        if (shockwaveFrames != null) {
+          _visual?.playOnce(shockwaveFrames, fps: 10);
+        }
         _shockwaveCooldown = 2.2;
         unawaited(_emitShockwave());
       }
@@ -128,9 +136,10 @@ final class CompositeComponent extends RectangleComponent
       final direction = game.world.player.position - position;
       if (direction.length2 > 64) {
         direction.normalize();
-        _leftVisual?.faceMovement(direction);
-        _rightVisual?.faceMovement(-direction);
+        _visual?.faceMovement(direction);
         position += direction * (60 * enemyDt);
+      } else {
+        _visual?.faceMovement(Vector2.zero());
       }
     }
     super.update(dt);
@@ -149,8 +158,8 @@ final class CompositeComponent extends RectangleComponent
       onDefeated();
       removeFromParent();
     } else {
-      _leftVisual?.flash(const Color(0xFFFFFFFF));
-      _rightVisual?.flash(const Color(0xFFFFFFFF));
+      _visual?.flash(const Color(0xFFFFFFFF));
+      _visual?.squash();
     }
   }
 

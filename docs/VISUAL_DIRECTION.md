@@ -8,8 +8,8 @@ Room-specific concept anchors:
   planning state versus active magenta risk state, charged relays, suspended
   bolts, and explicit Sentinel aim lines.
 - [Collision Archive](visual-concepts/collision-archive-concept-v1.png) —
-  collision vectors, a central merge containment ring, dual-core Composite,
-  and readable shockwave space.
+  cyan/magenta magnetic containment core, pulse-steered shielded Crawlers,
+  and a twin-core Composite whose animated shockwave makes fusion readable.
 
 ## Direction
 

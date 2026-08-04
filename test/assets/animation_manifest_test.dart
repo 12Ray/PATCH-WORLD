@@ -25,6 +25,8 @@ void main() {
         'sentinel-scan',
         'sentinel-fire',
         'sentinel-cooldown',
+        'composite-stalk',
+        'composite-shockwave',
       });
 
       for (final entry in manifest.entries) {

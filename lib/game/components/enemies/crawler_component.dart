@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/collisions.dart';
@@ -42,6 +43,7 @@ final class CrawlerComponent extends RectangleComponent
   final bool canDuplicate;
   final double speedMultiplier;
   final Vector2 _previousPosition = Vector2.zero();
+  final Vector2 _externalVelocity = Vector2.zero();
 
   bool _overflowStarted = false;
   double _overflowTimer = 0;
@@ -70,6 +72,14 @@ final class CrawlerComponent extends RectangleComponent
   }
 
   void consumeForMerge() => _mergeConsumed = true;
+
+  void applyMagneticPull(Vector2 target, double dt) {
+    if (!mergeShielded || isRemoving || dt <= 0) return;
+    final direction = target - position;
+    if (direction.length2 < 18 * 18) return;
+    direction.normalize();
+    _externalVelocity.add(direction * (96 * dt));
+  }
 
   @override
   Future<void> onLoad() async {
@@ -134,7 +144,18 @@ final class CrawlerComponent extends RectangleComponent
 
   @override
   void receiveDamage(int amount) {
-    if (mergeShielded) return;
+    if (mergeShielded) {
+      if (isMounted) {
+        final away = position - game.world.player.position;
+        if (away.length2 > 0) {
+          away.normalize();
+          _externalVelocity.add(away * 118);
+        }
+        _visual?.flash(const Color(0xFF36E1FF), seconds: 0.10);
+        _visual?.squash(seconds: 0.18);
+      }
+      return;
+    }
     final mutation = healthState.applyDamage(amount);
     if (mutation == HealthMutation.defeated) {
       if (isMounted) game.world.spawnDataShards(position, count: 1);
@@ -188,6 +209,12 @@ final class CrawlerComponent extends RectangleComponent
     }
     if (enemyDt > 0) {
       _previousPosition.setFrom(position);
+      if (_externalVelocity.length2 > 0.5) {
+        position += _externalVelocity * enemyDt;
+        _externalVelocity.scale(math.pow(0.12, enemyDt).toDouble());
+      } else {
+        _externalVelocity.setZero();
+      }
       final direction = game.world.player.position - position;
       if (direction.length2 > 16) {
         direction.normalize();
@@ -205,6 +232,8 @@ final class CrawlerComponent extends RectangleComponent
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     if (other is WallComponent) {
       position.setFrom(_previousPosition);
+    } else if (other is CrawlerComponent && canMerge && other.canMerge) {
+      game.world.tryMergeCrawlers(this, other);
     }
     super.onCollision(intersectionPoints, other);
   }
