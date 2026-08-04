@@ -19,6 +19,7 @@ import 'package:patch_world/game/rooms/room_one_controller.dart';
 import 'package:patch_world/game/rooms/boss_room_controller.dart';
 import 'package:patch_world/game/rooms/room_three_controller.dart';
 import 'package:patch_world/game/rooms/room_two_controller.dart';
+import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/game/systems/duplicate_fault_system.dart';
 
@@ -92,6 +93,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       RoomId.temporalHall => RoomTwoController(),
       RoomId.collisionArchive => RoomThreeController(),
       RoomId.optimizerCore => BossRoomController(),
+      RoomId.survivalArena => SurvivalArenaController(),
     };
     _activeRoom = nextRoom;
     await add(nextRoom);
@@ -100,6 +102,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       RoomTwoController controller => controller.playerSpawn,
       RoomThreeController controller => controller.playerSpawn,
       BossRoomController controller => controller.playerSpawn,
+      SurvivalArenaController controller => controller.playerSpawn,
       _ => throw StateError('Room controller does not expose a spawn.'),
     };
     player
@@ -114,6 +117,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       RoomTwoController controller => controller.tryInteract(player),
       RoomThreeController controller => controller.tryInteract(player),
       BossRoomController controller => controller.tryInteract(player),
+      SurvivalArenaController _ => false,
       _ => false,
     };
   }

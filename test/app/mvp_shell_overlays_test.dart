@@ -17,6 +17,7 @@ void main() {
     );
     expect(find.text('PATCH//WORLD'), findsOneWidget);
     expect(find.text('START PATCHING'), findsOneWidget);
+    expect(find.text('PATCH//SURVIVE'), findsOneWidget);
     expect(find.text('SETTINGS / ACCESSIBILITY'), findsOneWidget);
     expect(find.text('CREDITS / LICENSES'), findsOneWidget);
     expect(find.textContaining('WASD'), findsOneWidget);

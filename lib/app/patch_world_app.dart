@@ -12,6 +12,7 @@ import 'package:patch_world/app/overlays/pause_overlay.dart';
 import 'package:patch_world/app/overlays/settings_overlay.dart';
 import 'package:patch_world/app/overlays/title_overlay.dart';
 import 'package:patch_world/app/overlays/touch_controls_overlay.dart';
+import 'package:patch_world/app/overlays/survival_upgrade_overlay.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/services/game_settings.dart';
@@ -37,6 +38,7 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
         'temporal' => RoomId.temporalHall,
         'collision' => RoomId.collisionArchive,
         'optimizer' => RoomId.optimizerCore,
+        'survival' => RoomId.survivalArena,
         _ => RoomId.damageLab,
       };
 
@@ -97,6 +99,8 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
                             PatchSelectionOverlay(game: game),
                         OverlayIds.patchApplied: (context, game) =>
                             PatchAppliedOverlay(game: game),
+                        OverlayIds.survivalUpgrade: (context, game) =>
+                            SurvivalUpgradeOverlay(game: game),
                       },
                   loadingBuilder: (context) => const _LoadingView(),
                   errorBuilder: (context, error) => _ErrorView(error: error),

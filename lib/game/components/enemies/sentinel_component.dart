@@ -19,6 +19,7 @@ final class SentinelComponent extends RectangleComponent
     required super.position,
     this.fireInterval = 1.6,
     this.telegraphSeconds = 0.55,
+    this.onDefeated,
   }) : health = HealthState(max: 2, current: 2),
        super(
          size: Vector2(34, 44),
@@ -31,6 +32,7 @@ final class SentinelComponent extends RectangleComponent
   final String entityId;
   final double fireInterval;
   final double telegraphSeconds;
+  final void Function()? onDefeated;
   final HealthState health;
   SentinelState _state = SentinelState.scan;
   double _stateTimer = 0;
@@ -206,6 +208,7 @@ final class SentinelComponent extends RectangleComponent
   void receiveDamage(int amount) {
     if (health.applyDamage(amount) == HealthMutation.defeated) {
       if (isMounted) game.world.spawnDataShards(position, count: 2);
+      onDefeated?.call();
       removeFromParent();
     } else {
       _visual?.flash(const Color(0xFFFFFFFF));

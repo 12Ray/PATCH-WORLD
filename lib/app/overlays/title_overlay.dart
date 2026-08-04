@@ -85,6 +85,16 @@ final class TitleOverlay extends StatelessWidget {
                           label: Text(game.localization.text('ui.start')),
                         ),
                       ),
+                      SizedBox(height: compact ? 4 : 8),
+                      SizedBox(
+                        width: compact ? 220 : 300,
+                        height: compact ? 34 : null,
+                        child: OutlinedButton.icon(
+                          onPressed: game.startSurvivalRun,
+                          icon: const Icon(Icons.all_inclusive),
+                          label: Text(game.localization.text('ui.survival')),
+                        ),
+                      ),
                       SizedBox(height: compact ? 4 : 10),
                       Wrap(
                         spacing: compact ? 4 : 10,

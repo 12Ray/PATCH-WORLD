@@ -19,6 +19,10 @@ final class UiSnapshot {
     this.bossStability,
     this.patternConfidence,
     this.bossPhase,
+    this.survivalLevel,
+    this.survivalExperience,
+    this.survivalExperienceToNext,
+    this.survivalCombo,
   });
 
   factory UiSnapshot.initial() => const UiSnapshot(
@@ -45,6 +49,10 @@ final class UiSnapshot {
   final int? bossStability;
   final double? patternConfidence;
   final String? bossPhase;
+  final int? survivalLevel;
+  final int? survivalExperience;
+  final int? survivalExperienceToNext;
+  final int? survivalCombo;
 
   @override
   bool operator ==(Object other) =>
@@ -64,7 +72,11 @@ final class UiSnapshot {
           bossMaxHealth == other.bossMaxHealth &&
           bossStability == other.bossStability &&
           patternConfidence == other.patternConfidence &&
-          bossPhase == other.bossPhase;
+          bossPhase == other.bossPhase &&
+          survivalLevel == other.survivalLevel &&
+          survivalExperience == other.survivalExperience &&
+          survivalExperienceToNext == other.survivalExperienceToNext &&
+          survivalCombo == other.survivalCombo;
 
   @override
   int get hashCode => Object.hash(
@@ -83,5 +95,9 @@ final class UiSnapshot {
     bossStability,
     patternConfidence,
     bossPhase,
+    survivalLevel,
+    survivalExperience,
+    survivalExperienceToNext,
+    survivalCombo,
   );
 }

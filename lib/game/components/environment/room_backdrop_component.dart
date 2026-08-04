@@ -4,7 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 
-enum RoomBackdropStyle { damage, temporal, collision, optimizer }
+enum RoomBackdropStyle { damage, temporal, collision, optimizer, survival }
 
 /// Code-native environment art that makes each rule room visually distinct.
 final class RoomBackdropComponent extends PositionComponent
@@ -40,6 +40,8 @@ final class RoomBackdropComponent extends PositionComponent
         _drawCollisionArchive(canvas);
       case RoomBackdropStyle.optimizer:
         _drawOptimizerCore(canvas);
+      case RoomBackdropStyle.survival:
+        _drawSurvivalArena(canvas);
     }
     canvas.drawRect(
       const Rect.fromLTWH(24, 24, 912, 492),
@@ -188,6 +190,30 @@ final class RoomBackdropComponent extends PositionComponent
       const Offset(480, 488),
       const Color(0xFFFF4FD8),
       0.45,
+    );
+  }
+
+  void _drawSurvivalArena(Canvas canvas) {
+    final center = Offset(size.x / 2, size.y / 2);
+    for (var index = 0; index < 12; index += 1) {
+      final angle = index * math.pi / 6 + _time * 0.08;
+      canvas.drawLine(
+        center + Offset(math.cos(angle), math.sin(angle)) * 90,
+        center + Offset(math.cos(angle), math.sin(angle)) * 420,
+        Paint()
+          ..strokeWidth = index.isEven ? 2 : 1
+          ..color = index.isEven
+              ? const Color(0x3336E1FF)
+              : const Color(0x2EFF4FD8),
+      );
+    }
+    canvas.drawCircle(
+      center,
+      88 + math.sin(_time * 1.8) * 8,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = const Color(0x6636E1FF),
     );
   }
 

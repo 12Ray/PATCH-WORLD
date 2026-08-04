@@ -1,4 +1,10 @@
-enum RoomId { damageLab, temporalHall, collisionArchive, optimizerCore }
+enum RoomId {
+  damageLab,
+  temporalHall,
+  collisionArchive,
+  optimizerCore,
+  survivalArena,
+}
 
 final class RuleContext {
   const RuleContext({required this.roomId, required this.selectedPatchIds});

@@ -184,6 +184,41 @@ final class _RuleView extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
+              if (snapshot.survivalLevel case final int level) ...<Widget>[
+                Text(
+                  'LV $level',
+                  style: const TextStyle(
+                    color: Color(0xFF36E1FF),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 110,
+                  height: 5,
+                  child: LinearProgressIndicator(
+                    value:
+                        (snapshot.survivalExperience ?? 0) /
+                        (snapshot.survivalExperienceToNext ?? 1),
+                    backgroundColor: const Color(0xFF25304A),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Color(0xFFFF4FD8),
+                    ),
+                  ),
+                ),
+                if ((snapshot.survivalCombo ?? 0) >= 2) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Text(
+                    'COMBO x${snapshot.survivalCombo}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFC857),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ],
             ],
           ),
         ),

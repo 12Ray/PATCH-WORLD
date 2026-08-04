@@ -22,6 +22,7 @@ final class CrawlerComponent extends RectangleComponent
     this.mergeShielded = false,
     this.canDuplicate = true,
     this.speedMultiplier = 1,
+    this.onDefeated,
     int healthMaximum = maxHealth,
   }) : healthState = HealthState(max: healthMaximum, current: initialHealth),
        super(
@@ -42,6 +43,7 @@ final class CrawlerComponent extends RectangleComponent
   final bool mergeShielded;
   final bool canDuplicate;
   final double speedMultiplier;
+  final void Function()? onDefeated;
   final Vector2 _previousPosition = Vector2.zero();
   final Vector2 _externalVelocity = Vector2.zero();
 
@@ -159,6 +161,7 @@ final class CrawlerComponent extends RectangleComponent
     final mutation = healthState.applyDamage(amount);
     if (mutation == HealthMutation.defeated) {
       if (isMounted) game.world.spawnDataShards(position, count: 1);
+      onDefeated?.call();
       removeFromParent();
     } else if (mutation == HealthMutation.damaged) {
       _visual?.flash(const Color(0xFFFFFFFF));
@@ -196,6 +199,7 @@ final class CrawlerComponent extends RectangleComponent
       scale.setAll(1 + (overflowDelaySeconds - _overflowTimer) * 0.55);
       if (_overflowTimer <= 0) {
         game.world.spawnDataShards(position, count: 3, corrupted: true);
+        onDefeated?.call();
         onOverflow?.call(this);
         removeFromParent();
       }

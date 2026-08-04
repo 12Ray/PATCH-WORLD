@@ -22,11 +22,14 @@ import 'package:patch_world/game/rules/rule_engine.dart';
 import 'package:patch_world/game/rules/rule_ids.dart';
 import 'package:patch_world/game/rooms/room_one_controller.dart';
 import 'package:patch_world/game/rooms/room_two_controller.dart';
+import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
 import 'package:patch_world/game/systems/enemy_tempo_system.dart';
 import 'package:patch_world/game/systems/duplicate_fault_system.dart';
 import 'package:patch_world/game/systems/patch_effects_system.dart';
 import 'package:patch_world/game/systems/player_pattern_tracker.dart';
+import 'package:patch_world/game/survival/survival_run_state.dart';
+import 'package:patch_world/game/survival/survival_upgrade_request.dart';
 import 'package:patch_world/services/audio_service.dart';
 import 'package:patch_world/services/game_settings.dart';
 import 'package:patch_world/services/localization_service.dart';
@@ -36,6 +39,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     with HasCollisionDetection, KeyboardEvents {
   PatchWorldGame({this.initialRoom = RoomId.damageLab})
     : currentRoom = initialRoom,
+      mode = initialRoom == RoomId.survivalArena
+          ? PatchWorldMode.survival
+          : PatchWorldMode.campaign,
       super(
         world: PatchWorld(),
         camera: CameraComponent.withFixedResolution(
@@ -55,6 +61,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   final InputController input = InputController();
   final RunState runState = RunState();
   final RunMetrics runMetrics = RunMetrics();
+  final SurvivalRunState survivalRun = SurvivalRunState();
   final RuleEngine ruleEngine = RuleEngine();
   final GameClock clock = GameClock();
   final PlayerPatternTracker patternTracker = PlayerPatternTracker();
@@ -80,9 +87,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   late final EnemyTempoSystem enemyTempo;
   late final DuplicateFaultSystem duplicateFault;
   RoomId currentRoom;
+  PatchWorldMode mode;
   PatchSelectionRequest? pendingPatchSelection;
+  SurvivalUpgradeRequest? pendingSurvivalUpgrade;
   bool _roomTransitionInProgress = false;
   double _uiPublishAccumulator = 0;
+  double _survivalAutoPulseRemaining = 0.35;
   bool _roomRestartRequested = false;
   dart_async.Timer? _defeatRestartTimer;
   dart_async.Timer? _patchNoticeTimer;
@@ -175,7 +185,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     return KeyEventResult.handled;
   }
 
-  void startRun() {
+  void startRun() => unawaited(_startCampaignRun());
+
+  Future<void> _startCampaignRun() async {
+    await ready();
+    mode = PatchWorldMode.campaign;
     unawaited(audio.unlockFromUserGesture());
     runMetrics.reset();
     completedRun.value = null;
@@ -185,6 +199,69 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       overlays.add(OverlayIds.touchControls);
     }
     input.clearAll();
+    resumeEngine();
+  }
+
+  void startSurvivalRun() => unawaited(_startSurvivalRun());
+
+  Future<void> _startSurvivalRun() async {
+    await ready();
+    unawaited(audio.unlockFromUserGesture());
+    mode = PatchWorldMode.survival;
+    runState.reset();
+    survivalRun.reset();
+    completedRun.value = null;
+    ruleEngine.setRules(const <GameRule>[]);
+    overlays.remove(OverlayIds.title);
+    if (!overlays.isActive(OverlayIds.hud)) overlays.add(OverlayIds.hud);
+    if (!overlays.isActive(OverlayIds.touchControls)) {
+      overlays.add(OverlayIds.touchControls);
+    }
+    input.clearAll();
+    currentRoom = RoomId.survivalArena;
+    resumeEngine();
+    if (world.activeRoom is! SurvivalArenaController) {
+      await world.loadRoom(currentRoom);
+    }
+    publishUiSnapshot(force: true);
+  }
+
+  void recordSurvivalKill({bool elite = false, bool miniBoss = false}) {
+    if (mode != PatchWorldMode.survival) return;
+    final leveledUp = survivalRun.recordKill(elite: elite, miniBoss: miniBoss);
+    publishUiSnapshot(force: true);
+    if (leveledUp && pendingSurvivalUpgrade == null) {
+      _openSurvivalUpgrade();
+    }
+  }
+
+  void _openSurvivalUpgrade() {
+    pendingSurvivalUpgrade = SurvivalUpgradeRequest(
+      level: survivalRun.level,
+      choices: SurvivalUpgradeCatalog.choicesForLevel(survivalRun.level),
+    );
+    input.clearAll();
+    pauseEngine();
+    overlays.add(OverlayIds.survivalUpgrade);
+  }
+
+  void selectSurvivalUpgrade(String patchId) {
+    final request = pendingSurvivalUpgrade;
+    if (request == null) return;
+    PatchDefinition? patch;
+    for (final choice in request.choices) {
+      if (choice.id == patchId) patch = choice;
+    }
+    if (patch == null) return;
+    runState.selectPatch(patch.id);
+    survivalRun.upgradePatch(
+      patch.id,
+      riskTier: SurvivalUpgradeCatalog.riskTierFor(patch),
+    );
+    pendingSurvivalUpgrade = null;
+    overlays.remove(OverlayIds.survivalUpgrade);
+    input.clearAll();
+    publishUiSnapshot(force: true);
     resumeEngine();
   }
 
@@ -273,6 +350,13 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       playerStatusDt: clock.playerStatusDt,
       isPlayerMoving: movement.length2 > 0,
     );
+    if (mode == PatchWorldMode.survival && pendingSurvivalUpgrade == null) {
+      _survivalAutoPulseRemaining -= clock.simulationDt;
+      if (_survivalAutoPulseRemaining <= 0) {
+        _survivalAutoPulseRemaining = 0.65;
+        world.player.tryAttack();
+      }
+    }
     if (input.consumeAttack()) {
       patternTracker.recordAttack();
       world.player.tryAttack();
@@ -424,6 +508,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     enemyTempo.resetForRoomRestart();
     ruleEngine.setRules(const <GameRule>[DamageSignInvertedRule()]);
     currentRoom = RoomId.damageLab;
+    mode = PatchWorldMode.campaign;
     // Ending pauses Flame. Resume before awaiting component removal/addition,
     // otherwise the previous room can never finish its removal lifecycle.
     resumeEngine();
@@ -447,6 +532,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     enemyTempo.resetForRoomRestart();
     ruleEngine.setRules(const <GameRule>[DamageSignInvertedRule()]);
     currentRoom = RoomId.damageLab;
+    mode = PatchWorldMode.campaign;
     resumeEngine();
     await world.loadRoom(currentRoom);
     unawaited(audio.startArchiveBgm(restart: true));
@@ -581,6 +667,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     // Defeat also pauses Flame; room replacement needs update frames to
     // finalize the outgoing component's removal.
     resumeEngine();
+    if (mode == PatchWorldMode.survival) {
+      survivalRun.reset();
+      runState.reset();
+      pendingSurvivalUpgrade = null;
+      overlays.remove(OverlayIds.survivalUpgrade);
+    }
     await world.restartCurrentRoom();
     publishUiSnapshot(force: true);
     resumeEngine();
@@ -601,6 +693,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     Future<void>.delayed(const Duration(milliseconds: 900), () async {
       patchEffects.resetForRoomRestart();
       enemyTempo.resetForRoomRestart();
+      // Room replacement needs active update frames to finish removals.
+      resumeEngine();
       await world.restartCurrentRoom();
       _roomRestartRequested = false;
       publishUiSnapshot(force: true);
@@ -624,6 +718,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         RoomId.temporalHall => localization.text('room.temporalHall'),
         RoomId.collisionArchive => localization.text('room.collisionArchive'),
         RoomId.optimizerCore => localization.text('room.optimizerCore'),
+        RoomId.survivalArena => localization.text('room.survivalArena'),
       },
       anomalyLabel: switch (currentRoom) {
         RoomId.damageLab =>
@@ -633,6 +728,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         RoomId.temporalHall => localization.text('rule.timeOnInput'),
         RoomId.collisionArchive => localization.text('rule.collisionMerge'),
         RoomId.optimizerCore => localization.text('rule.patternAnalysis'),
+        RoomId.survivalArena => localization.text('rule.survivalEscalation'),
       },
       objectiveLabel: switch (currentRoom) {
         RoomId.damageLab => localization.text(
@@ -665,8 +761,24 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           'defeated' => localization.text('objective.optimizerOverflow'),
           _ => localization.text('objective.optimizerDamage'),
         },
+        RoomId.survivalArena => localization.text(
+          'objective.survivalArena',
+          parameters: <String, Object>{
+            'time': survivalRun.elapsedSeconds.floor(),
+            'kills': survivalRun.kills,
+            'score': survivalRun.score,
+          },
+        ),
       },
       selectedPatchIds: runState.selectedPatchIds,
+      survivalLevel: mode == PatchWorldMode.survival ? survivalRun.level : null,
+      survivalExperience: mode == PatchWorldMode.survival
+          ? survivalRun.experience
+          : null,
+      survivalExperienceToNext: mode == PatchWorldMode.survival
+          ? survivalRun.experienceToNext
+          : null,
+      survivalCombo: mode == PatchWorldMode.survival ? survivalRun.combo : null,
       normalizedHeat: patchEffects.normalizedHeat,
       echoPulseCount: patchEffects.echoPulseCount,
       frameBurstPhase: burst?.phase,
