@@ -13,7 +13,7 @@ final class EnemyProjectileComponent extends CircleComponent
     : super(
         radius: 7,
         anchor: Anchor.center,
-        paint: Paint()..color = const Color(0xFFFF6464),
+        paint: Paint()..color = const Color(0x00000000),
         priority: 25,
       );
 
@@ -31,6 +31,48 @@ final class EnemyProjectileComponent extends CircleComponent
         anchor: Anchor.center,
       ),
     );
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final direction = velocity.length2 == 0
+        ? Vector2(1, 0)
+        : velocity.normalized();
+    final forward = Offset(direction.x, direction.y);
+    final perpendicular = Offset(-direction.y, direction.x);
+    final center = Offset(radius, radius);
+    canvas.drawLine(
+      center - forward * 22,
+      center,
+      Paint()
+        ..strokeWidth = 3
+        ..color = const Color(0x8836E1FF),
+    );
+    final bolt = Path()
+      ..moveTo(center.dx + forward.dx * 8, center.dy + forward.dy * 8)
+      ..lineTo(
+        center.dx + perpendicular.dx * 5,
+        center.dy + perpendicular.dy * 5,
+      )
+      ..lineTo(center.dx - forward.dx * 8, center.dy - forward.dy * 8)
+      ..lineTo(
+        center.dx - perpendicular.dx * 5,
+        center.dy - perpendicular.dy * 5,
+      )
+      ..close();
+    canvas.drawPath(bolt, Paint()..color = const Color(0xFFFF4FD8));
+    canvas.drawCircle(center, 2.5, Paint()..color = const Color(0xFFFFFFFF));
+    if (game.clock.isSimulationFrozen) {
+      canvas.drawCircle(
+        center,
+        11,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5
+          ..color = const Color(0xAA36E1FF),
+      );
+    }
+    super.render(canvas);
   }
 
   @override

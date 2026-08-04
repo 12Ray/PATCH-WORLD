@@ -50,7 +50,7 @@ powershell -ExecutionPolicy Bypass -File tool/check.ps1
 
 Linux/macOS에서는 `./tool/check.sh`를 사용합니다.
 
-현재 기준 `flutter analyze`, 자동 테스트 66개, 릴리스 웹 빌드와 Room 1 브라우저 스모크를 통과했습니다.
+현재 기준 `flutter analyze`, 자동 테스트 67개, 릴리스 웹 빌드와 Room 1·2 브라우저 스모크를 통과했습니다.
 
 ## 릴리스
 

@@ -33,6 +33,9 @@ SPECS = (
     AnimationSpec("crawler-chase", "crawler-chase-source.png", 6, 9, True),
     AnimationSpec("crawler-heal", "crawler-heal-source.png", 3, 8, False),
     AnimationSpec("crawler-overflow", "crawler-overflow-source.png", 5, 12, False),
+    AnimationSpec("sentinel-scan", "sentinel-scan-source.png", 4, 6, True),
+    AnimationSpec("sentinel-fire", "sentinel-fire-source.png", 4, 10, False),
+    AnimationSpec("sentinel-cooldown", "sentinel-cooldown-source.png", 3, 8, False),
 )
 
 
@@ -133,7 +136,17 @@ def process(spec: AnimationSpec) -> dict[str, object]:
 
 
 def main() -> None:
-    manifest = {spec.name: process(spec) for spec in SPECS}
+    manifest_path = OUTPUT_DIR / "manifest.json"
+    manifest = (
+        json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest_path.exists()
+        else {}
+    )
+    for spec in SPECS:
+        if (SOURCE_DIR / spec.source).exists():
+            manifest[spec.name] = process(spec)
+        elif spec.name not in manifest:
+            raise FileNotFoundError(SOURCE_DIR / spec.source)
     (OUTPUT_DIR / "manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )

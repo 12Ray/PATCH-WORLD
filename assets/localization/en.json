@@ -89,7 +89,7 @@
   "rule.collisionMerge": "COLLISION PRODUCES UNITY",
   "rule.patternAnalysis": "PATTERN ANALYSIS ACTIVE",
   "objective.damageLab": "OBJECTIVE: OVERFLOW ENEMIES {count}/2",
-  "objective.temporalHall": "OBJECTIVE: ACTIVATE RIGHT TERMINALS {count}/2 (E / ENTER)",
+  "objective.temporalHall": "OBJECTIVE: MOVE NEAR RELAYS TO CHARGE, THEN E · SYNC {count}/2",
   "objective.collisionArchive": "OBJECTIVE: MERGE TWO CRAWLERS, THEN DEFEAT THE COMPOSITE",
   "objective.optimizerDamage": "OBJECTIVE: ATTACK UNTIL THE OPTIMIZER ENTERS PERFECT PHASE",
   "objective.optimizerPerfect": "OBJECTIVE: ACTIVATE TERMINAL (E), THEN PULSE 4× IN 6S · STABILITY {stability}/150",

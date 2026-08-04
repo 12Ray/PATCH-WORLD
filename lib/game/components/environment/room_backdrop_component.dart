@@ -7,7 +7,8 @@ import 'package:patch_world/game/patch_world_game.dart';
 enum RoomBackdropStyle { damage, temporal, collision, optimizer }
 
 /// Code-native environment art that makes each rule room visually distinct.
-final class RoomBackdropComponent extends PositionComponent {
+final class RoomBackdropComponent extends PositionComponent
+    with HasGameReference<PatchWorldGame> {
   RoomBackdropComponent(this.style)
     : super(
         size: Vector2(
@@ -22,7 +23,7 @@ final class RoomBackdropComponent extends PositionComponent {
 
   @override
   void update(double dt) {
-    _time += dt;
+    _time += style == RoomBackdropStyle.temporal ? game.clock.simulationDt : dt;
     super.update(dt);
   }
 
@@ -100,6 +101,8 @@ final class RoomBackdropComponent extends PositionComponent {
   }
 
   void _drawTemporalHall(Canvas canvas) {
+    final center = Offset(size.x / 2, size.y / 2);
+    final frozen = game.clock.isSimulationFrozen;
     for (var i = 0; i < 4; i += 1) {
       final inset = 58.0 + i * 42;
       canvas.drawRRect(
@@ -110,9 +113,31 @@ final class RoomBackdropComponent extends PositionComponent {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = i == 0 ? 3 : 1.3
-          ..color = Color.fromRGBO(255, 79, 216, 0.12 + i * 0.04),
+          ..color = frozen
+              ? Color.fromRGBO(54, 225, 255, 0.18 + i * 0.04)
+              : Color.fromRGBO(255, 79, 216, 0.12 + i * 0.04),
       );
     }
+    for (var index = 0; index < 12; index += 1) {
+      final angle = index * math.pi / 6 + _time * 0.7;
+      final inner = 96.0 + (index.isEven ? 18 : 0);
+      final outer = 188.0 + (index % 3) * 24;
+      canvas.drawLine(
+        center + Offset(math.cos(angle), math.sin(angle)) * inner,
+        center + Offset(math.cos(angle), math.sin(angle)) * outer,
+        Paint()
+          ..strokeWidth = frozen ? 2.2 : 1.2
+          ..color = frozen ? const Color(0x6636E1FF) : const Color(0x44FF4FD8),
+      );
+    }
+    canvas.drawCircle(
+      center,
+      42 + math.sin(_time * 2.2) * 4,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = frozen ? 4 : 2
+        ..color = frozen ? const Color(0xAA36E1FF) : const Color(0x88FF4FD8),
+    );
   }
 
   void _drawCollisionArchive(Canvas canvas) {

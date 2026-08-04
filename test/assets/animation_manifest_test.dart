@@ -22,6 +22,9 @@ void main() {
         'crawler-chase',
         'crawler-heal',
         'crawler-overflow',
+        'sentinel-scan',
+        'sentinel-fire',
+        'sentinel-cooldown',
       });
 
       for (final entry in manifest.entries) {

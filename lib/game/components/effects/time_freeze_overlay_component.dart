@@ -29,8 +29,32 @@ final class TimeFreezeOverlayComponent extends PositionComponent
     _linePaint.color = game.settings.value.flash == FlashSetting.reduced
         ? const Color(0x0A36E1FF)
         : const Color(0x2236E1FF);
+    canvas.drawRect(
+      size.toRect(),
+      Paint()
+        ..color = game.settings.value.flash == FlashSetting.reduced
+            ? const Color(0x0800C8FF)
+            : const Color(0x1400C8FF),
+    );
     for (double y = 0; y < height; y += 6) {
       canvas.drawLine(Offset(0, y), Offset(width, y), _linePaint);
     }
+    final center = Offset(width / 2, height / 2);
+    canvas.drawCircle(
+      center,
+      32,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0x5536E1FF),
+    );
+    canvas.drawRect(
+      Rect.fromCenter(center: center.translate(-7, 0), width: 5, height: 18),
+      Paint()..color = const Color(0x8836E1FF),
+    );
+    canvas.drawRect(
+      Rect.fromCenter(center: center.translate(7, 0), width: 5, height: 18),
+      Paint()..color = const Color(0x8836E1FF),
+    );
   }
 }

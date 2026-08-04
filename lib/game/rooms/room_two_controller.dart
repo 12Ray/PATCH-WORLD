@@ -45,11 +45,27 @@ final class RoomTwoController extends Component
             (spec) => TerminalComponent(
               terminalId: spec.id,
               position: spec.center,
+              requiredChargeSeconds: 0.85,
               onActivated: _onTerminalActivated,
             ),
           ),
     );
     await addAll(_terminals);
+  }
+
+  @override
+  void update(double dt) {
+    if (game.world.isReady) {
+      final player = game.world.player;
+      for (final terminal in _terminals) {
+        terminal.updateCharge(
+          playerPosition: player.position,
+          dt: game.clock.simulationDt,
+          isMoving: player.isMoving,
+        );
+      }
+    }
+    super.update(dt);
   }
 
   bool tryInteract(PlayerComponent player) {

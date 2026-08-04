@@ -13,6 +13,7 @@ import 'package:patch_world/app/overlays/settings_overlay.dart';
 import 'package:patch_world/app/overlays/title_overlay.dart';
 import 'package:patch_world/app/overlays/touch_controls_overlay.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/services/game_settings.dart';
 
 final class PatchWorldApp extends StatefulWidget {
@@ -28,8 +29,16 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
   @override
   void initState() {
     super.initState();
-    _game = PatchWorldGame();
+    _game = PatchWorldGame(initialRoom: _buildInitialRoom);
   }
+
+  RoomId get _buildInitialRoom =>
+      switch (const String.fromEnvironment('START_ROOM')) {
+        'temporal' => RoomId.temporalHall,
+        'collision' => RoomId.collisionArchive,
+        'optimizer' => RoomId.optimizerCore,
+        _ => RoomId.damageLab,
+      };
 
   @override
   Widget build(BuildContext context) {

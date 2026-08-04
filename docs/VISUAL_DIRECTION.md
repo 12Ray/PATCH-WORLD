@@ -2,6 +2,15 @@
 
 ![Gameplay concept](visual-concepts/patchworld-gameplay-concept-v1.png)
 
+Room-specific concept anchors:
+
+- [Temporal Hall](visual-concepts/temporal-hall-concept-v1.png) — frozen cyan
+  planning state versus active magenta risk state, charged relays, suspended
+  bolts, and explicit Sentinel aim lines.
+- [Collision Archive](visual-concepts/collision-archive-concept-v1.png) —
+  collision vectors, a central merge containment ring, dual-core Composite,
+  and readable shockwave space.
+
 ## Direction
 
 PATCH//WORLD is a **Neon QA Exorcist inside a corrupted running build**. The
@@ -78,6 +87,9 @@ combat states:
 | Crawler | chase | 6 | 9 | yes |
 | Crawler | heal | 3 | 8 | no |
 | Crawler | overflow | 5 | 12 | no |
+| Sentinel | scan | 4 | 6 | yes |
+| Sentinel | fire | 4 | 10 | no |
+| Sentinel | cooldown | 3 | 8 | no |
 
 `tool/process_animation_sheets.py` removes chroma, despills edges, divides the
 generated strips into exact frame counts, applies nearest-neighbor scaling,
@@ -91,12 +103,28 @@ Static source sprites remain as safe loading fallbacks. Movement state changes
 update the loop to which an active attack or hurt one-shot returns, so input
 changes never cut a reaction short or restore the wrong pose.
 
+## Room 2 — Temporal Hall
+
+- Time advances only while the player expresses gameplay intent. The rotating
+  background timeline, Sentinel aim state, and diamond chrono bolts all hold
+  their current state when input stops.
+- Each relay must be charged by moving within its 72px field for 0.85 seconds,
+  then locked with `E`. Reaching the device is insufficient: the player must
+  deliberately expose themselves to moving time.
+- Sentinel telegraphs draw a world-space magenta aim line before firing. Its
+  scan, discharge, and vented cooldown now use distinct frame animations.
+- Frozen time adds a restrained cyan field, scanlines, pause glyph, and rings
+  around suspended bolts; reduced-flash mode lowers the overlay opacity.
+
 ## Verification — 2026-08-04
 
 - `flutter analyze`: clean.
-- `flutter test`: 66 tests passed.
+- `flutter test`: 67 tests passed.
 - `flutter build web --release`: passed.
 - Generated sprite payload in the release build: about 321 KiB across 4 files.
 - Local desktop web smoke: title and Room 1 rendered; idle, Crawler chase, and
   the hero's pulse extension rendered without console warning/error, chroma
   fringe, or layer-order failure.
+- Temporal direct-start smoke: frozen overlay, rotating time geometry,
+  Sentinel scan/aim state, and uncharged relays rendered without console
+  warning/error.

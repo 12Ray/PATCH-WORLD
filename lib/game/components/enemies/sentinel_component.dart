@@ -34,8 +34,12 @@ final class SentinelComponent extends RectangleComponent
   final HealthState health;
   SentinelState _state = SentinelState.scan;
   double _stateTimer = 0;
+  double _fireAnimationRemaining = 0;
   Vector2 _lockedDirection = Vector2(1, 0);
   EntitySpriteVisual? _visual;
+  List<Sprite>? _fireFrames;
+  List<Sprite>? _cooldownFrames;
+  bool _cooldownAnimationQueued = false;
 
   SentinelState get state => _state;
 
@@ -68,10 +72,36 @@ final class SentinelComponent extends RectangleComponent
       if (isRemoving) return;
       _visual = visual;
       await add(visual);
+      await _loadAnimations(visual);
     } catch (_) {
       paint.color = const Color(0xFFFFC857);
     }
   }
+
+  Future<void> _loadAnimations(EntitySpriteVisual visual) async {
+    final scanImage = await game.images.load(
+      'sprites/animations/sentinel-scan.png',
+    );
+    final fireImage = await game.images.load(
+      'sprites/animations/sentinel-fire.png',
+    );
+    final cooldownImage = await game.images.load(
+      'sprites/animations/sentinel-cooldown.png',
+    );
+    if (isRemoving) return;
+    visual.setDefaultAnimation(_frames(scanImage, 4), fps: 6);
+    _fireFrames = _frames(fireImage, 4);
+    _cooldownFrames = _frames(cooldownImage, 3);
+  }
+
+  List<Sprite> _frames(Image image, int count) => List.generate(
+    count,
+    (index) => Sprite(
+      image,
+      srcPosition: Vector2(index * 256.0, 0),
+      srcSize: Vector2.all(256),
+    ),
+  );
 
   @override
   void update(double dt) {
@@ -97,6 +127,12 @@ final class SentinelComponent extends RectangleComponent
         );
         scale.setAll(1 + (1 - _stateTimer / telegraphSeconds) * 0.14);
         if (_stateTimer <= 0) {
+          final fireFrames = _fireFrames;
+          if (fireFrames != null) {
+            _visual?.playOnce(fireFrames, fps: 10);
+            _fireAnimationRemaining = 0.4;
+            _cooldownAnimationQueued = true;
+          }
           _visual?.squash(seconds: 0.20);
           unawaited(_fire());
           _state = SentinelState.cooldown;
@@ -105,6 +141,16 @@ final class SentinelComponent extends RectangleComponent
       case SentinelState.cooldown:
         scale.setAll(1);
         _visual?.setStateTint(const Color(0xFF7E7394));
+        if (_cooldownAnimationQueued) {
+          _fireAnimationRemaining -= enemyDt;
+          if (_fireAnimationRemaining <= 0) {
+            final cooldownFrames = _cooldownFrames;
+            if (cooldownFrames != null) {
+              _visual?.playOnce(cooldownFrames, fps: 8);
+            }
+            _cooldownAnimationQueued = false;
+          }
+        }
         if (_stateTimer <= 0) {
           _state = SentinelState.scan;
           _stateTimer = 0;
@@ -128,6 +174,32 @@ final class SentinelComponent extends RectangleComponent
         velocity: _lockedDirection * 130,
       ),
     );
+  }
+
+  @override
+  void render(Canvas canvas) {
+    if (_state == SentinelState.telegraph) {
+      final progress = (1 - _stateTimer / telegraphSeconds).clamp(0, 1);
+      final origin = Offset(width / 2, height / 2);
+      final target =
+          origin + Offset(_lockedDirection.x, _lockedDirection.y) * 900;
+      canvas.drawLine(
+        origin,
+        target,
+        Paint()
+          ..strokeWidth = 1.4 + progress * 2.6
+          ..color = Color.fromRGBO(255, 79, 216, 0.24 + progress * 0.58),
+      );
+      canvas.drawCircle(
+        origin,
+        9 + progress * 9,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = const Color(0xFF36E1FF),
+      );
+    }
+    super.render(canvas);
   }
 
   @override

@@ -45,6 +45,7 @@ final class PlayerComponent extends RectangleComponent
 
   bool get canAttack => _attackCooldown <= 0 && !isRemoving;
   bool get isInvulnerable => _hitInvulnerability > 0;
+  bool get isMoving => _movementInput.length2 > 0.01;
   int get dataShardCharge => _dataShardCharge;
 
   @override
