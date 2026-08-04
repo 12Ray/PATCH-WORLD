@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:patch_world/game/core/ui_snapshot.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/systems/frame_burst_controller.dart';
 
 final class HudOverlay extends StatelessWidget {
   const HudOverlay({required this.game, super.key});
@@ -112,6 +113,21 @@ final class _RuleView extends StatelessWidget {
             valueColor: AlwaysStoppedAnimation<Color>(
               heat >= 0.75 ? const Color(0xFFFF6464) : const Color(0xFFFFC857),
             ),
+          ),
+        ),
+      if (snapshot.frameBurstPhase case final FrameBurstPhase phase)
+        Text(
+          switch (phase) {
+            FrameBurstPhase.normal => 'FRAME STABLE',
+            FrameBurstPhase.warning => 'FRAME BURST INCOMING',
+            FrameBurstPhase.active => 'FRAME BURST ACTIVE',
+          },
+          style: TextStyle(
+            color: phase == FrameBurstPhase.active
+                ? const Color(0xFFFF6464)
+                : const Color(0xFFFFC857),
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
           ),
         ),
     ],

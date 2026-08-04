@@ -64,7 +64,7 @@ final class PlayerComponent extends RectangleComponent
   }
 
   void tryInteract() {
-    // Terminals are introduced in P5 and P7.
+    game.world.tryInteract(this);
   }
 
   void takeDamage(int amount, {String causeId = 'unknown'}) {
@@ -85,11 +85,13 @@ final class PlayerComponent extends RectangleComponent
 
   @override
   void update(double dt) {
-    _attackCooldown = math.max(0, _attackCooldown - dt);
-    _hitInvulnerability = math.max(0, _hitInvulnerability - dt);
+    final statusDt = isMounted ? game.clock.playerStatusDt : dt;
+    final simulationDt = isMounted ? game.clock.simulationDt : dt;
+    _attackCooldown = math.max(0, _attackCooldown - simulationDt);
+    _hitInvulnerability = math.max(0, _hitInvulnerability - statusDt);
 
     _previousPosition.setFrom(position);
-    position += _movementInput * (moveSpeed * dt);
+    position += _movementInput * (moveSpeed * statusDt);
     _clampToLogicalWorld();
     _updateDamageBlink();
     super.update(dt);

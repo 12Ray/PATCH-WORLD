@@ -25,4 +25,17 @@ void main() {
     expect(find.text('TACTIC'), findsNWidgets(2));
     expect(find.text('APPLY PATCH'), findsNWidgets(2));
   });
+
+  testWidgets('shows both Room 2 time-fix choices', (tester) async {
+    final game = PatchWorldGame()
+      ..pendingPatchSelection = const PatchSelectionRequest(
+        roomId: 'temporal-hall',
+        choices: PatchCatalog.roomTwoChoices,
+      );
+    await tester.pumpWidget(
+      MaterialApp(home: PatchSelectionOverlay(game: game)),
+    );
+    expect(find.text('HOSTILE TURBO'), findsOneWidget);
+    expect(find.text('FRAME BURST'), findsOneWidget);
+  });
 }

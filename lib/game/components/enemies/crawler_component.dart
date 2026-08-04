@@ -79,8 +79,10 @@ final class CrawlerComponent extends RectangleComponent
 
   @override
   void update(double dt) {
+    final simulationDt = game.clock.simulationDt;
+    final enemyDt = game.clock.enemyDt;
     if (_overflowStarted) {
-      _overflowTimer -= dt;
+      _overflowTimer -= simulationDt;
       scale.setAll(1 + (overflowDelaySeconds - _overflowTimer) * 0.55);
       if (_overflowTimer <= 0) {
         onOverflow?.call(this);
@@ -94,11 +96,13 @@ final class CrawlerComponent extends RectangleComponent
       super.update(dt);
       return;
     }
-    _previousPosition.setFrom(position);
-    final direction = game.world.player.position - position;
-    if (direction.length2 > 16) {
-      direction.normalize();
-      position += direction * (moveSpeed * dt);
+    if (enemyDt > 0) {
+      _previousPosition.setFrom(position);
+      final direction = game.world.player.position - position;
+      if (direction.length2 > 16) {
+        direction.normalize();
+        position += direction * (moveSpeed * enemyDt);
+      }
     }
     if (paint.color == const Color(0xFFFFFFFF) ||
         paint.color == const Color(0xFF36E1FF)) {

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:patch_world/app/overlay_ids.dart';
 import 'package:patch_world/game/core/input_controller.dart';
+import 'package:patch_world/game/core/game_clock.dart';
 import 'package:patch_world/game/core/run_state.dart';
 import 'package:patch_world/game/core/ui_snapshot.dart';
 import 'package:patch_world/game/patch_world.dart';
@@ -17,6 +18,7 @@ import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/game/rules/rule_engine.dart';
 import 'package:patch_world/game/rules/rule_ids.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
+import 'package:patch_world/game/systems/enemy_tempo_system.dart';
 import 'package:patch_world/game/systems/patch_effects_system.dart';
 
 final class PatchWorldGame extends FlameGame<PatchWorld>
@@ -39,12 +41,14 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   final InputController input = InputController();
   final RunState runState = RunState();
   final RuleEngine ruleEngine = RuleEngine();
+  final GameClock clock = GameClock();
   final ValueNotifier<UiSnapshot> uiSnapshot = ValueNotifier<UiSnapshot>(
     UiSnapshot.initial(),
   );
 
   late final CombatSystem combatSystem;
   late final PatchEffectsSystem patchEffects;
+  late final EnemyTempoSystem enemyTempo;
   RoomId currentRoom = RoomId.damageLab;
   PatchSelectionRequest? pendingPatchSelection;
   double _uiPublishAccumulator = 0;
@@ -73,6 +77,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         }
       },
     );
+    enemyTempo = EnemyTempoSystem(runState: runState);
     await super.onLoad();
     publishUiSnapshot(force: true);
   }
@@ -99,24 +104,35 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
 
   @override
   void update(double dt) {
-    if (world.isReady) {
-      final movement = input.movementAxis;
-      world.player.setMovementInput(movement);
-      patchEffects.update(
-        playerStatusDt: dt,
-        isPlayerMoving: movement.length2 > 0,
+    if (!world.isReady) {
+      clock.beginFrame(
+        realDt: dt,
+        simulationAdvances: true,
+        enemySpeedMultiplier: 1,
       );
-      if (input.consumeAttack()) {
-        world.player.tryAttack();
-      }
-      if (input.consumeInteract()) {
-        world.player.tryInteract();
-      }
-      _uiPublishAccumulator += dt;
-      if (_uiPublishAccumulator >= 0.10) {
-        _uiPublishAccumulator = 0;
-        publishUiSnapshot();
-      }
+      super.update(dt);
+      return;
+    }
+    final movement = input.movementAxis;
+    final hasGameplayIntent = input.hasGameplayIntent;
+    enemyTempo.update(dt);
+    clock.beginFrame(
+      realDt: dt,
+      simulationAdvances:
+          currentRoom != RoomId.temporalHall || hasGameplayIntent,
+      enemySpeedMultiplier: enemyTempo.speedMultiplier,
+    );
+    world.player.setMovementInput(movement);
+    patchEffects.update(
+      playerStatusDt: clock.playerStatusDt,
+      isPlayerMoving: movement.length2 > 0,
+    );
+    if (input.consumeAttack()) world.player.tryAttack();
+    if (input.consumeInteract()) world.player.tryInteract();
+    _uiPublishAccumulator += clock.realDt;
+    if (_uiPublishAccumulator >= 0.10) {
+      _uiPublishAccumulator = 0;
+      publishUiSnapshot();
     }
     super.update(dt);
   }
@@ -135,18 +151,43 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void selectPatch(String patchId) {
+    unawaited(_selectPatchAndContinue(patchId));
+  }
+
+  Future<void> _selectPatchAndContinue(String patchId) async {
     final request = pendingPatchSelection;
     if (request == null ||
         !request.choices.any((PatchDefinition item) => item.id == patchId)) {
       return;
     }
     runState.selectPatch(patchId);
-    ruleEngine.removeRule(RuleIds.damageSignInverted);
     pendingPatchSelection = null;
     overlays.remove(OverlayIds.patchSelection);
-    resumeEngine();
-    unawaited(world.showPostPatchSandbox());
+    if (request.roomId == 'damage-lab') {
+      ruleEngine.removeRule(RuleIds.damageSignInverted);
+      patchEffects.resetTransientForRoomTransition();
+      currentRoom = RoomId.temporalHall;
+      await world.loadRoom(currentRoom);
+    } else if (request.roomId == 'temporal-hall') {
+      enemyTempo.resetForRoomRestart();
+      patchEffects.resetTransientForRoomTransition();
+      currentRoom = RoomId.collisionArchive;
+    } else {
+      throw StateError('Unknown patch room: ${request.roomId}');
+    }
     publishUiSnapshot(force: true);
+    resumeEngine();
+  }
+
+  void openRoomTwoPatchSelection() {
+    if (pendingPatchSelection != null) return;
+    pendingPatchSelection = const PatchSelectionRequest(
+      roomId: 'temporal-hall',
+      choices: PatchCatalog.roomTwoChoices,
+    );
+    input.clearAll();
+    pauseEngine();
+    overlays.add(OverlayIds.patchSelection);
   }
 
   void openPauseMenu() {
@@ -178,6 +219,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     pauseEngine();
     Future<void>.delayed(const Duration(milliseconds: 900), () async {
       patchEffects.resetForRoomRestart();
+      enemyTempo.resetForRoomRestart();
       await world.restartCurrentRoom();
       _roomRestartRequested = false;
       publishUiSnapshot(force: true);
@@ -189,6 +231,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     if (!world.isReady) {
       return;
     }
+    final burst = enemyTempo.frameBurstSnapshot;
     final next = UiSnapshot(
       integrity: world.player.integrity,
       maxIntegrity: world.player.maxIntegrity,
@@ -210,6 +253,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       selectedPatchIds: runState.selectedPatchIds,
       normalizedHeat: patchEffects.normalizedHeat,
       echoPulseCount: patchEffects.echoPulseCount,
+      frameBurstPhase: burst?.phase,
+      frameBurstProgress: burst?.phaseProgress,
     );
     if (force || uiSnapshot.value != next) {
       uiSnapshot.value = next;

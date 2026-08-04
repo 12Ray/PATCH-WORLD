@@ -41,6 +41,29 @@ abstract final class PatchCatalog {
     motionTax,
     retaliationEcho,
   ];
+
+  static const PatchDefinition hostileTurbo = PatchDefinition(
+    id: RuleIds.hostileTurbo,
+    title: 'HOSTILE TURBO',
+    fix: 'Time flows continuously again.',
+    sideEffect: 'Enemies and projectiles move 20% faster.',
+    tactic: 'Telegraphs stay readable, so position before each shot.',
+    riskLabel: 'RISKY',
+  );
+
+  static const PatchDefinition frameBurst = PatchDefinition(
+    id: RuleIds.frameBurst,
+    title: 'FRAME BURST',
+    fix: 'Time flows continuously again.',
+    sideEffect: 'Every 5 seconds enemies surge for 0.6 seconds.',
+    tactic: 'Move to safety during the frame warning.',
+    riskLabel: 'CHAOTIC',
+  );
+
+  static const List<PatchDefinition> roomTwoChoices = <PatchDefinition>[
+    hostileTurbo,
+    frameBurst,
+  ];
 }
 
 final class RunState {

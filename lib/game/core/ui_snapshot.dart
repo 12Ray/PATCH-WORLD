@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:patch_world/game/systems/frame_burst_controller.dart';
 
 @immutable
 final class UiSnapshot {
@@ -10,6 +11,8 @@ final class UiSnapshot {
     required this.selectedPatchIds,
     this.normalizedHeat,
     this.echoPulseCount,
+    this.frameBurstPhase,
+    this.frameBurstProgress,
   });
 
   factory UiSnapshot.initial() => const UiSnapshot(
@@ -27,6 +30,8 @@ final class UiSnapshot {
   final List<String> selectedPatchIds;
   final double? normalizedHeat;
   final int? echoPulseCount;
+  final FrameBurstPhase? frameBurstPhase;
+  final double? frameBurstProgress;
 
   @override
   bool operator ==(Object other) =>
@@ -38,7 +43,9 @@ final class UiSnapshot {
           anomalyLabel == other.anomalyLabel &&
           listEquals(selectedPatchIds, other.selectedPatchIds) &&
           normalizedHeat == other.normalizedHeat &&
-          echoPulseCount == other.echoPulseCount;
+          echoPulseCount == other.echoPulseCount &&
+          frameBurstPhase == other.frameBurstPhase &&
+          frameBurstProgress == other.frameBurstProgress;
 
   @override
   int get hashCode => Object.hash(
@@ -49,5 +56,7 @@ final class UiSnapshot {
     Object.hashAll(selectedPatchIds),
     normalizedHeat,
     echoPulseCount,
+    frameBurstPhase,
+    frameBurstProgress,
   );
 }

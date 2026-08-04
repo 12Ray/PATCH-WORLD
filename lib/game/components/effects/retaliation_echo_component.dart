@@ -30,8 +30,9 @@ final class RetaliationEchoComponent extends CircleComponent
 
   @override
   void update(double dt) {
+    final simulationDt = isMounted ? game.clock.simulationDt : dt;
     if (!_blastStarted) {
-      _warningRemaining -= dt;
+      _warningRemaining -= simulationDt;
       final progress = (1 - (_warningRemaining / warningSeconds)).clamp(0, 1);
       scale.setAll(0.85 + (progress * 0.15));
       paint.color = Color.fromARGB(
@@ -46,7 +47,7 @@ final class RetaliationEchoComponent extends CircleComponent
       super.update(dt);
       return;
     }
-    _blastRemaining -= dt;
+    _blastRemaining -= simulationDt;
     paint.color = const Color(0xAAFF4FD8);
     scale.setAll(1.12);
     if (_blastRemaining <= 0) {

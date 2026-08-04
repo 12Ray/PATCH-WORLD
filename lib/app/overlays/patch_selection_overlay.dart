@@ -15,46 +15,50 @@ final class PatchSelectionOverlay extends StatelessWidget {
     }
     return ColoredBox(
       color: const Color(0xE603050A),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 860),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                const Text(
-                  'ANOMALY CONTAINED',
-                  style: TextStyle(
-                    color: Color(0xFFF4F7FF),
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.5,
+      child: SingleChildScrollView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 860),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const Text(
+                    'ANOMALY CONTAINED',
+                    style: TextStyle(
+                      color: Color(0xFFF4F7FF),
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Choose one fix and accept its side effect.',
-                  style: TextStyle(color: Color(0xFFA9B4C8), fontSize: 16),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: request.choices
-                      .map(
-                        (patch) => Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: _PatchCard(
-                              patch: patch,
-                              onSelected: () => game.selectPatch(patch.id),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Choose one fix and accept its side effect.',
+                    style: TextStyle(color: Color(0xFFA9B4C8), fontSize: 16),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: request.choices
+                        .map(
+                          (patch) => Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              child: _PatchCard(
+                                patch: patch,
+                                onSelected: () => game.selectPatch(patch.id),
+                              ),
                             ),
                           ),
-                        ),
-                      )
-                      .toList(growable: false),
-                ),
-              ],
+                        )
+                        .toList(growable: false),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
