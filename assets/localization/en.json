@@ -102,6 +102,8 @@
   "hud.frameStable": "FRAME STABLE",
   "hud.frameWarning": "FRAME BURST INCOMING",
   "hud.frameActive": "FRAME BURST ACTIVE",
+  "hud.data": "DATA",
+  "hud.dataSurge": "DATA SURGE",
   "hud.boss": "BOSS",
   "hud.perfect": "PERFECT",
   "hud.stability": "STABILITY",

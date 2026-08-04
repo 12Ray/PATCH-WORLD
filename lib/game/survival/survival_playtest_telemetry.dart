@@ -9,6 +9,7 @@ enum SurvivalMeaningfulEvent {
   temporalStorm,
   optimizerFragment,
   endlessTier,
+  dataSurge,
 }
 
 final class SurvivalPacingSnapshot {

@@ -134,11 +134,17 @@ final class PlayerComponent extends RectangleComponent
             game.survivalRun.frameOverclockActive
         ? survivalModifiers?.frameOverclockDamageBonus ?? 0
         : 0;
+    final dataSurgeDamageBonus = game.mode == PatchWorldMode.survival
+        ? game.survivalRun.dataSurgeDamageBonus
+        : 0;
     _attackCooldown =
         attackCooldownSeconds *
         (survivalModifiers?.pulseCooldownMultiplier ?? 1) *
         (game.mode == PatchWorldMode.survival
             ? game.survivalRun.overclockCooldownMultiplier
+            : 1) *
+        (game.mode == PatchWorldMode.survival
+            ? game.survivalRun.dataSurgeCooldownMultiplier
             : 1);
     final pulseFrames = _pulseFrames;
     if (pulseFrames != null) {
@@ -152,7 +158,8 @@ final class PlayerComponent extends RectangleComponent
       damage:
           (survivalModifiers?.pulseDamage ?? 1) +
           ventDamageBonus +
-          frameDamageBonus,
+          frameDamageBonus +
+          dataSurgeDamageBonus,
       radiusMultiplier: survivalModifiers?.pulseRadiusMultiplier ?? 1,
     );
     game.patchEffects.onPatchPulseEmitted(
@@ -210,16 +217,22 @@ final class PlayerComponent extends RectangleComponent
     }
   }
 
-  void absorbDataShard() {
-    _dataShardCharge += 1;
+  void absorbDataShard({int amount = 1}) {
+    _dataShardCharge += math.max(1, amount);
     _attackCooldown = math.max(0, _attackCooldown - 0.08);
     _visual?.flash(const Color(0xFF36E1FF), seconds: 0.08);
-    if (_dataShardCharge < 6) return;
+    if (_dataShardCharge < 6) {
+      if (isMounted) game.publishUiSnapshot(force: true);
+      return;
+    }
 
-    _dataShardCharge = 0;
+    _dataShardCharge -= 6;
     _attackCooldown = 0;
     if (integrity < maxIntegrity) integrity += 1;
     if (isMounted) {
+      if (game.mode == PatchWorldMode.survival) {
+        game.triggerSurvivalDataSurge(position);
+      }
       unawaited(game.audio.playHeal());
       game.publishUiSnapshot(force: true);
     }

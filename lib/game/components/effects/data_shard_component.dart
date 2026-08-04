@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/survival/survival_run_state.dart';
 
 /// A short-lived reward that turns enemy resolution into visible momentum.
 final class DataShardComponent extends RectangleComponent
@@ -39,7 +40,9 @@ final class DataShardComponent extends RectangleComponent
     } else {
       final delta = game.world.player.position - position;
       if (delta.length2 < 18 * 18) {
-        game.world.player.absorbDataShard();
+        game.world.player.absorbDataShard(
+          amount: game.mode == PatchWorldMode.survival && isCorrupted ? 2 : 1,
+        );
         removeFromParent();
         return;
       }

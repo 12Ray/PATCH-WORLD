@@ -227,6 +227,20 @@ final class _RuleView extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+                if (snapshot.survivalDataCharge
+                    case final int charge) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Text(
+                    snapshot.survivalDataSurge
+                        ? game.localization.text('hud.dataSurge')
+                        : '${game.localization.text('hud.data')} $charge/6',
+                    style: const TextStyle(
+                      color: Color(0xFF45F3A6),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
                 if (snapshot.motionVentReady) ...<Widget>[
                   const SizedBox(width: 8),
                   const Text(

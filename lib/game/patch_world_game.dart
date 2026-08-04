@@ -333,6 +333,19 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     survivalRun.telemetry.record(survivalRun.elapsedSeconds, event);
   }
 
+  void triggerSurvivalDataSurge(Vector2 position) {
+    if (mode != PatchWorldMode.survival) return;
+    survivalRun.triggerDataSurge();
+    world.spawnDataSurgeRing(position);
+    final activeRoom = world.activeRoom;
+    if (activeRoom is SurvivalArenaController) {
+      activeRoom.showPatchPowerDemo(
+        '${localization.text('hud.dataSurge')} // PULSE +1',
+      );
+    }
+    publishUiSnapshot(force: true);
+  }
+
   SurvivalSessionSummary get survivalSessionSummary =>
       SurvivalSessionSummary.fromPatchRuns(
         survivalSessionHistory.map((result) => result.patchTiers.keys.toSet()),
@@ -987,6 +1000,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       survivalCombo: mode == PatchWorldMode.survival ? survivalRun.combo : null,
       survivalOverclock:
           mode == PatchWorldMode.survival && survivalRun.overclockActive,
+      survivalDataCharge: mode == PatchWorldMode.survival
+          ? world.player.dataShardCharge
+          : null,
+      survivalDataSurge:
+          mode == PatchWorldMode.survival && survivalRun.dataSurgeActive,
       motionVentReady:
           mode == PatchWorldMode.survival && patchEffects.motionVentCharged,
       normalizedHeat: patchEffects.normalizedHeat,

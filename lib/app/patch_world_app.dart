@@ -26,12 +26,23 @@ final class PatchWorldApp extends StatefulWidget {
 }
 
 final class _PatchWorldAppState extends State<PatchWorldApp> {
+  static const bool _survivalQaAutoStart = bool.fromEnvironment(
+    'SURVIVAL_QA_AUTOSTART',
+  );
+
   late final PatchWorldGame _game;
 
   @override
   void initState() {
     super.initState();
     _game = PatchWorldGame(initialRoom: _buildInitialRoom);
+    if (_survivalQaAutoStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _game.ready();
+        await _game.world.loaded;
+        if (mounted) _game.startSurvivalRun();
+      });
+    }
   }
 
   RoomId get _buildInitialRoom =>

@@ -102,6 +102,8 @@
   "hud.frameStable": "프레임 안정",
   "hud.frameWarning": "프레임 버스트 경고",
   "hud.frameActive": "프레임 버스트 활성",
+  "hud.data": "데이터",
+  "hud.dataSurge": "데이터 서지",
   "hud.boss": "보스",
   "hud.perfect": "완전 안정화",
   "hud.stability": "안정도",

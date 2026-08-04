@@ -23,6 +23,7 @@ final class SurvivalRunState {
   String? firstPatchId;
   double turboOverclockRemaining = 0;
   double frameOverclockRemaining = 0;
+  double dataSurgeRemaining = 0;
 
   Map<String, int> get patchTiers => Map<String, int>.unmodifiable(_patchTiers);
 
@@ -51,12 +52,16 @@ final class SurvivalRunState {
   bool get frameOverclockActive => frameOverclockRemaining > 0;
   bool get overclockActive => turboOverclockActive || frameOverclockActive;
   double get overclockCooldownMultiplier => overclockActive ? 0.65 : 1;
+  bool get dataSurgeActive => dataSurgeRemaining > 0;
+  double get dataSurgeCooldownMultiplier => dataSurgeActive ? 0.70 : 1;
+  int get dataSurgeDamageBonus => dataSurgeActive ? 1 : 0;
 
   void update(double dt) {
     if (dt <= 0) return;
     elapsedSeconds += dt;
     turboOverclockRemaining = math.max(0, turboOverclockRemaining - dt);
     frameOverclockRemaining = math.max(0, frameOverclockRemaining - dt);
+    dataSurgeRemaining = math.max(0, dataSurgeRemaining - dt);
     if (comboRemaining <= 0) return;
     comboRemaining = math.max(0, comboRemaining - dt);
     if (comboRemaining == 0) combo = 0;
@@ -113,6 +118,11 @@ final class SurvivalRunState {
 
   void triggerFrameOverclock() => frameOverclockRemaining = 1.5;
 
+  void triggerDataSurge() {
+    dataSurgeRemaining = 2;
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.dataSurge);
+  }
+
   void recordMaxedBuildLevel() => bonusScore += 250;
 
   int upgradePatch(String patchId, {required int riskTier}) {
@@ -141,6 +151,7 @@ final class SurvivalRunState {
     firstPatchId = null;
     turboOverclockRemaining = 0;
     frameOverclockRemaining = 0;
+    dataSurgeRemaining = 0;
     _patchTiers.clear();
     _killTimes.clear();
     telemetry.reset();

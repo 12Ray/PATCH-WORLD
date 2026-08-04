@@ -7,6 +7,7 @@ import 'package:flame/text.dart';
 import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/effects/data_shard_component.dart';
+import 'package:patch_world/game/components/effects/data_surge_ring_component.dart';
 import 'package:patch_world/game/components/effects/retaliation_echo_component.dart';
 import 'package:patch_world/game/components/effects/friendly_error_burst_component.dart';
 import 'package:patch_world/game/components/effects/time_freeze_overlay_component.dart';
@@ -251,6 +252,10 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
         ),
       );
     }
+  }
+
+  void spawnDataSurgeRing(Vector2 worldPosition) {
+    add(DataSurgeRingComponent(position: worldPosition.clone()));
   }
 
   Future<void> spawnRetaliationEcho(Vector2 worldPosition, int tier) async {

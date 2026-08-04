@@ -26,6 +26,8 @@ void main() {
       survivalExperienceToNext: 10,
       survivalCombo: 10,
       survivalOverclock: true,
+      survivalDataCharge: 5,
+      survivalDataSurge: true,
       motionVentReady: true,
     );
 
@@ -37,6 +39,7 @@ void main() {
     );
     expect(find.text('VENT READY'), findsOneWidget);
     expect(find.text('OVERCLOCK'), findsOneWidget);
+    expect(find.text('DATA SURGE'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

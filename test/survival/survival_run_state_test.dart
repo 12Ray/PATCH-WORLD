@@ -114,4 +114,16 @@ void main() {
     state.update(1.51);
     expect(state.overclockActive, isFalse);
   });
+
+  test('data surge grants a two second damage and cooldown window', () {
+    final state = SurvivalRunState()..triggerDataSurge();
+
+    expect(state.dataSurgeActive, isTrue);
+    expect(state.dataSurgeDamageBonus, 1);
+    expect(state.dataSurgeCooldownMultiplier, 0.70);
+    state.update(2.01);
+    expect(state.dataSurgeActive, isFalse);
+    expect(state.dataSurgeDamageBonus, 0);
+    expect(state.dataSurgeCooldownMultiplier, 1);
+  });
 }
