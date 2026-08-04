@@ -424,6 +424,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     enemyTempo.resetForRoomRestart();
     ruleEngine.setRules(const <GameRule>[DamageSignInvertedRule()]);
     currentRoom = RoomId.damageLab;
+    // Ending pauses Flame. Resume before awaiting component removal/addition,
+    // otherwise the previous room can never finish its removal lifecycle.
+    resumeEngine();
     await world.loadRoom(currentRoom);
     unawaited(audio.startArchiveBgm(restart: true));
     publishUiSnapshot(force: true);
@@ -444,6 +447,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     enemyTempo.resetForRoomRestart();
     ruleEngine.setRules(const <GameRule>[DamageSignInvertedRule()]);
     currentRoom = RoomId.damageLab;
+    resumeEngine();
     await world.loadRoom(currentRoom);
     unawaited(audio.startArchiveBgm(restart: true));
     publishUiSnapshot(force: true);
@@ -574,6 +578,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   Future<void> _reloadDefeatedRoom() async {
+    // Defeat also pauses Flame; room replacement needs update frames to
+    // finalize the outgoing component's removal.
+    resumeEngine();
     await world.restartCurrentRoom();
     publishUiSnapshot(force: true);
     resumeEngine();
