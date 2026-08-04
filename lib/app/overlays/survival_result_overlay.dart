@@ -108,6 +108,13 @@ final class SurvivalResultOverlay extends StatelessWidget {
                             ),
                             _Stat(
                               label: game.localization.text(
+                                'survivalResult.hotCaches',
+                              ),
+                              value:
+                                  '${result.hotCachesCollected}/${result.hotCachesSpawned}',
+                            ),
+                            _Stat(
+                              label: game.localization.text(
                                 'survivalResult.risk',
                               ),
                               value:

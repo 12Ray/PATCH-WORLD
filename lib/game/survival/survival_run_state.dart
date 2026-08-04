@@ -24,6 +24,9 @@ final class SurvivalRunState {
   int experienceToNext = 6;
   int riskTierTotal = 0;
   int bonusScore = 0;
+  int hotCachesSpawned = 0;
+  int hotCachesCollected = 0;
+  int hotCachesExpired = 0;
   String? firstPatchId;
   double turboOverclockRemaining = 0;
   double frameOverclockRemaining = 0;
@@ -163,6 +166,18 @@ final class SurvivalRunState {
 
   void recordMaxedBuildLevel() => bonusScore += 250;
 
+  void recordHotCacheSpawned() => hotCachesSpawned += 1;
+
+  int recordHotCacheCollected() {
+    hotCachesCollected += 1;
+    final reward = 400 * flowMultiplier;
+    bonusScore += reward;
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.volatileCache);
+    return reward;
+  }
+
+  void recordHotCacheExpired() => hotCachesExpired += 1;
+
   int upgradePatch(String patchId, {required int riskTier}) {
     final nextTier = math.min(3, patchTier(patchId) + 1);
     if (nextTier == patchTier(patchId)) return nextTier;
@@ -186,6 +201,9 @@ final class SurvivalRunState {
     experienceToNext = 6;
     riskTierTotal = 0;
     bonusScore = 0;
+    hotCachesSpawned = 0;
+    hotCachesCollected = 0;
+    hotCachesExpired = 0;
     firstPatchId = null;
     turboOverclockRemaining = 0;
     frameOverclockRemaining = 0;
@@ -206,6 +224,8 @@ final class SurvivalResultSnapshot {
     required this.miniBossKills,
     required this.score,
     required this.maxCombo,
+    required this.hotCachesSpawned,
+    required this.hotCachesCollected,
     required this.patchTiers,
     required this.riskMultiplier,
     required this.firstPatchId,
@@ -229,6 +249,8 @@ final class SurvivalResultSnapshot {
       miniBossKills: run.miniBossKills,
       score: run.score,
       maxCombo: run.maxCombo,
+      hotCachesSpawned: run.hotCachesSpawned,
+      hotCachesCollected: run.hotCachesCollected,
       patchTiers: Map<String, int>.unmodifiable(run.patchTiers),
       riskMultiplier: run.riskMultiplier,
       firstPatchId: run.firstPatchId,
@@ -246,6 +268,8 @@ final class SurvivalResultSnapshot {
   final int miniBossKills;
   final int score;
   final int maxCombo;
+  final int hotCachesSpawned;
+  final int hotCachesCollected;
   final Map<String, int> patchTiers;
   final double riskMultiplier;
   final String? firstPatchId;

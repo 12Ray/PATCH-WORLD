@@ -92,6 +92,48 @@ void main() {
     expect(state.pendingUpgradeCount, 0);
   });
 
+  test('volatile caches reward flow and preserve run recall', () {
+    final state = SurvivalRunState();
+    state.recordHotCacheSpawned();
+    expect(state.recordHotCacheCollected(), 400);
+    for (var index = 0; index < 5; index += 1) {
+      state.recordKill();
+    }
+    state.recordHotCacheSpawned();
+    expect(state.flowMultiplier, 2);
+    final bonusBeforeFlowCache = state.bonusScore;
+    expect(state.recordHotCacheCollected(), 800);
+    expect(state.bonusScore - bonusBeforeFlowCache, 800);
+    for (var index = 0; index < 5; index += 1) {
+      state.recordKill();
+    }
+    state.recordHotCacheSpawned();
+    expect(state.flowMultiplier, 3);
+    expect(state.recordHotCacheCollected(), 1200);
+    for (var index = 0; index < 10; index += 1) {
+      state.recordKill();
+    }
+    state.recordHotCacheSpawned();
+    expect(state.flowMultiplier, 4);
+    expect(state.recordHotCacheCollected(), 1600);
+    state.recordHotCacheSpawned();
+    state.recordHotCacheExpired();
+    final snapshot = SurvivalResultSnapshot.fromRun(
+      state,
+      isBestScore: false,
+      isBestTime: false,
+    );
+    expect(snapshot.hotCachesSpawned, 5);
+    expect(snapshot.hotCachesCollected, 4);
+    expect(state.hotCachesExpired, 1);
+    expect(state.bonusScore, greaterThanOrEqualTo(1200));
+
+    state.reset();
+    expect(state.hotCachesSpawned, 0);
+    expect(state.hotCachesCollected, 0);
+    expect(state.hotCachesExpired, 0);
+  });
+
   test('reroute prioritizes a different non-maxed patch offer', () {
     final firstOffer = SurvivalUpgradeCatalog.choicesForLevel(2);
     final rerouted = SurvivalUpgradeCatalog.reroutedChoicesForLevel(

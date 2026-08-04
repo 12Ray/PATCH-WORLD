@@ -70,6 +70,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     'SURVIVAL_QA_INVINCIBLE',
     defaultValue: false,
   );
+  static const bool survivalQaCacheAtPlayer = bool.fromEnvironment(
+    'SURVIVAL_QA_CACHE_AT_PLAYER',
+    defaultValue: false,
+  );
   static const String survivalQaBuild = String.fromEnvironment(
     'SURVIVAL_QA_BUILD',
     defaultValue: '',

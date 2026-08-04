@@ -9,6 +9,7 @@ import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/enemies/sentinel_component.dart';
 import 'package:patch_world/game/components/enemies/optimizer_fragment_component.dart';
 import 'package:patch_world/game/components/effects/temporal_storm_component.dart';
+import 'package:patch_world/game/components/effects/volatile_cache_component.dart';
 import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
@@ -16,6 +17,7 @@ import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/systems/phase_leak_controller.dart';
 import 'package:patch_world/game/survival/wave_director.dart';
 import 'package:patch_world/game/survival/survival_playtest_telemetry.dart';
+import 'package:patch_world/game/survival/survival_run_state.dart';
 
 final class SurvivalArenaController extends Component
     with HasGameReference<PatchWorldGame> {
@@ -30,6 +32,8 @@ final class SurvivalArenaController extends Component
   int _spawnId = 0;
   int _lastWaveSecond = 0;
   int _lastCelebratedMinute = 0;
+  int _nextCacheSecond = 30;
+  int _cachePositionIndex = 0;
   bool _alertActive = false;
 
   int? get milestoneBossHealth {
@@ -83,6 +87,7 @@ final class SurvivalArenaController extends Component
     await super.onLoad();
     _lastWaveSecond = game.survivalRun.elapsedSeconds.floor();
     _lastCelebratedMinute = _lastWaveSecond ~/ 60;
+    _nextCacheSecond = _nextCacheAfter(_lastWaveSecond);
     await add(RoomBackdropComponent(RoomBackdropStyle.survival));
     await add(TemporalStormComponent());
     await addAll(<WallComponent>[
@@ -106,6 +111,7 @@ final class SurvivalArenaController extends Component
         game.clock.simulationDt * PatchWorldGame.survivalQaTimeScale;
     game.survivalRun.update(simulationDt);
     _updateSurvivalMilestone();
+    _updateVolatileCache();
     _updatePhaseLeak(simulationDt);
     if (game.world.isReady && !_spawning && simulationDt > 0) {
       _spawnRemaining -= simulationDt;
@@ -127,6 +133,104 @@ final class SurvivalArenaController extends Component
     if (second < 600) return 3.0;
     final endlessTier = 1 + (second - 600) ~/ 60;
     return math.max(1.8, 3.0 - endlessTier * 0.12);
+  }
+
+  static int _nextCacheAfter(int second) {
+    if (second < 30) return 30;
+    return 30 + (((second - 30) ~/ 45) + 1) * 45;
+  }
+
+  void _updateVolatileCache() {
+    final second = game.survivalRun.elapsedSeconds.floor();
+    if (second < _nextCacheSecond) return;
+    while (_nextCacheSecond <= second) {
+      _nextCacheSecond += 45;
+    }
+    unawaited(_spawnVolatileCache());
+  }
+
+  Future<void> _spawnVolatileCache() async {
+    if (isRemoving || children.whereType<VolatileCacheComponent>().isNotEmpty) {
+      return;
+    }
+    final cachePosition = _nextCachePosition();
+    game.survivalRun.recordHotCacheSpawned();
+    _showAlert('VOLATILE CACHE // 12s', const Color(0xFFFFC857));
+    await add(
+      VolatileCacheComponent(
+        position: cachePosition,
+        onCollected: _collectVolatileCache,
+        onExpired: _expireVolatileCache,
+      ),
+    );
+    game.publishUiSnapshot(force: true);
+  }
+
+  Vector2 _nextCachePosition() {
+    if (PatchWorldGame.survivalQaCacheAtPlayer) {
+      return game.world.player.position + Vector2(20, 0);
+    }
+    final candidates = <Vector2>[
+      Vector2(150, 135),
+      Vector2(810, 135),
+      Vector2(150, 405),
+      Vector2(810, 405),
+    ];
+    final playerPosition = game.world.player.position;
+    var selected = candidates[_cachePositionIndex % candidates.length];
+    var bestDistance = selected.distanceToSquared(playerPosition);
+    for (var offset = 1; offset < candidates.length; offset += 1) {
+      final candidate =
+          candidates[(_cachePositionIndex + offset) % candidates.length];
+      final distance = candidate.distanceToSquared(playerPosition);
+      if (distance > bestDistance) {
+        selected = candidate;
+        bestDistance = distance;
+      }
+    }
+    _cachePositionIndex += 1;
+    return selected.clone();
+  }
+
+  void _collectVolatileCache(Vector2 position) {
+    if (isRemoving || game.mode != PatchWorldMode.survival) return;
+    final reward = game.survivalRun.recordHotCacheCollected();
+    game.world.spawnDataShards(
+      position,
+      count: 3,
+      alternatingCorruption: false,
+    );
+    _showAlert('CACHE CLAIMED // +$reward // DATA +3', const Color(0xFF45F3A6));
+    game.triggerImpactFeedback();
+    game.publishUiSnapshot(force: true);
+  }
+
+  void _expireVolatileCache(Vector2 position) {
+    if (isRemoving || game.mode != PatchWorldMode.survival) return;
+    game.survivalRun.recordHotCacheExpired();
+    _showAlert('CACHE LOST // AMBUSH', const Color(0xFFFF6464));
+    unawaited(_spawnCacheAmbush(position));
+    game.publishUiSnapshot(force: true);
+  }
+
+  Future<void> _spawnCacheAmbush(Vector2 position) async {
+    final offsets = <Vector2>[Vector2(-46, 16), Vector2(46, -16)];
+    for (final offset in offsets) {
+      final spawn = position + offset;
+      spawn.x = spawn.x.clamp(36, 924).toDouble();
+      spawn.y = spawn.y.clamp(36, 504).toDouble();
+      await _spawnCrawler(spawn);
+    }
+    final sentinelPosition = position + Vector2(0, 58);
+    sentinelPosition.x = sentinelPosition.x.clamp(36, 924).toDouble();
+    sentinelPosition.y = sentinelPosition.y.clamp(36, 504).toDouble();
+    await add(
+      SentinelComponent(
+        entityId: 'survival-cache-sentinel-${_spawnId++}',
+        position: sentinelPosition,
+        onDefeated: game.recordSurvivalKill,
+      ),
+    );
   }
 
   void _updateSurvivalMilestone() {

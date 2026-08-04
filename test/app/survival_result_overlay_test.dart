@@ -17,6 +17,8 @@ void main() {
       miniBossKills: 0,
       score: 4242,
       maxCombo: 12,
+      hotCachesSpawned: 3,
+      hotCachesCollected: 2,
       patchTiers: <String, int>{'patch.motion_tax': 2, 'patch.phase_leak': 2},
       riskMultiplier: 1.24,
       firstPatchId: 'patch.motion_tax',
@@ -44,6 +46,8 @@ void main() {
     expect(find.text('GHOST VENT'), findsOneWidget);
     expect(find.text('12.5s'), findsOneWidget);
     expect(find.text('11.9'), findsOneWidget);
+    expect(find.text('HOT CACHES'), findsOneWidget);
+    expect(find.text('2/3'), findsOneWidget);
     expect(find.text('PACING CLEAR // NO GAP OVER 20s'), findsOneWidget);
     expect(find.text('PLAYTEST SESSION  1/5'), findsOneWidget);
     expect(find.text('TOP PICK  MOTION TAX  100%'), findsOneWidget);
