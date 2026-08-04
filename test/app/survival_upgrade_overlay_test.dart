@@ -11,6 +11,10 @@ void main() {
   ) async {
     final game = PatchWorldGame();
     await game.localization.load('en');
+    for (var index = 0; index < 20; index += 1) {
+      game.survivalRun.recordKill();
+    }
+    expect(game.survivalRun.takePendingUpgradeLevel(), 2);
     game.pendingSurvivalUpgrade = const SurvivalUpgradeRequest(
       level: 2,
       choices: <PatchDefinition>[
@@ -33,10 +37,12 @@ void main() {
     expect(find.textContaining('Pulse deals +1 damage'), findsOneWidget);
     expect(find.textContaining('Moving builds Heat'), findsOneWidget);
     expect(find.text('REROUTE x1'), findsOneWidget);
+    expect(find.text('PATCH CHAIN // 2 PICKS REMAIN'), findsOneWidget);
     expect(find.text('FRAME BURST'), findsNothing);
     await tester.tap(find.byKey(const ValueKey<String>('survival-reroute')));
     await tester.pump();
     expect(find.text('REROUTE x0'), findsOneWidget);
+    expect(find.text('PATCH CHAIN // 2 PICKS REMAIN'), findsOneWidget);
     expect(find.text('MOTION TAX'), findsNothing);
     expect(find.text('FRAME BURST'), findsOneWidget);
     expect(tester.takeException(), isNull);

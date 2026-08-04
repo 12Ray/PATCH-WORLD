@@ -116,6 +116,7 @@
   "survivalUpgrade.reroute": "REROUTE x{count}",
   "survivalUpgrade.rerouteHint": "Replace this offer. Mini-bosses recharge it up to 2.",
   "survivalUpgrade.rerouteUnavailable": "No alternative patch path remains.",
+  "survivalUpgrade.chain": "PATCH CHAIN // {count} PICKS REMAIN",
   "survivalResult.title": "RUN OVER // SYSTEM COLLAPSE",
   "survivalResult.subtitle": "Your surviving flaws and run data have been preserved.",
   "survivalResult.newBestScore": "NEW BEST SCORE",

@@ -19,6 +19,7 @@ final class _SurvivalUpgradeOverlayState extends State<SurvivalUpgradeOverlay> {
   Widget build(BuildContext context) {
     final request = game.pendingSurvivalUpgrade;
     if (request == null) return const SizedBox.shrink();
+    final chainRemaining = game.survivalRun.pendingUpgradeCount + 1;
     return ColoredBox(
       color: const Color(0xED03050A),
       child: SafeArea(
@@ -47,6 +48,31 @@ final class _SurvivalUpgradeOverlayState extends State<SurvivalUpgradeOverlay> {
                     game.localization.text('survivalUpgrade.subtitle'),
                     style: const TextStyle(color: Color(0xFFA9B4C8)),
                   ),
+                  if (chainRemaining > 1) ...<Widget>[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x22FFC857),
+                        border: Border.all(color: const Color(0xFFFFC857)),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        game.localization.text(
+                          'survivalUpgrade.chain',
+                          parameters: <String, Object>{'count': chainRemaining},
+                        ),
+                        style: const TextStyle(
+                          color: Color(0xFFFFC857),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Wrap(
                     alignment: WrapAlignment.center,
@@ -89,7 +115,11 @@ final class _SurvivalUpgradeOverlayState extends State<SurvivalUpgradeOverlay> {
                     builder: (context, constraints) {
                       final cards = request.choices
                           .map(
-                            (patch) => _UpgradeCard(game: game, patch: patch),
+                            (patch) => _UpgradeCard(
+                              game: game,
+                              patch: patch,
+                              onSelected: () => _selectPatch(patch.id),
+                            ),
                           )
                           .toList(growable: false);
                       if (constraints.maxWidth < 660) {
@@ -129,13 +159,23 @@ final class _SurvivalUpgradeOverlayState extends State<SurvivalUpgradeOverlay> {
       ),
     );
   }
+
+  void _selectPatch(String patchId) {
+    final continues = game.selectSurvivalUpgrade(patchId);
+    if (continues && mounted) setState(() {});
+  }
 }
 
 final class _UpgradeCard extends StatelessWidget {
-  const _UpgradeCard({required this.game, required this.patch});
+  const _UpgradeCard({
+    required this.game,
+    required this.patch,
+    required this.onSelected,
+  });
 
   final PatchWorldGame game;
   final PatchDefinition patch;
+  final VoidCallback onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -154,7 +194,7 @@ final class _UpgradeCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => game.selectSurvivalUpgrade(patch.id),
+        onTap: onSelected,
         child: Container(
           constraints: const BoxConstraints(minHeight: 300),
           padding: const EdgeInsets.all(18),
@@ -226,7 +266,7 @@ final class _UpgradeCard extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: () => game.selectSurvivalUpgrade(patch.id),
+                  onPressed: onSelected,
                   child: Text(game.localization.text('survivalUpgrade.apply')),
                 ),
               ),

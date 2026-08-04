@@ -11,6 +11,7 @@ final class SurvivalRunState {
   final SurvivalPlaytestTelemetry telemetry = SurvivalPlaytestTelemetry();
   final Map<String, int> _patchTiers = <String, int>{};
   final List<double> _killTimes = <double>[];
+  final List<int> _pendingUpgradeLevels = <int>[];
   double elapsedSeconds = 0;
   int kills = 0;
   int eliteKills = 0;
@@ -52,6 +53,11 @@ final class SurvivalRunState {
   }
 
   int get flowMultiplier => flowMultiplierForCombo(combo);
+  int get pendingUpgradeCount => _pendingUpgradeLevels.length;
+  bool get hasPendingUpgrade => _pendingUpgradeLevels.isNotEmpty;
+
+  int? takePendingUpgradeLevel() =>
+      _pendingUpgradeLevels.isEmpty ? null : _pendingUpgradeLevels.removeAt(0);
 
   double recentKillsPerSecond({double windowSeconds = 20}) {
     final safeWindow = math.max(1.0, windowSeconds);
@@ -119,6 +125,7 @@ final class SurvivalRunState {
       experience -= experienceToNext;
       level += 1;
       experienceToNext = 6 + (level - 1) * 4;
+      _pendingUpgradeLevels.add(level);
       leveledUp = true;
     }
     return leveledUp;
@@ -186,6 +193,7 @@ final class SurvivalRunState {
     reroutesRemaining = 1;
     _patchTiers.clear();
     _killTimes.clear();
+    _pendingUpgradeLevels.clear();
     telemetry.reset();
   }
 }

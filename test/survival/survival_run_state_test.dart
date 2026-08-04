@@ -77,6 +77,21 @@ void main() {
     expect(state.reroutesRemaining, 1);
   });
 
+  test('multi-level rewards queue every earned patch draft in order', () {
+    final state = SurvivalRunState();
+    expect(state.recordKill(miniBoss: true), isTrue);
+    expect(state.level, 3);
+    expect(state.pendingUpgradeCount, 2);
+    expect(state.takePendingUpgradeLevel(), 2);
+    expect(state.takePendingUpgradeLevel(), 3);
+    expect(state.takePendingUpgradeLevel(), isNull);
+
+    state.recordKill(miniBoss: true, rewardMultiplier: 3);
+    expect(state.pendingUpgradeCount, greaterThan(1));
+    state.reset();
+    expect(state.pendingUpgradeCount, 0);
+  });
+
   test('reroute prioritizes a different non-maxed patch offer', () {
     final firstOffer = SurvivalUpgradeCatalog.choicesForLevel(2);
     final rerouted = SurvivalUpgradeCatalog.reroutedChoicesForLevel(

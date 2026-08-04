@@ -369,26 +369,31 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         survivalSessionHistory.map((result) => result.patchTiers.keys.toSet()),
       );
 
-  void _openSurvivalUpgrade() {
-    final choices = SurvivalUpgradeCatalog.choicesForLevel(
-      survivalRun.level,
-      patchTiers: survivalRun.patchTiers,
-    );
-    if (choices.isEmpty) {
-      survivalRun.recordMaxedBuildLevel();
-      final activeRoom = world.activeRoom;
-      if (activeRoom is SurvivalArenaController) {
-        activeRoom.showPatchPowerDemo('BUILD MAXED // +250');
+  bool _openSurvivalUpgrade() {
+    while (survivalRun.hasPendingUpgrade) {
+      final upgradeLevel = survivalRun.takePendingUpgradeLevel()!;
+      final choices = SurvivalUpgradeCatalog.choicesForLevel(
+        upgradeLevel,
+        patchTiers: survivalRun.patchTiers,
+      );
+      if (choices.isEmpty) {
+        survivalRun.recordMaxedBuildLevel();
+        final activeRoom = world.activeRoom;
+        if (activeRoom is SurvivalArenaController) {
+          activeRoom.showPatchPowerDemo('BUILD MAXED // +250');
+        }
+        continue;
       }
-      return;
+      pendingSurvivalUpgrade = SurvivalUpgradeRequest(
+        level: upgradeLevel,
+        choices: choices,
+      );
+      input.clearAll();
+      pauseEngine();
+      overlays.add(OverlayIds.survivalUpgrade);
+      return true;
     }
-    pendingSurvivalUpgrade = SurvivalUpgradeRequest(
-      level: survivalRun.level,
-      choices: choices,
-    );
-    input.clearAll();
-    pauseEngine();
-    overlays.add(OverlayIds.survivalUpgrade);
+    return false;
   }
 
   bool get canRerouteSurvivalUpgrade {
@@ -428,14 +433,14 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     return right.every((patch) => leftIds.contains(patch.id));
   }
 
-  void selectSurvivalUpgrade(String patchId) {
+  bool selectSurvivalUpgrade(String patchId) {
     final request = pendingSurvivalUpgrade;
-    if (request == null) return;
+    if (request == null) return false;
     PatchDefinition? patch;
     for (final choice in request.choices) {
       if (choice.id == patchId) patch = choice;
     }
-    if (patch == null) return;
+    if (patch == null) return false;
     final fusionsBefore = survivalModifiers.activeFusionIds;
     runState.selectPatch(patch.id);
     survivalRun.upgradePatch(
@@ -447,7 +452,6 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       after: survivalModifiers.activeFusionIds,
     );
     pendingSurvivalUpgrade = null;
-    overlays.remove(OverlayIds.survivalUpgrade);
     input.clearAll();
     publishUiSnapshot(force: true);
     final activeRoom = world.activeRoom;
@@ -462,7 +466,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         activeRoom.showPatchPowerDemo(patch.title);
       }
     }
+    if (_openSurvivalUpgrade()) return true;
+    overlays.remove(OverlayIds.survivalUpgrade);
     resumeEngine();
+    return false;
   }
 
   void queuePointerAttack() {
