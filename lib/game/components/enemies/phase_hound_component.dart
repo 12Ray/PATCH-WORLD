@@ -51,7 +51,7 @@ final class PhaseHoundComponent extends RectangleComponent
   final void Function() onDefeated;
   final Vector2 Function()? targetPosition;
   final void Function()? onPerfectDodge;
-  final void Function()? onBreakDefeated;
+  final void Function(bool perfectDodgeLinked)? onBreakDefeated;
   final HealthState healthState;
   final Vector2 _previousPosition = Vector2.zero();
   Vector2 _lockedDirection = Vector2(1, 0);
@@ -360,7 +360,7 @@ final class PhaseHoundComponent extends RectangleComponent
         );
       }
       onDefeated();
-      if (defeatedDuringBreak) onBreakDefeated?.call();
+      if (defeatedDuringBreak) onBreakDefeated?.call(_dodgeReported);
       removeFromParent();
     } else {
       _visual?.flash(const Color(0xFFFFFFFF));

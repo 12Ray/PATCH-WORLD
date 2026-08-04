@@ -105,6 +105,26 @@ void main() {
     expect(state.houndBreaks, 0);
   });
 
+  test('phase execution rewards mastery without faking progression', () {
+    final state = SurvivalRunState();
+    state.seedComboForQa(5);
+    state.addRiskTier(2);
+    final killsBefore = state.kills;
+    final experienceBefore = state.experience;
+    final comboBefore = state.combo;
+    final scoreBefore = state.score;
+
+    expect(state.recordPhaseExecution(), 480);
+    expect(state.phaseExecutions, 1);
+    expect(state.score - scoreBefore, 595);
+    expect(state.kills, killsBefore);
+    expect(state.experience, experienceBefore);
+    expect(state.combo, comboBefore);
+
+    state.reset();
+    expect(state.phaseExecutions, 0);
+  });
+
   test('critical flow activates at chain twenties and resets safely', () {
     final state = SurvivalRunState();
     state.seedComboForQa(19);
@@ -243,6 +263,7 @@ void main() {
       ..upgradePatch('patch.motion_tax', riskTier: 1);
     state.recordKill(elite: true);
     state.recordHoundBreak();
+    state.recordPhaseExecution();
     final result = SurvivalResultSnapshot.fromRun(
       state,
       isBestScore: true,
@@ -254,9 +275,10 @@ void main() {
     expect(result.eliteKills, 1);
     expect(result.maxCombo, 1);
     expect(result.houndBreaks, 1);
+    expect(result.phaseExecutions, 1);
     expect(result.patchTiers, <String, int>{'patch.motion_tax': 1});
     expect(result.firstPatchId, 'patch.motion_tax');
-    expect(result.meaningfulEventCount, 3);
+    expect(result.meaningfulEventCount, 4);
     expect(result.longestQuietSeconds, 91.8);
     expect(result.hasPacingGap, isTrue);
   });

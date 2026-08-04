@@ -127,6 +127,12 @@ final class SurvivalResultOverlay extends StatelessWidget {
                             ),
                             _Stat(
                               label: game.localization.text(
+                                'survivalResult.phaseExecutions',
+                              ),
+                              value: '${result.phaseExecutions}',
+                            ),
+                            _Stat(
+                              label: game.localization.text(
                                 'survivalResult.risk',
                               ),
                               value:

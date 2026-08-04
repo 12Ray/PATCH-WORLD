@@ -11,6 +11,7 @@ import 'package:patch_world/game/components/effects/data_surge_ring_component.da
 import 'package:patch_world/game/components/effects/critical_flow_ring_component.dart';
 import 'package:patch_world/game/components/effects/perfect_dodge_burst_component.dart';
 import 'package:patch_world/game/components/effects/hound_break_burst_component.dart';
+import 'package:patch_world/game/components/effects/phase_execution_burst_component.dart';
 import 'package:patch_world/game/components/effects/retaliation_echo_component.dart';
 import 'package:patch_world/game/components/effects/friendly_error_burst_component.dart';
 import 'package:patch_world/game/components/effects/time_freeze_overlay_component.dart';
@@ -283,6 +284,15 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     add(
       HoundBreakBurstComponent(
         position: worldPosition.clone() + Vector2(0, -18),
+        score: score,
+      ),
+    );
+  }
+
+  void spawnPhaseExecutionBurst(Vector2 worldPosition, {required int score}) {
+    add(
+      PhaseExecutionBurstComponent(
+        position: worldPosition.clone() + Vector2(0, -20),
         score: score,
       ),
     );

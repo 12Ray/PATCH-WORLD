@@ -46,7 +46,7 @@ void main() {
       position: Vector2.zero(),
       targetPosition: () => Vector2(220, 0),
       onDefeated: () {},
-      onBreakDefeated: () => normalBreaks += 1,
+      onBreakDefeated: (_) => normalBreaks += 1,
     );
     normal.receiveDamage(1);
     expect(normal.healthState.current, 2);
@@ -56,15 +56,20 @@ void main() {
 
     var defeats = 0;
     var breaks = 0;
+    bool? perfectDodgeLinked;
     final broken = PhaseHoundComponent(
       entityId: 'hound-break-damage',
       position: Vector2.zero(),
       targetPosition: () => Vector2(220, 0),
       onDefeated: () => defeats += 1,
-      onBreakDefeated: () => breaks += 1,
+      onBreakDefeated: (linked) {
+        breaks += 1;
+        perfectDodgeLinked = linked;
+      },
     );
     broken.update(1.01);
     broken.update(0.66);
+    expect(broken.claimDashHit(), isTrue);
     broken.update(0.33);
     expect(broken.state, PhaseHoundState.recovery);
 
@@ -75,6 +80,7 @@ void main() {
     expect(broken.healthState.isDefeated, isTrue);
     expect(defeats, 1);
     expect(breaks, 1);
+    expect(perfectDodgeLinked, isFalse);
   });
 
   test('phase hound has three health and reports defeat once', () {
@@ -188,5 +194,31 @@ void main() {
     );
     expect(blockedHound.state, PhaseHoundState.recovery);
     expect(dodges, 1);
+  });
+
+  test('break links only the perfect dodge from the same dash', () {
+    var target = Vector2(220, 0);
+    var dodges = 0;
+    bool? perfectDodgeLinked;
+    final hound = PhaseHoundComponent(
+      entityId: 'hound-phase-execution',
+      position: Vector2.zero(),
+      targetPosition: () => target,
+      onPerfectDodge: () => dodges += 1,
+      onBreakDefeated: (linked) => perfectDodgeLinked = linked,
+      onDefeated: () {},
+    );
+
+    hound.update(1.01);
+    final locked = hound.lockedDirection;
+    hound.update(0.66);
+    target = hound.position + locked * 50 + Vector2(-locked.y, locked.x) * 50;
+    hound.update(0.33);
+    expect(hound.state, PhaseHoundState.recovery);
+    expect(dodges, 1);
+
+    hound.receiveDamage(1);
+    hound.receiveDamage(1);
+    expect(perfectDodgeLinked, isTrue);
   });
 }

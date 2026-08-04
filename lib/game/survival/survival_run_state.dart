@@ -30,6 +30,7 @@ final class SurvivalRunState {
   int hotCachesExpired = 0;
   int perfectDodges = 0;
   int houndBreaks = 0;
+  int phaseExecutions = 0;
   String? firstPatchId;
   double turboOverclockRemaining = 0;
   double frameOverclockRemaining = 0;
@@ -219,6 +220,14 @@ final class SurvivalRunState {
     return reward;
   }
 
+  int recordPhaseExecution() {
+    phaseExecutions += 1;
+    final reward = 240 * flowMultiplier;
+    bonusScore += reward;
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.phaseExecution);
+    return reward;
+  }
+
   int upgradePatch(String patchId, {required int riskTier}) {
     final nextTier = math.min(3, patchTier(patchId) + 1);
     if (nextTier == patchTier(patchId)) return nextTier;
@@ -247,6 +256,7 @@ final class SurvivalRunState {
     hotCachesExpired = 0;
     perfectDodges = 0;
     houndBreaks = 0;
+    phaseExecutions = 0;
     firstPatchId = null;
     turboOverclockRemaining = 0;
     frameOverclockRemaining = 0;
@@ -272,6 +282,7 @@ final class SurvivalResultSnapshot {
     required this.hotCachesCollected,
     this.perfectDodges = 0,
     this.houndBreaks = 0,
+    this.phaseExecutions = 0,
     required this.patchTiers,
     required this.riskMultiplier,
     required this.firstPatchId,
@@ -299,6 +310,7 @@ final class SurvivalResultSnapshot {
       hotCachesCollected: run.hotCachesCollected,
       perfectDodges: run.perfectDodges,
       houndBreaks: run.houndBreaks,
+      phaseExecutions: run.phaseExecutions,
       patchTiers: Map<String, int>.unmodifiable(run.patchTiers),
       riskMultiplier: run.riskMultiplier,
       firstPatchId: run.firstPatchId,
@@ -320,6 +332,7 @@ final class SurvivalResultSnapshot {
   final int hotCachesCollected;
   final int perfectDodges;
   final int houndBreaks;
+  final int phaseExecutions;
   final Map<String, int> patchTiers;
   final double riskMultiplier;
   final String? firstPatchId;

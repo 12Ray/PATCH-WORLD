@@ -90,6 +90,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     'SURVIVAL_QA_HOUND_BREAK_DEMO',
     defaultValue: false,
   );
+  static const bool survivalQaPhaseExecutionDemo = bool.fromEnvironment(
+    'SURVIVAL_QA_PHASE_EXECUTION_DEMO',
+    defaultValue: false,
+  );
 
   final RoomId initialRoom;
 
@@ -289,6 +293,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     if (survivalQaHoundBreakDemo) {
       recordSurvivalHoundBreak(world.player.position.clone());
     }
+    if (survivalQaPhaseExecutionDemo) {
+      recordSurvivalHoundBreak(
+        world.player.position.clone(),
+        phaseExecution: true,
+      );
+    }
     publishUiSnapshot(force: true);
   }
 
@@ -417,13 +427,25 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     return gainedScore;
   }
 
-  int recordSurvivalHoundBreak(Vector2 position) {
+  int recordSurvivalHoundBreak(
+    Vector2 position, {
+    bool phaseExecution = false,
+  }) {
     if (mode != PatchWorldMode.survival) return 0;
     final scoreBefore = survivalRun.score;
     survivalRun.recordHoundBreak();
+    if (phaseExecution) survivalRun.recordPhaseExecution();
     final gainedScore = math.max(0, survivalRun.score - scoreBefore);
-    world.spawnDataShards(position, count: 1, alternatingCorruption: false);
-    world.spawnHoundBreakBurst(position, score: gainedScore);
+    world.spawnDataShards(
+      position,
+      count: phaseExecution ? 2 : 1,
+      alternatingCorruption: false,
+    );
+    if (phaseExecution) {
+      world.spawnPhaseExecutionBurst(position, score: gainedScore);
+    } else {
+      world.spawnHoundBreakBurst(position, score: gainedScore);
+    }
     triggerImpactFeedback();
     publishUiSnapshot(force: true);
     return gainedScore;
