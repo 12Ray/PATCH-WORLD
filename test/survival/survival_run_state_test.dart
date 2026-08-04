@@ -61,6 +61,37 @@ void main() {
     expect(SurvivalRunState.flowDataRewardForCombo(40), 2);
   });
 
+  test('critical flow activates at chain twenties and resets safely', () {
+    final state = SurvivalRunState();
+    state.seedComboForQa(19);
+    expect(state.criticalFlowActive, isFalse);
+
+    state.recordKill();
+    expect(state.combo, 20);
+    expect(state.criticalFlowRemaining, SurvivalRunState.criticalFlowDuration);
+    expect(state.criticalFlowDamageBonus, 1);
+    expect(state.criticalFlowCooldownMultiplier, 0.75);
+    expect(state.comboProgress, 1);
+
+    state.update(2);
+    expect(state.criticalFlowProgress, closeTo(0.6, 0.001));
+    for (var index = 0; index < 20; index += 1) {
+      state.recordKill();
+    }
+    expect(state.combo, 40);
+    expect(state.criticalFlowRemaining, SurvivalRunState.criticalFlowDuration);
+
+    state.update(SurvivalRunState.criticalFlowDuration + 0.01);
+    expect(state.criticalFlowActive, isFalse);
+    expect(state.criticalFlowDamageBonus, 0);
+    expect(state.criticalFlowCooldownMultiplier, 1);
+
+    state.recordKill();
+    state.reset();
+    expect(state.criticalFlowRemaining, 0);
+    expect(state.comboProgress, 0);
+  });
+
   test('reroute starts once, refills on mini-bosses, and resets', () {
     final state = SurvivalRunState();
     expect(state.reroutesRemaining, 1);

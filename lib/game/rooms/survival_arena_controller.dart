@@ -263,6 +263,13 @@ final class SurvivalArenaController extends Component
     _showAlert('POWER ONLINE // $patchTitle', const Color(0xFF45F3A6));
   }
 
+  void showCriticalFlow() {
+    _showAlert(
+      'CRITICAL FLOW // PULSE +1 // SPEED +25%',
+      const Color(0xFFFFC857),
+    );
+  }
+
   void showFusionOnline(String fusionTitle) {
     _showAlert('FUSION ONLINE // $fusionTitle', const Color(0xFFFFC857));
   }

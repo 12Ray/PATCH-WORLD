@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
 import 'package:patch_world/game/components/effects/data_shard_component.dart';
+import 'package:patch_world/game/components/effects/critical_flow_ring_component.dart';
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/enemies/composite_component.dart';
@@ -139,6 +140,41 @@ void main() {
       isTrue,
     );
     expect(game.paused, isFalse);
+
+    for (var index = game.survivalRun.combo; index < 19; index += 1) {
+      game.survivalRun.recordKill();
+    }
+    game.recordSurvivalKill();
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(game.survivalRun.combo, 20);
+    expect(game.survivalRun.criticalFlowActive, isTrue);
+    expect(
+      game.world.children.whereType<CriticalFlowRingComponent>(),
+      hasLength(1),
+    );
+    await _pumpUntil(
+      tester,
+      () => arena.children.whereType<TextComponent>().any(
+        (label) => label.text.contains('CRITICAL FLOW'),
+      ),
+    );
+    expect(
+      arena.children.whereType<TextComponent>().where(
+        (label) => label.text.contains('CRITICAL FLOW'),
+      ),
+      hasLength(1),
+    );
+    game.world.player.tryAttack();
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(
+      game.world.children.whereType<PatchPulseComponent>().single.damage,
+      game.survivalModifiers.pulseDamage + 1,
+    );
+    expect(game.world.player.canAttack, isFalse);
+    for (var frame = 0; frame < 7; frame += 1) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(game.world.player.canAttack, isTrue);
 
     game.world.player.integrity = 999;
     game.survivalRun.elapsedSeconds = 88;

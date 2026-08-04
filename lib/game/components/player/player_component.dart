@@ -141,6 +141,9 @@ final class PlayerComponent extends RectangleComponent
     final dataSurgeDamageBonus = game.mode == PatchWorldMode.survival
         ? game.survivalRun.dataSurgeDamageBonus
         : 0;
+    final criticalFlowDamageBonus = game.mode == PatchWorldMode.survival
+        ? game.survivalRun.criticalFlowDamageBonus
+        : 0;
     _attackCooldown =
         attackCooldownSeconds *
         (survivalModifiers?.pulseCooldownMultiplier ?? 1) *
@@ -149,6 +152,9 @@ final class PlayerComponent extends RectangleComponent
             : 1) *
         (game.mode == PatchWorldMode.survival
             ? game.survivalRun.dataSurgeCooldownMultiplier
+            : 1) *
+        (game.mode == PatchWorldMode.survival
+            ? game.survivalRun.criticalFlowCooldownMultiplier
             : 1);
     final pulseFrames = _pulseFrames;
     if (pulseFrames != null) {
@@ -171,7 +177,8 @@ final class PlayerComponent extends RectangleComponent
           ventDamageBonus +
           frameDamageBonus +
           redlineDamageBonus +
-          dataSurgeDamageBonus,
+          dataSurgeDamageBonus +
+          criticalFlowDamageBonus,
       radiusMultiplier:
           (survivalModifiers?.pulseRadiusMultiplier ?? 1) *
           ghostVentRadiusMultiplier,

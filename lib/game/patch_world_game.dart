@@ -78,6 +78,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     'SURVIVAL_QA_BUILD',
     defaultValue: '',
   );
+  static const int survivalQaStartCombo = int.fromEnvironment(
+    'SURVIVAL_QA_START_COMBO',
+    defaultValue: 0,
+  );
 
   final RoomId initialRoom;
 
@@ -252,6 +256,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     mode = PatchWorldMode.survival;
     runState.reset();
     survivalRun.reset();
+    if (survivalQaStartCombo > 0) {
+      survivalRun.seedComboForQa(survivalQaStartCombo);
+    }
     survivalResult.value = null;
     survivalRun.elapsedSeconds = survivalQaStartSecond.toDouble();
     _applySurvivalQaBuild();
@@ -303,6 +310,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     int rewardMultiplier = 1,
   }) {
     if (mode != PatchWorldMode.survival) return;
+    final comboBefore = survivalRun.combo;
     final leveledUp = survivalRun.recordKill(
       elite: elite,
       miniBoss: miniBoss,
@@ -320,6 +328,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     final flowDataReward = SurvivalRunState.flowDataRewardForCombo(
       survivalRun.combo,
     );
+    final criticalFlowTriggered =
+        survivalRun.combo > comboBefore && survivalRun.combo % 20 == 0;
     if (flowDataReward > 0) {
       world.spawnDataShards(
         world.player.position,
@@ -329,12 +339,20 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
     final activeRoom = world.activeRoom;
     if (activeRoom is SurvivalArenaController) {
-      activeRoom.showComboMilestone(
-        survivalRun.combo,
-        flowMultiplier: survivalRun.flowMultiplier,
-        dataReward: flowDataReward,
-      );
+      if (criticalFlowTriggered) {
+        activeRoom.showCriticalFlow();
+      } else {
+        activeRoom.showComboMilestone(
+          survivalRun.combo,
+          flowMultiplier: survivalRun.flowMultiplier,
+          dataReward: flowDataReward,
+        );
+      }
       if (flowDataReward > 0 && survivalRun.combo >= 10) {
+        triggerImpactFeedback();
+      }
+      if (criticalFlowTriggered) {
+        world.spawnCriticalFlowRing(world.player.position);
         triggerImpactFeedback();
       }
     }
@@ -1106,6 +1124,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           ? survivalRun.experienceToNext
           : null,
       survivalCombo: mode == PatchWorldMode.survival ? survivalRun.combo : null,
+      survivalComboProgress: mode == PatchWorldMode.survival
+          ? survivalRun.comboProgress
+          : 0,
+      survivalCriticalFlowRemaining: mode == PatchWorldMode.survival
+          ? survivalRun.criticalFlowRemaining
+          : 0,
       survivalOverclock:
           mode == PatchWorldMode.survival && survivalRun.overclockActive,
       survivalDataCharge: mode == PatchWorldMode.survival

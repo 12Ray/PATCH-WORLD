@@ -23,6 +23,8 @@ final class UiSnapshot {
     this.survivalExperience,
     this.survivalExperienceToNext,
     this.survivalCombo,
+    this.survivalComboProgress = 0,
+    this.survivalCriticalFlowRemaining = 0,
     this.survivalOverclock = false,
     this.survivalDataCharge,
     this.survivalDataSurge = false,
@@ -58,6 +60,8 @@ final class UiSnapshot {
   final int? survivalExperience;
   final int? survivalExperienceToNext;
   final int? survivalCombo;
+  final double survivalComboProgress;
+  final double survivalCriticalFlowRemaining;
   final bool survivalOverclock;
   final int? survivalDataCharge;
   final bool survivalDataSurge;
@@ -87,6 +91,9 @@ final class UiSnapshot {
           survivalExperience == other.survivalExperience &&
           survivalExperienceToNext == other.survivalExperienceToNext &&
           survivalCombo == other.survivalCombo &&
+          survivalComboProgress == other.survivalComboProgress &&
+          survivalCriticalFlowRemaining ==
+              other.survivalCriticalFlowRemaining &&
           survivalOverclock == other.survivalOverclock &&
           survivalDataCharge == other.survivalDataCharge &&
           survivalDataSurge == other.survivalDataSurge &&
@@ -114,6 +121,8 @@ final class UiSnapshot {
     survivalExperience,
     survivalExperienceToNext,
     survivalCombo,
+    survivalComboProgress,
+    survivalCriticalFlowRemaining,
     survivalOverclock,
     survivalDataCharge,
     survivalDataSurge,

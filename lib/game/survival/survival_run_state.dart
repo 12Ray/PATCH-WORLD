@@ -7,6 +7,7 @@ enum PatchWorldMode { campaign, survival }
 
 final class SurvivalRunState {
   static const int maxReroutes = 2;
+  static const double criticalFlowDuration = 5;
 
   final SurvivalPlaytestTelemetry telemetry = SurvivalPlaytestTelemetry();
   final Map<String, int> _patchTiers = <String, int>{};
@@ -31,6 +32,7 @@ final class SurvivalRunState {
   double turboOverclockRemaining = 0;
   double frameOverclockRemaining = 0;
   double dataSurgeRemaining = 0;
+  double criticalFlowRemaining = 0;
   int reroutesRemaining = 1;
 
   Map<String, int> get patchTiers => Map<String, int>.unmodifiable(_patchTiers);
@@ -56,11 +58,27 @@ final class SurvivalRunState {
   }
 
   int get flowMultiplier => flowMultiplierForCombo(combo);
+  bool get criticalFlowActive => criticalFlowRemaining > 0;
+  int get criticalFlowDamageBonus => criticalFlowActive ? 1 : 0;
+  double get criticalFlowCooldownMultiplier => criticalFlowActive ? 0.75 : 1;
+  double get criticalFlowProgress =>
+      (criticalFlowRemaining / criticalFlowDuration).clamp(0, 1).toDouble();
+  double get comboProgress {
+    if (combo <= 0 || comboRemaining <= 0) return 0;
+    return (comboRemaining / comboWindowForCombo(combo)).clamp(0, 1).toDouble();
+  }
+
   int get pendingUpgradeCount => _pendingUpgradeLevels.length;
   bool get hasPendingUpgrade => _pendingUpgradeLevels.isNotEmpty;
 
   int? takePendingUpgradeLevel() =>
       _pendingUpgradeLevels.isEmpty ? null : _pendingUpgradeLevels.removeAt(0);
+
+  void seedComboForQa(int value) {
+    combo = math.max(0, value);
+    maxCombo = math.max(maxCombo, combo);
+    comboRemaining = combo == 0 ? 0 : comboWindowForCombo(combo);
+  }
 
   double recentKillsPerSecond({double windowSeconds = 20}) {
     final safeWindow = math.max(1.0, windowSeconds);
@@ -93,6 +111,7 @@ final class SurvivalRunState {
     turboOverclockRemaining = math.max(0, turboOverclockRemaining - dt);
     frameOverclockRemaining = math.max(0, frameOverclockRemaining - dt);
     dataSurgeRemaining = math.max(0, dataSurgeRemaining - dt);
+    criticalFlowRemaining = math.max(0, criticalFlowRemaining - dt);
     if (comboRemaining <= 0) return;
     comboRemaining = math.max(0, comboRemaining - dt);
     if (comboRemaining == 0) combo = 0;
@@ -113,6 +132,9 @@ final class SurvivalRunState {
       grantReroute();
     }
     combo += 1;
+    if (combo % 20 == 0) {
+      criticalFlowRemaining = criticalFlowDuration;
+    }
     maxCombo = math.max(maxCombo, combo);
     comboRemaining = comboWindowForCombo(combo);
     final baseExperience = miniBoss
@@ -208,6 +230,7 @@ final class SurvivalRunState {
     turboOverclockRemaining = 0;
     frameOverclockRemaining = 0;
     dataSurgeRemaining = 0;
+    criticalFlowRemaining = 0;
     reroutesRemaining = 1;
     _patchTiers.clear();
     _killTimes.clear();

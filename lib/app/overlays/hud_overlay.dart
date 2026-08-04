@@ -218,6 +218,20 @@ final class _RuleView extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
+                  const SizedBox(width: 5),
+                  SizedBox(
+                    width: 44,
+                    height: 4,
+                    child: LinearProgressIndicator(
+                      value: snapshot.survivalComboProgress,
+                      backgroundColor: const Color(0xFF3B2F1A),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        snapshot.survivalComboProgress < 0.25
+                            ? const Color(0xFFFF6464)
+                            : const Color(0xFFFFC857),
+                      ),
+                    ),
+                  ),
                 ],
                 if ((snapshot.survivalCombo ?? 0) >= 5) ...<Widget>[
                   const SizedBox(width: 8),
@@ -225,6 +239,17 @@ final class _RuleView extends StatelessWidget {
                     'FLOW x${SurvivalRunState.flowMultiplierForCombo(snapshot.survivalCombo ?? 0)}',
                     style: const TextStyle(
                       color: Color(0xFF45F3A6),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+                if (snapshot.survivalCriticalFlowRemaining > 0) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Text(
+                    'CRITICAL ${snapshot.survivalCriticalFlowRemaining.toStringAsFixed(1)}s',
+                    style: const TextStyle(
+                      color: Color(0xFFFFC857),
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
                     ),

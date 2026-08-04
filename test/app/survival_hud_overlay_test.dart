@@ -25,6 +25,8 @@ void main() {
       survivalExperience: 3,
       survivalExperienceToNext: 10,
       survivalCombo: 10,
+      survivalComboProgress: 0.35,
+      survivalCriticalFlowRemaining: 4.2,
       survivalOverclock: true,
       survivalDataCharge: 5,
       survivalDataSurge: true,
@@ -43,6 +45,8 @@ void main() {
     expect(find.text('DATA SURGE'), findsOneWidget);
     expect(find.text('FUSION x3'), findsOneWidget);
     expect(find.text('FLOW x3'), findsOneWidget);
+    expect(find.text('CRITICAL 4.2s'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNWidgets(2));
     expect(tester.takeException(), isNull);
   });
 }
