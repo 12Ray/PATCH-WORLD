@@ -79,6 +79,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   late final DuplicateFaultSystem duplicateFault;
   RoomId currentRoom;
   PatchSelectionRequest? pendingPatchSelection;
+  bool _roomTransitionInProgress = false;
   double _uiPublishAccumulator = 0;
   bool _roomRestartRequested = false;
   dart_async.Timer? _defeatRestartTimer;
@@ -186,17 +187,27 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void queuePointerAttack() {
-    if (!paused && pendingPatchSelection == null) input.queueAttack();
+    if (!paused &&
+        !_roomTransitionInProgress &&
+        pendingPatchSelection == null) {
+      input.queueAttack();
+    }
   }
 
   void queueTouchAttack() => queuePointerAttack();
 
   void queueTouchInteract() {
-    if (!paused && pendingPatchSelection == null) input.queueInteract();
+    if (!paused &&
+        !_roomTransitionInProgress &&
+        pendingPatchSelection == null) {
+      input.queueInteract();
+    }
   }
 
   void setTouchMovement(double x, double y) {
-    if (!paused && pendingPatchSelection == null) {
+    if (!paused &&
+        !_roomTransitionInProgress &&
+        pendingPatchSelection == null) {
       input.setVirtualMovement(x, y);
     }
   }
@@ -299,24 +310,36 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     runState.selectPatch(patchId);
     pendingPatchSelection = null;
     overlays.remove(OverlayIds.patchSelection);
-    if (request.roomId == 'damage-lab') {
-      ruleEngine.removeRule(RuleIds.damageSignInverted);
-      patchEffects.resetTransientForRoomTransition();
-      currentRoom = RoomId.temporalHall;
-      await world.loadRoom(currentRoom);
-    } else if (request.roomId == 'temporal-hall') {
-      enemyTempo.resetForRoomRestart();
-      patchEffects.resetTransientForRoomTransition();
-      currentRoom = RoomId.collisionArchive;
-      await world.loadRoom(currentRoom);
-    } else if (request.roomId == 'collision-archive') {
-      enemyTempo.resetForRoomRestart();
-      patchEffects.resetTransientForRoomTransition();
-      currentRoom = RoomId.optimizerCore;
-      await world.loadRoom(currentRoom);
-      unawaited(audio.startOptimizerBgm());
-    } else {
-      throw StateError('Unknown patch room: ${request.roomId}');
+    _roomTransitionInProgress = true;
+    input.clearAll();
+    // Flame finalizes component removal/addition on update frames. The patch
+    // overlay pauses the engine, so resume before awaiting the room swap to
+    // avoid deadlocking on `existing.removed`.
+    resumeEngine();
+    try {
+      if (request.roomId == 'damage-lab') {
+        ruleEngine.removeRule(RuleIds.damageSignInverted);
+        patchEffects.resetTransientForRoomTransition();
+        currentRoom = RoomId.temporalHall;
+        await world.loadRoom(currentRoom);
+      } else if (request.roomId == 'temporal-hall') {
+        enemyTempo.resetForRoomRestart();
+        patchEffects.resetTransientForRoomTransition();
+        currentRoom = RoomId.collisionArchive;
+        await world.loadRoom(currentRoom);
+      } else if (request.roomId == 'collision-archive') {
+        enemyTempo.resetForRoomRestart();
+        patchEffects.resetTransientForRoomTransition();
+        currentRoom = RoomId.optimizerCore;
+        await world.loadRoom(currentRoom);
+        unawaited(audio.startOptimizerBgm());
+      } else {
+        throw StateError('Unknown patch room: ${request.roomId}');
+      }
+    } finally {
+      input.clearAll();
+      _roomTransitionInProgress = false;
+      resumeEngine();
     }
     _consecutiveRoomDeaths = 0;
     _showPatchAppliedNotice(
