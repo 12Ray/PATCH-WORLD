@@ -23,10 +23,13 @@ final class SurvivalArenaController extends Component
   bool _spawning = false;
   int _spawnId = 0;
   int _lastWaveSecond = 0;
+  int _lastCelebratedMinute = 0;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    _lastWaveSecond = game.survivalRun.elapsedSeconds.floor();
+    _lastCelebratedMinute = _lastWaveSecond ~/ 60;
     await add(RoomBackdropComponent(RoomBackdropStyle.survival));
     await addAll(<WallComponent>[
       WallComponent(position: Vector2.zero(), size: Vector2(960, 24)),
@@ -47,6 +50,7 @@ final class SurvivalArenaController extends Component
   void update(double dt) {
     final simulationDt = game.clock.simulationDt;
     game.survivalRun.update(simulationDt);
+    _updateSurvivalMilestone();
     _updatePhaseLeak(simulationDt);
     if (game.world.isReady && !_spawning && simulationDt > 0) {
       _spawnRemaining -= simulationDt;
@@ -57,6 +61,28 @@ final class SurvivalArenaController extends Component
       }
     }
     super.update(dt);
+  }
+
+  void _updateSurvivalMilestone() {
+    final minute = game.survivalRun.elapsedSeconds.floor() ~/ 60;
+    if (minute <= _lastCelebratedMinute) return;
+    _lastCelebratedMinute = minute;
+    _showAlert(
+      '${minute * 60}s SURVIVED // RISK x${game.survivalRun.riskMultiplier.toStringAsFixed(2)}',
+      const Color(0xFF45F3A6),
+    );
+  }
+
+  void showComboMilestone(int combo) {
+    if (combo != 5 && combo != 10 && combo % 20 != 0) return;
+    _showAlert(
+      'COMBO x$combo // DATA FLOW',
+      combo >= 20 ? const Color(0xFFFFC857) : const Color(0xFF36E1FF),
+    );
+  }
+
+  void showPatchPowerDemo(String patchTitle) {
+    _showAlert('POWER ONLINE // $patchTitle', const Color(0xFF45F3A6));
   }
 
   void _updatePhaseLeak(double dt) {
@@ -86,7 +112,7 @@ final class SurvivalArenaController extends Component
       second: second,
       integrityRatio:
           game.world.player.integrity / game.world.player.maxIntegrity,
-      recentKillsPerSecond: state.kills / (state.elapsedSeconds + 1),
+      recentKillsPerSecond: state.recentKillsPerSecond(),
     );
     if (milestones.spawnComposite) {
       await _spawnComposite();

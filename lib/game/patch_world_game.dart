@@ -253,6 +253,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       rewardMultiplier:
           rewardMultiplier * survivalModifiers.killExperienceMultiplier,
     );
+    final activeRoom = world.activeRoom;
+    if (activeRoom is SurvivalArenaController) {
+      activeRoom.showComboMilestone(survivalRun.combo);
+    }
     publishUiSnapshot(force: true);
     if (leveledUp && pendingSurvivalUpgrade == null) {
       _openSurvivalUpgrade();
@@ -286,6 +290,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     overlays.remove(OverlayIds.survivalUpgrade);
     input.clearAll();
     publishUiSnapshot(force: true);
+    final activeRoom = world.activeRoom;
+    if (activeRoom is SurvivalArenaController) {
+      activeRoom.showPatchPowerDemo(patch.title);
+    }
     resumeEngine();
   }
 

@@ -56,6 +56,17 @@ void main() {
     expect(state.score, 50);
   });
 
+  test('recent kill rate only measures the latest twenty-second window', () {
+    final state = SurvivalRunState()..elapsedSeconds = 5;
+    state.recordKill();
+    state.recordKill();
+    expect(state.recentKillsPerSecond(), closeTo(0.4, 0.001));
+
+    state.elapsedSeconds = 26;
+    state.recordKill();
+    expect(state.recentKillsPerSecond(), closeTo(0.05, 0.001));
+  });
+
   test('patch tiers cap at three and reset with the run', () {
     final state = SurvivalRunState();
     expect(state.upgradePatch('patch.test', riskTier: 2), 1);

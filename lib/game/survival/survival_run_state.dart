@@ -4,6 +4,7 @@ enum PatchWorldMode { campaign, survival }
 
 final class SurvivalRunState {
   final Map<String, int> _patchTiers = <String, int>{};
+  final List<double> _killTimes = <double>[];
   double elapsedSeconds = 0;
   int kills = 0;
   int eliteKills = 0;
@@ -23,6 +24,14 @@ final class SurvivalRunState {
   int patchTier(String patchId) => _patchTiers[patchId] ?? 0;
 
   double get riskMultiplier => (1 + riskTierTotal * 0.12).clamp(1, 2.5);
+
+  double recentKillsPerSecond({double windowSeconds = 20}) {
+    final safeWindow = math.max(1.0, windowSeconds);
+    final cutoff = elapsedSeconds - safeWindow;
+    _killTimes.removeWhere((time) => time < cutoff);
+    final observedSeconds = math.max(1.0, math.min(elapsedSeconds, safeWindow));
+    return _killTimes.length / observedSeconds;
+  }
 
   int get score =>
       ((elapsedSeconds * 10 +
@@ -48,6 +57,7 @@ final class SurvivalRunState {
   }) {
     final safeRewardMultiplier = math.max(1, rewardMultiplier);
     kills += 1;
+    _killTimes.add(elapsedSeconds);
     if (elite) eliteKills += 1;
     if (miniBoss) miniBossKills += 1;
     combo += 1;
@@ -109,6 +119,7 @@ final class SurvivalRunState {
     bonusScore = 0;
     firstPatchId = null;
     _patchTiers.clear();
+    _killTimes.clear();
   }
 }
 

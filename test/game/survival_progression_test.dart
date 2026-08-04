@@ -1,4 +1,5 @@
 import 'package:flame/game.dart';
+import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
@@ -92,6 +93,18 @@ void main() {
     expect(game.survivalRun.patchTier(chosen.id), 1);
     expect(game.survivalModifiers.pulseDamage, 2);
     expect(game.survivalModifiers.pulseRadiusMultiplier, closeTo(1.14, 0.001));
+    expect(
+      arena.children.whereType<TextComponent>().any(
+        (label) => label.text.contains('COMBO x5'),
+      ),
+      isTrue,
+    );
+    expect(
+      arena.children.whereType<TextComponent>().any(
+        (label) => label.text.contains('POWER ONLINE'),
+      ),
+      isTrue,
+    );
     expect(game.paused, isFalse);
 
     game.world.player.integrity = 999;
