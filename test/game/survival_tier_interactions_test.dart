@@ -41,9 +41,41 @@ void main() {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );
+    expect(
+      game.world
+          .survivalCrowdSteering(
+            entityId: 'campaign-probe',
+            position: Vector2.zero(),
+            separationRadius: CrawlerComponent.survivalSeparationRadius,
+          )
+          .length2,
+      0,
+    );
     game.startSurvivalRun();
     await _waitForSurvival(tester, game);
     game.world.player.integrity = 999;
+
+    final arena = game.world.activeRoom! as SurvivalArenaController;
+    final overlapOrigin = game.world.player.position + Vector2(120, 0);
+    final crowdA = CrawlerComponent(
+      entityId: 'crowd-a',
+      position: overlapOrigin.clone(),
+      initialHealth: 99,
+      healthMaximum: 99,
+    );
+    final crowdB = CrawlerComponent(
+      entityId: 'crowd-b',
+      position: overlapOrigin.clone(),
+      initialHealth: 99,
+      healthMaximum: 99,
+    );
+    await arena.addAll(<CrawlerComponent>[crowdA, crowdB]);
+    for (var frame = 0; frame < 10; frame += 1) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(crowdA.position.distanceTo(crowdB.position), greaterThan(8));
+    crowdA.removeFromParent();
+    crowdB.removeFromParent();
 
     game.runState.selectPatch(RuleIds.motionTax);
     game.survivalRun
@@ -74,7 +106,6 @@ void main() {
     game.survivalRun
       ..upgradePatch(RuleIds.duplicateFault, riskTier: 3)
       ..upgradePatch(RuleIds.duplicateFault, riskTier: 3);
-    final arena = game.world.activeRoom! as SurvivalArenaController;
     final target = CrawlerComponent(
       entityId: 'burst-target',
       position: game.world.player.position + Vector2(60, 0),

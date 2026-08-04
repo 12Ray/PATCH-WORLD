@@ -24,6 +24,7 @@ import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/game/systems/duplicate_fault_system.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
+import 'package:patch_world/game/systems/survival_crowd_separation.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
 
 final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
@@ -39,6 +40,25 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     for (final child in room.children.whereType<PositionComponent>()) {
       if (child is CombatTarget && !child.isRemoving) yield child;
     }
+  }
+
+  Vector2 survivalCrowdSteering({
+    required String entityId,
+    required Vector2 position,
+    required double separationRadius,
+  }) {
+    if (game.mode != PatchWorldMode.survival) return Vector2.zero();
+    return SurvivalCrowdSeparation.steering(
+      entityId: entityId,
+      position: position,
+      separationRadius: separationRadius,
+      neighbors: activeCombatTargets.map(
+        (target) => SurvivalCrowdNeighbor(
+          entityId: (target as CombatTarget).entityId,
+          position: target.position,
+        ),
+      ),
+    );
   }
 
   OptimizerBossComponent? get activeBoss {

@@ -10,6 +10,7 @@ import 'package:patch_world/game/core/health_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
 import 'package:patch_world/game/systems/duplicate_fault_system.dart';
+import 'package:patch_world/game/survival/survival_run_state.dart';
 
 final class CrawlerComponent extends RectangleComponent
     with CollisionCallbacks, HasGameReference<PatchWorldGame>
@@ -33,6 +34,9 @@ final class CrawlerComponent extends RectangleComponent
        );
 
   static const double moveSpeed = 70;
+  static const double survivalContactRadius = 26;
+  static const double survivalSeparationRadius = 56;
+  static const double survivalSeparationSpeed = 100;
   static const int maxHealth = 3;
   static const double overflowDelaySeconds = 0.42;
 
@@ -219,12 +223,30 @@ final class CrawlerComponent extends RectangleComponent
       } else {
         _externalVelocity.setZero();
       }
-      final direction = game.world.player.position - position;
-      if (direction.length2 > 16) {
-        direction.normalize();
+      final toPlayer = game.world.player.position - position;
+      final isSurvival = game.mode == PatchWorldMode.survival;
+      final contactRadius = isSurvival ? survivalContactRadius : 4.0;
+      final velocity = Vector2.zero();
+      final distance = toPlayer.length;
+      if (distance > contactRadius + 2) {
+        velocity.add(toPlayer / distance * (moveSpeed * speedMultiplier));
+      } else if (isSurvival && distance < contactRadius - 2 && distance > 0) {
+        velocity.add(toPlayer / distance * (-moveSpeed * 0.45));
+      }
+      if (isSurvival) {
+        velocity.add(
+          game.world.survivalCrowdSteering(
+                entityId: entityId,
+                position: position,
+                separationRadius: survivalSeparationRadius,
+              ) *
+              survivalSeparationSpeed,
+        );
+      }
+      if (velocity.length2 > 1) {
         _visual?.setAnimationPlaying(true);
-        _visual?.faceMovement(direction);
-        position += direction * (moveSpeed * speedMultiplier * enemyDt);
+        _visual?.faceMovement(velocity);
+        position += velocity * enemyDt;
       } else {
         _visual?.setAnimationPlaying(false);
       }

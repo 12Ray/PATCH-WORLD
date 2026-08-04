@@ -9,6 +9,7 @@ import 'package:patch_world/game/core/health_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
 import 'package:patch_world/game/systems/duplicate_fault_system.dart';
+import 'package:patch_world/game/survival/survival_run_state.dart';
 
 final class CompositeComponent extends RectangleComponent
     with CollisionCallbacks, HasGameReference<PatchWorldGame>
@@ -32,6 +33,9 @@ final class CompositeComponent extends RectangleComponent
   @override
   final String entityId;
   final HealthState health;
+  static const double survivalCombatRadius = 56;
+  static const double survivalSeparationRadius = 88;
+  static const double survivalSeparationSpeed = 70;
   final void Function() onDefeated;
   double _shockwaveCooldown = 1.4;
   double _telegraphRemaining = 0;
@@ -134,10 +138,28 @@ final class CompositeComponent extends RectangleComponent
         _telegraphRemaining = 0.55;
       }
       final direction = game.world.player.position - position;
-      if (direction.length2 > 64) {
-        direction.normalize();
-        _visual?.faceMovement(direction);
-        position += direction * (60 * enemyDt);
+      final isSurvival = game.mode == PatchWorldMode.survival;
+      final combatRadius = isSurvival ? survivalCombatRadius : 8.0;
+      final distance = direction.length;
+      final velocity = Vector2.zero();
+      if (distance > combatRadius + 3) {
+        velocity.add(direction / distance * 60);
+      } else if (isSurvival && distance < combatRadius - 3 && distance > 0) {
+        velocity.add(direction / distance * -24);
+      }
+      if (isSurvival) {
+        velocity.add(
+          game.world.survivalCrowdSteering(
+                entityId: entityId,
+                position: position,
+                separationRadius: survivalSeparationRadius,
+              ) *
+              survivalSeparationSpeed,
+        );
+      }
+      if (velocity.length2 > 1) {
+        _visual?.faceMovement(velocity);
+        position += velocity * enemyDt;
       } else {
         _visual?.faceMovement(Vector2.zero());
       }
