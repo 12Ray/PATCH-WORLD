@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:flame/text.dart';
+import 'package:flutter/painting.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
@@ -42,6 +43,7 @@ final class PhaseHoundComponent extends RectangleComponent
   static const double dashSpeed = 330;
   static const double dashHitRadius = 30;
   static const double perfectDodgeRadius = 70;
+  static const int recoveryDamageBonus = 1;
 
   @override
   final String entityId;
@@ -59,8 +61,11 @@ final class PhaseHoundComponent extends RectangleComponent
   bool _defeatReported = false;
   bool _dodgeReported = false;
   double _dashClosestApproach = double.infinity;
+  TextComponent? _stateLabel;
+  String? _stateCue;
 
   Vector2 get lockedDirection => _lockedDirection.clone();
+  String? get stateCue => _stateCue;
 
   @override
   Vector2 get duplicatePosition => position;
@@ -163,6 +168,7 @@ final class PhaseHoundComponent extends RectangleComponent
           state = PhaseHoundState.stalk;
           stateTimer = stalkSeconds;
           _visual?.setStateTint(null);
+          _setStateCue(null, const Color(0x00000000));
         }
     }
     super.update(dt);
@@ -202,6 +208,7 @@ final class PhaseHoundComponent extends RectangleComponent
     state = PhaseHoundState.telegraph;
     stateTimer = telegraphSeconds;
     scale.setAll(1.08);
+    _setStateCue('LOCK', const Color(0xFF36E1FF));
   }
 
   void _enterDash() {
@@ -211,6 +218,7 @@ final class PhaseHoundComponent extends RectangleComponent
     _dodgeReported = false;
     _dashClosestApproach = double.infinity;
     scale.setAll(1.18);
+    _setStateCue(null, const Color(0x00000000));
   }
 
   void _enterRecovery({bool allowPerfectDodge = true}) {
@@ -225,6 +233,32 @@ final class PhaseHoundComponent extends RectangleComponent
     state = PhaseHoundState.recovery;
     stateTimer = recoverySeconds;
     scale.setAll(1);
+    _setStateCue('BREAK +1', const Color(0xFF45F3A6));
+  }
+
+  void _setStateCue(String? text, Color color) {
+    _stateCue = text;
+    final previous = _stateLabel;
+    if (previous != null && previous.isMounted) previous.removeFromParent();
+    _stateLabel = null;
+    if (text == null || !isLoaded || isRemoving) return;
+    final placeBelow = position.y < 100;
+    final label = TextComponent(
+      text: text,
+      position: Vector2(width / 2, placeBelow ? height + 8 : -12),
+      anchor: placeBelow ? Anchor.topCenter : Anchor.bottomCenter,
+      priority: 40,
+      textRenderer: TextPaint(
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+    _stateLabel = label;
+    add(label);
   }
 
   void _trackDashApproach(Vector2 target, Vector2 start, Vector2 end) {
@@ -311,7 +345,9 @@ final class PhaseHoundComponent extends RectangleComponent
   @override
   void receiveDamage(int amount) {
     if (amount <= 0 || _defeatReported) return;
-    if (healthState.applyDamage(amount) == HealthMutation.defeated) {
+    final effectiveAmount =
+        amount + (state == PhaseHoundState.recovery ? recoveryDamageBonus : 0);
+    if (healthState.applyDamage(effectiveAmount) == HealthMutation.defeated) {
       _defeatReported = true;
       if (isMounted) {
         game.world.spawnDataShards(

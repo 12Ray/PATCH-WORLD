@@ -15,6 +15,7 @@ void main() {
 
     hound.update(1.01);
     expect(hound.state, PhaseHoundState.telegraph);
+    expect(hound.stateCue, 'LOCK');
     final locked = hound.lockedDirection;
     target = Vector2(-220, 0);
     hound.update(0.30);
@@ -24,6 +25,7 @@ void main() {
 
     hound.update(0.36);
     expect(hound.state, PhaseHoundState.dash);
+    expect(hound.stateCue, isNull);
     expect(hound.claimDashHit(), isTrue);
     expect(hound.claimDashHit(), isFalse);
     final beforeDash = hound.position.clone();
@@ -31,8 +33,40 @@ void main() {
     expect(hound.position.distanceTo(beforeDash), closeTo(33, 0.001));
     hound.update(0.23);
     expect(hound.state, PhaseHoundState.recovery);
+    expect(hound.stateCue, 'BREAK +1');
     hound.update(0.86);
     expect(hound.state, PhaseHoundState.stalk);
+    expect(hound.stateCue, isNull);
+  });
+
+  test('recovery is a one-point damage break window', () {
+    final normal = PhaseHoundComponent(
+      entityId: 'hound-normal-damage',
+      position: Vector2.zero(),
+      targetPosition: () => Vector2(220, 0),
+      onDefeated: () {},
+    );
+    normal.receiveDamage(1);
+    expect(normal.healthState.current, 2);
+
+    var defeats = 0;
+    final broken = PhaseHoundComponent(
+      entityId: 'hound-break-damage',
+      position: Vector2.zero(),
+      targetPosition: () => Vector2(220, 0),
+      onDefeated: () => defeats += 1,
+    );
+    broken.update(1.01);
+    broken.update(0.66);
+    broken.update(0.33);
+    expect(broken.state, PhaseHoundState.recovery);
+
+    broken.receiveDamage(1);
+    expect(broken.healthState.current, 1);
+    broken.receiveDamage(1);
+    broken.receiveDamage(1);
+    expect(broken.healthState.isDefeated, isTrue);
+    expect(defeats, 1);
   });
 
   test('phase hound has three health and reports defeat once', () {

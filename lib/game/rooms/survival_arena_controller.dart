@@ -22,6 +22,18 @@ import 'package:patch_world/game/survival/survival_run_state.dart';
 
 final class SurvivalArenaController extends Component
     with HasGameReference<PatchWorldGame> {
+  static const double phaseHoundSpawnInset = 60;
+
+  static Vector2 clampSpawnPoint({
+    required SurvivalSpawnPoint point,
+    required double width,
+    required double height,
+    required double inset,
+  }) => Vector2(
+    point.x.clamp(inset, width - inset).toDouble(),
+    point.y.clamp(inset, height - inset).toDouble(),
+  );
+
   final SurvivalWaveDirector _director = SurvivalWaveDirector();
   final PhaseLeakController _phaseLeak = PhaseLeakController();
   final Vector2 playerSpawn = Vector2(480, 270);
@@ -36,6 +48,7 @@ final class SurvivalArenaController extends Component
   int _nextCacheSecond = 30;
   int _cachePositionIndex = 0;
   bool _alertActive = false;
+  bool _phaseHoundTutorialShown = false;
 
   int? get milestoneBossHealth {
     for (final fragment in children.whereType<OptimizerFragmentComponent>()) {
@@ -379,10 +392,14 @@ final class SurvivalArenaController extends Component
   }
 
   Future<void> _spawnPhaseHound() async {
+    if (!_phaseHoundTutorialShown) {
+      _phaseHoundTutorialShown = true;
+      _showAlert('PHASE HOUND // DODGE > BREAK +1', const Color(0xFF36E1FF));
+    }
     late final PhaseHoundComponent hound;
     hound = PhaseHoundComponent(
       entityId: 'survival-phase-hound-${_spawnId++}',
-      position: _nextSpawn(),
+      position: _nextSpawn(inset: phaseHoundSpawnInset),
       onDefeated: () => game.recordSurvivalKillAt(hound.position),
       onPerfectDodge: () =>
           game.recordSurvivalPerfectDodge(game.world.player.position.clone()),
@@ -487,7 +504,7 @@ final class SurvivalArenaController extends Component
     await add(crawler);
   }
 
-  Vector2 _nextSpawn() {
+  Vector2 _nextSpawn({double inset = 36}) {
     final player = game.world.player;
     final point = _director.chooseSpawnPoint(
       width: 960,
@@ -497,9 +514,6 @@ final class SurvivalArenaController extends Component
       velocityX: 0,
       velocityY: 0,
     );
-    return Vector2(
-      point.x.clamp(36, 924).toDouble(),
-      point.y.clamp(36, 504).toDouble(),
-    );
+    return clampSpawnPoint(point: point, width: 960, height: 540, inset: inset);
   }
 }
