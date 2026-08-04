@@ -25,7 +25,10 @@ void main() {
       entityId: 'test-crawler',
       position: Vector2.zero(),
     );
-    final pulse = PatchPulseComponent(position: Vector2.zero());
+    final pulse = PatchPulseComponent(
+      position: Vector2.zero(),
+      onTargetHit: (target) => target.receiveDamage(1),
+    );
 
     pulse.onCollisionStart(<Vector2>{}, crawler);
     pulse.onCollisionStart(<Vector2>{}, crawler);

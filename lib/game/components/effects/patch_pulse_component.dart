@@ -2,11 +2,12 @@ import 'dart:ui';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
-import 'package:patch_world/game/components/enemies/crawler_component.dart';
+import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/systems/combat_system.dart';
 
 final class PatchPulseComponent extends CircleComponent
-    with CollisionCallbacks {
-  PatchPulseComponent({required super.position})
+    with CollisionCallbacks, HasGameReference<PatchWorldGame> {
+  PatchPulseComponent({required super.position, this.onTargetHit})
     : super(
         radius: radiusValue,
         anchor: Anchor.center,
@@ -17,7 +18,8 @@ final class PatchPulseComponent extends CircleComponent
   static const double radiusValue = 52;
   static const double lifetimeSeconds = 0.10;
 
-  final Set<CrawlerComponent> _hitTargets = <CrawlerComponent>{};
+  final void Function(CombatTarget target)? onTargetHit;
+  final Set<CombatTarget> _hitTargets = <CombatTarget>{};
   double _remainingLifetime = lifetimeSeconds;
 
   @override
@@ -52,8 +54,16 @@ final class PatchPulseComponent extends CircleComponent
     Set<Vector2> intersectionPoints,
     PositionComponent other,
   ) {
-    if (other is CrawlerComponent && _hitTargets.add(other)) {
-      other.takePulseDamage(1);
+    if (other is CombatTarget) {
+      final target = other as CombatTarget;
+      if (_hitTargets.add(target)) {
+        final handler = onTargetHit;
+        if (handler != null) {
+          handler(target);
+        } else {
+          game.combatSystem.applyPlayerPulse(target);
+        }
+      }
     }
     super.onCollisionStart(intersectionPoints, other);
   }

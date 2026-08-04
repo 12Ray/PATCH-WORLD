@@ -2,14 +2,17 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
+import 'package:flutter/material.dart' show FontWeight, TextStyle;
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/room_one_controller.dart';
 
 final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   late final PlayerComponent player;
+  late final RoomOneController roomOne;
 
   bool _isReady = false;
   bool get isReady => _isReady;
@@ -17,7 +20,6 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
     await add(
       RectangleComponent(
         size: Vector2(
@@ -36,12 +38,8 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       spawnPosition: Vector2(160, 270),
     );
     await add(player);
-    await add(
-      CrawlerComponent(
-        entityId: 'crawler-debug-01',
-        position: Vector2(700, 270),
-      ),
-    );
+    roomOne = RoomOneController();
+    await add(roomOne);
     await add(
       TextComponent(
         text: 'MOVE  WASD / ARROWS     PULSE  SPACE / J     PAUSE  ESC',
@@ -56,7 +54,6 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
         priority: 40,
       ),
     );
-
     _isReady = true;
   }
 
@@ -106,5 +103,30 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
 
   Future<void> spawnPatchPulse(Vector2 worldPosition) async {
     await add(PatchPulseComponent(position: worldPosition.clone()));
+  }
+
+  Future<void> showPostPatchSandbox() async {
+    await add(
+      TextComponent(
+        text: 'PATCH APPLIED — DAMAGE NORMALIZED',
+        position: Vector2(480, 90),
+        anchor: Anchor.center,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Color(0xFF36E1FF),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        priority: 40,
+      ),
+    );
+    await add(
+      CrawlerComponent(
+        entityId: 'post-patch-sandbox-target',
+        position: Vector2(680, 270),
+        initialHealth: CrawlerComponent.maxHealth,
+      ),
+    );
   }
 }

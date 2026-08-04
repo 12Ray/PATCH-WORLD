@@ -1,5 +1,7 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:patch_world/app/overlay_ids.dart';
+import 'package:patch_world/app/overlays/patch_selection_overlay.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 
 final class PatchWorldApp extends StatefulWidget {
@@ -36,6 +38,11 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
               child: GameWidget<PatchWorldGame>(
                 game: _game,
                 autofocus: true,
+                overlayBuilderMap:
+                    <String, OverlayWidgetBuilder<PatchWorldGame>>{
+                      OverlayIds.patchSelection: (context, game) =>
+                          PatchSelectionOverlay(game: game),
+                    },
                 loadingBuilder: (context) => const _LoadingView(),
                 errorBuilder: (context, error) => _ErrorView(error: error),
               ),
