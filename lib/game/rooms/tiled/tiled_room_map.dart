@@ -31,6 +31,9 @@ final class TiledRoomMap extends Component
       .where((object) => object.objectClass == objectClass)
       .toList(growable: false);
 
+  RoomObjectSpec singleByClass(String objectClass) =>
+      allByClass(objectClass).single;
+
   void _parseObjectLayers() {
     const layerNames = <String>[
       'Collision',

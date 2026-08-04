@@ -9,6 +9,7 @@ abstract final class RoomMapValidator {
     'PhaseWall',
     'MergeZone',
     'LegacyTerminal',
+    'SealNode',
     'HintTrigger',
   };
 

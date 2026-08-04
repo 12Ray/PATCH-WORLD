@@ -17,6 +17,8 @@ final class RoomObjectSpec {
   final Vector2 size;
   final Map<String, Object?> properties;
 
+  Vector2 get center => position + size / 2;
+
   String requireString(String key) {
     final value = properties[key];
     if (value is! String || value.isEmpty) {

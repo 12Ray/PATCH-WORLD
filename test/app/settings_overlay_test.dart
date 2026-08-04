@@ -12,10 +12,12 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
+    final game = PatchWorldGame();
+    await game.localization.load('en');
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData.dark(),
-        home: SettingsOverlay(game: PatchWorldGame()),
+        home: SettingsOverlay(game: game),
       ),
     );
 

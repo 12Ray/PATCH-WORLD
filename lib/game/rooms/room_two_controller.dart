@@ -10,6 +10,7 @@ final class RoomTwoController extends Component
     with HasGameReference<PatchWorldGame> {
   final List<TerminalComponent> _terminals = <TerminalComponent>[];
   bool _completed = false;
+  late final Vector2 playerSpawn;
 
   int get activatedTerminalCount =>
       _terminals.where((terminal) => terminal.isActivated).length;
@@ -17,33 +18,35 @@ final class RoomTwoController extends Component
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await add(TiledRoomMap(fileName: 'temporal_hall.tmx'));
-    await addAll(<WallComponent>[
-      WallComponent(position: Vector2(420, 125), size: Vector2(48, 120)),
-      WallComponent(position: Vector2(420, 295), size: Vector2(48, 120)),
-      WallComponent(position: Vector2(610, 210), size: Vector2(48, 120)),
-    ]);
-    await addAll(<SentinelComponent>[
-      SentinelComponent(
-        entityId: 'temporal-sentinel-a',
-        position: Vector2(500, 110),
-      ),
-      SentinelComponent(
-        entityId: 'temporal-sentinel-b',
-        position: Vector2(500, 430),
-      ),
-    ]);
-    final upper = TerminalComponent(
-      terminalId: 'temporal-terminal-a',
-      position: Vector2(830, 150),
-      onActivated: _onTerminalActivated,
+    final roomMap = TiledRoomMap(fileName: 'temporal_hall.tmx');
+    await add(roomMap);
+    playerSpawn = roomMap.singleByClass('PlayerSpawn').center;
+    await addAll(
+      roomMap
+          .allByClass('Wall')
+          .map(
+            (spec) => WallComponent(position: spec.position, size: spec.size),
+          ),
     );
-    final lower = TerminalComponent(
-      terminalId: 'temporal-terminal-b',
-      position: Vector2(830, 390),
-      onActivated: _onTerminalActivated,
+    await addAll(
+      roomMap
+          .allByClass('EnemySpawn')
+          .map(
+            (spec) =>
+                SentinelComponent(entityId: spec.id, position: spec.center),
+          ),
     );
-    _terminals.addAll(<TerminalComponent>[upper, lower]);
+    _terminals.addAll(
+      roomMap
+          .allByClass('Terminal')
+          .map(
+            (spec) => TerminalComponent(
+              terminalId: spec.id,
+              position: spec.center,
+              onActivated: _onTerminalActivated,
+            ),
+          ),
+    );
     await addAll(_terminals);
   }
 

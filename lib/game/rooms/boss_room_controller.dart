@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
 import 'package:patch_world/game/components/environment/legacy_glitch_terminal.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
+import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rules/anomalies/damage_sign_inverted_rule.dart';
@@ -20,31 +21,42 @@ final class BossRoomController extends Component
   double _legacyRemaining = 0;
   double _legacyCooldown = 0;
   bool _legacyActive = false;
+  late final Vector2 playerSpawn;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await add(TiledRoomMap(fileName: 'optimizer_core.tmx'));
+    final roomMap = TiledRoomMap(fileName: 'optimizer_core.tmx');
+    await add(roomMap);
+    playerSpawn = roomMap.singleByClass('PlayerSpawn').center;
+    await addAll(
+      roomMap
+          .allByClass('Wall')
+          .map(
+            (spec) => WallComponent(position: spec.position, size: spec.size),
+          ),
+    );
+    final terminalSpec = roomMap.singleByClass('LegacyTerminal');
     terminal = LegacyGlitchTerminal(
-      position: Vector2(480, 90),
+      position: terminalSpec.center,
       onActivated: _activateLegacyGlitch,
     );
+    final bossSpec = roomMap.singleByClass('EnemySpawn');
     boss = OptimizerBossComponent(
-      position: Vector2(480, 245),
+      position: bossSpec.center,
       onPerfectStateEntered: terminal.enable,
       onDefeated: game.showEnding,
     );
     await addAll(<Component>[terminal, boss]);
     if (game.runState.hasPatch(RuleIds.phaseLeak)) {
-      final left = PhaseWallComponent(
-        position: Vector2(280, 180),
-        size: Vector2(36, 180),
+      _phaseWalls.addAll(
+        roomMap
+            .allByClass('PhaseWall')
+            .map(
+              (spec) =>
+                  PhaseWallComponent(position: spec.position, size: spec.size),
+            ),
       );
-      final right = PhaseWallComponent(
-        position: Vector2(644, 180),
-        size: Vector2(36, 180),
-      );
-      _phaseWalls.addAll(<PhaseWallComponent>[left, right]);
       await addAll(_phaseWalls);
     }
   }

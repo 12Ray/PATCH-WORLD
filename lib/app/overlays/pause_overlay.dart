@@ -42,6 +42,14 @@ final class PauseOverlay extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
+                onPressed: game.openCreditsFromPause,
+                child: Text(game.localization.text('ui.credits')),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
                 onPressed: game.openSettings,
                 child: Text(game.localization.text('ui.settings')),
               ),
@@ -55,9 +63,9 @@ final class PauseOverlay extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Press Esc to continue',
-              style: TextStyle(color: Color(0xFFA9B4C8)),
+            Text(
+              game.localization.text('pause.hint'),
+              style: const TextStyle(color: Color(0xFFA9B4C8)),
             ),
             const SizedBox(height: 8),
             Text(

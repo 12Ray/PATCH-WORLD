@@ -54,7 +54,9 @@ final class PatchPulseComponent extends CircleComponent
     Set<Vector2> intersectionPoints,
     PositionComponent other,
   ) {
-    if (other is CombatTarget) {
+    final pathIsBlocked =
+        isMounted && game.world.isPulseBlocked(position, other.position);
+    if (other is CombatTarget && !pathIsBlocked) {
       final target = other as CombatTarget;
       if (_hitTargets.add(target)) {
         final handler = onTargetHit;

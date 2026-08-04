@@ -31,21 +31,21 @@ final class SettingsOverlay extends StatelessWidget {
                     ),
                   ),
                   _VolumeRow(
-                    label: 'BGM',
+                    label: game.localization.text('settings.bgm'),
                     value: settings.bgmVolume,
                     onChanged: (value) => game.updateSettings(
                       settings.copyWith(bgmVolume: value),
                     ),
                   ),
                   _VolumeRow(
-                    label: 'SFX',
+                    label: game.localization.text('settings.sfx'),
                     value: settings.sfxVolume,
                     onChanged: (value) => game.updateSettings(
                       settings.copyWith(sfxVolume: value),
                     ),
                   ),
                   _VolumeRow(
-                    label: 'Text',
+                    label: game.localization.text('settings.text'),
                     value: settings.textScale,
                     min: 1,
                     max: 1.25,
@@ -55,7 +55,9 @@ final class SettingsOverlay extends StatelessWidget {
                   ),
                   DropdownButtonFormField<String>(
                     initialValue: settings.languageCode,
-                    decoration: const InputDecoration(labelText: 'Language'),
+                    decoration: InputDecoration(
+                      labelText: game.localization.text('settings.language'),
+                    ),
                     items: const <DropdownMenuItem<String>>[
                       DropdownMenuItem(value: 'ko', child: Text('한국어')),
                       DropdownMenuItem(value: 'en', child: Text('English')),
@@ -69,15 +71,19 @@ final class SettingsOverlay extends StatelessWidget {
                     },
                   ),
                   SwitchListTile(
-                    title: const Text('Assist mode'),
-                    subtitle: const Text('Reduces contact damage pressure.'),
+                    title: Text(game.localization.text('settings.assist')),
+                    subtitle: Text(
+                      game.localization.text('settings.assistDescription'),
+                    ),
                     value: settings.assistMode,
                     onChanged: (value) => game.updateSettings(
                       settings.copyWith(assistMode: value),
                     ),
                   ),
                   SwitchListTile(
-                    title: const Text('Reduced flashes'),
+                    title: Text(
+                      game.localization.text('settings.reducedFlashes'),
+                    ),
                     value: settings.flash == FlashSetting.reduced,
                     onChanged: (value) => game.updateSettings(
                       settings.copyWith(
@@ -87,8 +93,8 @@ final class SettingsOverlay extends StatelessWidget {
                   ),
                   DropdownButtonFormField<ScreenShakeSetting>(
                     initialValue: settings.screenShake,
-                    decoration: const InputDecoration(
-                      labelText: 'Screen shake',
+                    decoration: InputDecoration(
+                      labelText: game.localization.text('settings.screenShake'),
                     ),
                     items: ScreenShakeSetting.values
                         .map(

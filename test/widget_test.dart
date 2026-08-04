@@ -18,10 +18,16 @@ void main() {
     expect(gameWidget.autofocus, isTrue);
     expect(gameWidget.loadingBuilder, isNotNull);
     expect(gameWidget.errorBuilder, isNotNull);
-    expect(gameWidget.initialActiveOverlays, contains(OverlayIds.hud));
+    expect(gameWidget.initialActiveOverlays, contains(OverlayIds.title));
+    expect(
+      gameWidget.initialActiveOverlays,
+      isNot(contains(OverlayIds.touchControls)),
+    );
+    expect(gameWidget.overlayBuilderMap, contains(OverlayIds.touchControls));
     expect(gameWidget.overlayBuilderMap, contains(OverlayIds.pause));
     expect(gameWidget.overlayBuilderMap, contains(OverlayIds.patchSelection));
     expect(gameWidget.overlayBuilderMap, contains(OverlayIds.ending));
-    expect(find.text('PATCH//WORLD'), findsNothing);
+    expect(gameWidget.overlayBuilderMap, contains(OverlayIds.defeat));
+    expect(gameWidget.overlayBuilderMap, contains(OverlayIds.credits));
   });
 }

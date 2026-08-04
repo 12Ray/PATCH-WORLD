@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="16" tilewidth="32" tileheight="32" infinite="0" nextlayerid="7" nextobjectid="6">
- <objectgroup id="1" name="Collision"/>
- <objectgroup id="2" name="SpawnPoints"><object id="1" name="collision-player" class="PlayerSpawn" x="110" y="270"/></objectgroup>
- <objectgroup id="3" name="Enemies"><object id="2" name="crawler-a" class="EnemySpawn" x="350" y="160"><properties><property name="archetype" value="crawler"/><property name="spawnOrder" type="int" value="1"/></properties></object><object id="3" name="crawler-b" class="EnemySpawn" x="350" y="380"><properties><property name="archetype" value="crawler"/><property name="spawnOrder" type="int" value="2"/></properties></object></objectgroup>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="16" tilewidth="32" tileheight="32" infinite="0" nextlayerid="7" nextobjectid="9">
+ <objectgroup id="1" name="Collision">
+  <object id="1" name="north-wall" class="Wall" x="0" y="0" width="960" height="24"/>
+  <object id="2" name="south-wall" class="Wall" x="0" y="516" width="960" height="24"/>
+  <object id="3" name="west-wall" class="Wall" x="0" y="0" width="24" height="540"/>
+  <object id="4" name="east-wall" class="Wall" x="936" y="0" width="24" height="540"/>
+ </objectgroup>
+ <objectgroup id="2" name="SpawnPoints"><object id="5" name="collision-player" class="PlayerSpawn" x="110" y="270"/></objectgroup>
+ <objectgroup id="3" name="Enemies"><object id="6" name="collision-crawler-a" class="EnemySpawn" x="350" y="160"><properties><property name="archetype" value="crawler"/><property name="spawnOrder" type="int" value="1"/></properties></object><object id="7" name="collision-crawler-b" class="EnemySpawn" x="350" y="380"><properties><property name="archetype" value="crawler"/><property name="spawnOrder" type="int" value="2"/></properties></object></objectgroup>
  <objectgroup id="4" name="Interactions"/>
- <objectgroup id="5" name="Triggers"><object id="4" name="merge-zone" class="MergeZone" x="438" y="188" width="164" height="164"/></objectgroup>
+ <objectgroup id="5" name="Triggers"><object id="8" name="merge-zone" class="MergeZone" x="438" y="188" width="164" height="164"/></objectgroup>
  <objectgroup id="6" name="Hints"/>
 </map>

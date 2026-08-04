@@ -95,6 +95,7 @@ final class OptimizerBossComponent extends CircleComponent
     }
     final count = phase == OptimizerPhase.predict ? 12 : 8;
     for (var i = 0; i < count; i += 1) {
+      if (!game.world.canSpawnProjectile) break;
       final angle = math.pi * 2 * i / count;
       await parent?.add(
         EnemyProjectileComponent(

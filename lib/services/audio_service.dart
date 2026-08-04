@@ -54,13 +54,32 @@ final class AudioService {
   Future<void> unlockFromUserGesture() async {
     if (_unlocked || !_available) return;
     _unlocked = true;
-    await startArchiveBgm();
+    try {
+      await startArchiveBgm();
+    } catch (_) {
+      _available = false;
+      _bgmPlaying = false;
+    }
   }
 
-  Future<void> startArchiveBgm() async {
-    if (!_unlocked || _bgmPlaying || !_available) return;
+  Future<void> startArchiveBgm({bool restart = false}) async {
+    if (!_unlocked || !_available) return;
+    if (_bgmPlaying && !restart) return;
+    if (_bgmPlaying) await FlameAudio.bgm.stop();
     _bgmPlaying = true;
     await FlameAudio.bgm.play('bgm/archive_hum.wav', volume: _bgmVolume);
+  }
+
+  Future<void> startOptimizerBgm() async {
+    if (!_unlocked || !_available) return;
+    try {
+      await FlameAudio.bgm.stop();
+      _bgmPlaying = true;
+      await FlameAudio.bgm.play('bgm/optimizer_layer.wav', volume: _bgmVolume);
+    } catch (_) {
+      _available = false;
+      _bgmPlaying = false;
+    }
   }
 
   Future<void> playPatchPulse() async {

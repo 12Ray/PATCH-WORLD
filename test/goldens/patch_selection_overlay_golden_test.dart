@@ -11,6 +11,7 @@ void main() {
         roomId: 'damage-lab',
         choices: PatchCatalog.roomOneChoices,
       );
+    await game.localization.load('en');
     await tester.binding.setSurfaceSize(const Size(960, 540));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(

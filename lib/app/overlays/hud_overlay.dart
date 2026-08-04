@@ -24,10 +24,12 @@ final class HudOverlay extends StatelessWidget {
             ),
             child: Row(
               children: <Widget>[
-                _IntegrityView(snapshot: snapshot),
+                _IntegrityView(game: game, snapshot: snapshot),
                 const SizedBox(width: 18),
-                Expanded(child: _RuleView(snapshot: snapshot)),
-                _PatchStack(snapshot: snapshot),
+                Expanded(
+                  child: _RuleView(game: game, snapshot: snapshot),
+                ),
+                _PatchStack(game: game, snapshot: snapshot),
               ],
             ),
           ),
@@ -38,7 +40,8 @@ final class HudOverlay extends StatelessWidget {
 }
 
 final class _IntegrityView extends StatelessWidget {
-  const _IntegrityView({required this.snapshot});
+  const _IntegrityView({required this.game, required this.snapshot});
+  final PatchWorldGame game;
   final UiSnapshot snapshot;
 
   @override
@@ -46,9 +49,9 @@ final class _IntegrityView extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     mainAxisSize: MainAxisSize.min,
     children: <Widget>[
-      const Text(
-        'INTEGRITY',
-        style: TextStyle(
+      Text(
+        game.localization.text('hud.integrity'),
+        style: const TextStyle(
           color: Color(0xFFA9B4C8),
           fontSize: 10,
           fontWeight: FontWeight.w700,
@@ -78,7 +81,8 @@ final class _IntegrityView extends StatelessWidget {
 }
 
 final class _RuleView extends StatelessWidget {
-  const _RuleView({required this.snapshot});
+  const _RuleView({required this.game, required this.snapshot});
+  final PatchWorldGame game;
   final UiSnapshot snapshot;
 
   @override
@@ -118,9 +122,11 @@ final class _RuleView extends StatelessWidget {
       if (snapshot.frameBurstPhase case final FrameBurstPhase phase)
         Text(
           switch (phase) {
-            FrameBurstPhase.normal => 'FRAME STABLE',
-            FrameBurstPhase.warning => 'FRAME BURST INCOMING',
-            FrameBurstPhase.active => 'FRAME BURST ACTIVE',
+            FrameBurstPhase.normal => game.localization.text('hud.frameStable'),
+            FrameBurstPhase.warning => game.localization.text(
+              'hud.frameWarning',
+            ),
+            FrameBurstPhase.active => game.localization.text('hud.frameActive'),
           },
           style: TextStyle(
             color: phase == FrameBurstPhase.active
@@ -133,8 +139,8 @@ final class _RuleView extends StatelessWidget {
       if (snapshot.bossPhase case final String phase)
         Text(
           snapshot.bossStability == null
-              ? 'BOSS ${phase.toUpperCase()}  HP ${snapshot.bossHealth}/${snapshot.bossMaxHealth}'
-              : 'PERFECT  STABILITY ${snapshot.bossStability}/150',
+              ? '${game.localization.text('hud.boss')} ${phase.toUpperCase()}  HP ${snapshot.bossHealth}/${snapshot.bossMaxHealth}'
+              : '${game.localization.text('hud.perfect')}  ${game.localization.text('hud.stability')} ${snapshot.bossStability}/150',
           style: const TextStyle(
             color: Color(0xFFFFC857),
             fontSize: 10,
@@ -146,7 +152,8 @@ final class _RuleView extends StatelessWidget {
 }
 
 final class _PatchStack extends StatelessWidget {
-  const _PatchStack({required this.snapshot});
+  const _PatchStack({required this.game, required this.snapshot});
+  final PatchWorldGame game;
   final UiSnapshot snapshot;
 
   @override
@@ -175,7 +182,7 @@ final class _PatchStack extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 8),
           child: Text(
-            'ECHO $count/4',
+            '${game.localization.text('hud.echo')} $count/4',
             style: const TextStyle(
               color: Color(0xFFFF4FD8),
               fontSize: 11,

@@ -6,7 +6,9 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
+import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/services/game_settings.dart';
 
 final class PlayerComponent extends RectangleComponent
     with CollisionCallbacks, HasGameReference<PatchWorldGame> {
@@ -74,9 +76,12 @@ final class PlayerComponent extends RectangleComponent
       return;
     }
 
+    final appliedDamage = math.min(integrity, amount);
     integrity = math.max(0, integrity - amount);
+    if (isMounted) game.runMetrics.recordDamage(appliedDamage);
     if (isMounted) {
       unawaited(game.audio.playDamage());
+      game.triggerImpactFeedback();
     }
     lastDamageCauseId = causeId;
     _hitInvulnerability = hitInvulnerabilitySeconds;
@@ -84,7 +89,7 @@ final class PlayerComponent extends RectangleComponent
       game.publishUiSnapshot();
     }
     if (integrity == 0) {
-      game.requestRoomRestart(causeId: causeId);
+      game.handlePlayerDefeat(causeId: causeId);
     }
   }
 
@@ -119,13 +124,19 @@ final class PlayerComponent extends RectangleComponent
       return;
     }
 
+    if (isMounted && game.settings.value.flash == FlashSetting.reduced) {
+      paint.color = const Color(0xAA36E1FF);
+      return;
+    }
+
     final visible = (_hitInvulnerability * 12).floor().isEven;
     paint.color = visible ? const Color(0xFF36E1FF) : const Color(0x5536E1FF);
   }
 
   @override
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
-    if (other is WallComponent) {
+    if (other is WallComponent ||
+        (other is PhaseWallComponent && other.isSolid)) {
       position.setFrom(_previousPosition);
     }
     super.onCollision(intersectionPoints, other);

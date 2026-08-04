@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
+import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 
@@ -51,7 +52,8 @@ final class EnemyProjectileComponent extends CircleComponent
     if (other is PlayerComponent) {
       other.takeDamage(1, causeId: 'enemy.sentinel.projectile');
       removeFromParent();
-    } else if (other is WallComponent) {
+    } else if (other is WallComponent ||
+        (other is PhaseWallComponent && other.isSolid)) {
       removeFromParent();
     }
     super.onCollisionStart(intersectionPoints, other);

@@ -6,6 +6,7 @@ final class InputController {
 
   bool _attackQueued = false;
   bool _interactQueued = false;
+  Vector2 _virtualMovement = Vector2.zero();
 
   void syncPressedKeys(Set<LogicalKeyboardKey> keysPressed) {
     _pressedKeys
@@ -22,6 +23,17 @@ final class InputController {
       _interactQueued = true;
     }
   }
+
+  void queueAttack() => _attackQueued = true;
+
+  void queueInteract() => _interactQueued = true;
+
+  void setVirtualMovement(double x, double y) {
+    _virtualMovement = Vector2(x, y);
+    if (_virtualMovement.length2 > 1) _virtualMovement.normalize();
+  }
+
+  void clearVirtualMovement() => _virtualMovement.setZero();
 
   Vector2 get movementAxis {
     double x = 0;
@@ -40,7 +52,7 @@ final class InputController {
       y += 1;
     }
 
-    final axis = Vector2(x, y);
+    final axis = Vector2(x, y)..add(_virtualMovement);
     if (axis.length2 > 1) {
       axis.normalize();
     }
@@ -69,6 +81,7 @@ final class InputController {
 
   void clearAll() {
     _pressedKeys.clear();
+    clearVirtualMovement();
     clearTransientActions();
   }
 

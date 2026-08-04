@@ -35,4 +35,8 @@ final class SettingsService {
       _store.setString('languageCode', settings.languageCode),
     ]);
   }
+
+  Future<int> loadBestScore() async => await _store.getInt('bestScore') ?? 0;
+
+  Future<void> saveBestScore(int score) => _store.setInt('bestScore', score);
 }

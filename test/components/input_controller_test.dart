@@ -39,5 +39,18 @@ void main() {
       expect(input.movementAxis.x, -1);
       expect(input.movementAxis.y, 0);
     });
+
+    test('supports touch movement and action queues', () {
+      final input = InputController()..setVirtualMovement(1, -1);
+
+      expect(input.movementAxis.length, closeTo(1, 0.0001));
+      input.queueAttack();
+      input.queueInteract();
+      expect(input.consumeAttack(), isTrue);
+      expect(input.consumeInteract(), isTrue);
+
+      input.clearAll();
+      expect(input.movementAxis.length2, 0);
+    });
   });
 }

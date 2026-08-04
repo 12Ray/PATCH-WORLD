@@ -6,9 +6,11 @@ import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/effects/retaliation_echo_component.dart';
 import 'package:patch_world/game/components/effects/time_freeze_overlay_component.dart';
-import 'package:patch_world/game/components/enemies/crawler_component.dart';
+import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
+import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
+import 'package:patch_world/game/components/projectiles/enemy_projectile_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/room_one_controller.dart';
 import 'package:patch_world/game/rooms/boss_room_controller.dart';
@@ -23,6 +25,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   bool _isReady = false;
 
   bool get isReady => _isReady;
+  Component? get activeRoom => _activeRoom;
   OptimizerBossComponent? get activeBoss {
     final room = _activeRoom;
     return room is BossRoomController ? room.boss : null;
@@ -42,13 +45,15 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       ),
     );
     await _addGrid();
-    await _addBoundaryWalls();
-    player = PlayerComponent(
-      position: Vector2(160, 270),
-      spawnPosition: Vector2(160, 270),
-    );
+    player =
+        PlayerComponent(
+            position: Vector2(160, 270),
+            spawnPosition: Vector2(160, 270),
+          )
+          ..maxIntegrity = game.settings.value.assistMode ? 6 : 5
+          ..integrity = game.settings.value.assistMode ? 6 : 5;
     await add(player);
-    await loadRoom(RoomId.damageLab);
+    await loadRoom(game.currentRoom);
     await add(TimeFreezeOverlayComponent());
     await add(
       TextComponent(
@@ -85,11 +90,12 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     };
     _activeRoom = nextRoom;
     await add(nextRoom);
-    final spawn = switch (roomId) {
-      RoomId.damageLab => Vector2(150, 270),
-      RoomId.temporalHall => Vector2(110, 270),
-      RoomId.collisionArchive => Vector2(110, 270),
-      RoomId.optimizerCore => Vector2(480, 450),
+    final spawn = switch (nextRoom) {
+      RoomOneController controller => controller.playerSpawn,
+      RoomTwoController controller => controller.playerSpawn,
+      RoomThreeController controller => controller.playerSpawn,
+      BossRoomController controller => controller.playerSpawn,
+      _ => throw StateError('Room controller does not expose a spawn.'),
     };
     player
       ..integrity = player.maxIntegrity
@@ -112,6 +118,26 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     return room is RoomThreeController ? room.tryMerge(first, second) : false;
   }
 
+  bool isPulseBlocked(Vector2 from, Vector2 to) {
+    final room = _activeRoom;
+    if (room == null) return false;
+    final blockers = <RectangleComponent>[
+      ...room.children.whereType<WallComponent>(),
+      ...room.children.whereType<PhaseWallComponent>().where(
+        (wall) => wall.isSolid,
+      ),
+    ];
+    return blockers.any(
+      (wall) => _segmentIntersectsRectangle(from, to, wall.position, wall.size),
+    );
+  }
+
+  bool get canSpawnProjectile {
+    final room = _activeRoom;
+    if (room == null) return false;
+    return room.children.whereType<EnemyProjectileComponent>().length < 40;
+  }
+
   Future<void> spawnDuplicate({
     required DuplicateArchetype archetype,
     required Vector2 position,
@@ -119,6 +145,11 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   }) async {
     final room = _activeRoom;
     if (room == null) return;
+    final activeDuplicates = room.children
+        .whereType<CrawlerComponent>()
+        .where((crawler) => crawler.entityId.endsWith('.echo'))
+        .length;
+    if (activeDuplicates >= 6) return;
     await room.add(
       CrawlerComponent(
         entityId: '$sourceEntityId.echo',
@@ -171,21 +202,36 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     }
   }
 
-  Future<void> _addBoundaryWalls() async {
-    const thickness = 24.0;
-    const width = PatchWorldGame.logicalWidth;
-    const height = PatchWorldGame.logicalHeight;
-    await addAll(<WallComponent>[
-      WallComponent(position: Vector2.zero(), size: Vector2(width, thickness)),
-      WallComponent(
-        position: Vector2(0, height - thickness),
-        size: Vector2(width, thickness),
-      ),
-      WallComponent(position: Vector2.zero(), size: Vector2(thickness, height)),
-      WallComponent(
-        position: Vector2(width - thickness, 0),
-        size: Vector2(thickness, height),
-      ),
-    ]);
+  bool _segmentIntersectsRectangle(
+    Vector2 from,
+    Vector2 to,
+    Vector2 topLeft,
+    Vector2 size,
+  ) {
+    var lower = 0.0;
+    var upper = 1.0;
+    final dx = to.x - from.x;
+    final dy = to.y - from.y;
+    final p = <double>[-dx, dx, -dy, dy];
+    final q = <double>[
+      from.x - topLeft.x,
+      topLeft.x + size.x - from.x,
+      from.y - topLeft.y,
+      topLeft.y + size.y - from.y,
+    ];
+    for (var index = 0; index < 4; index += 1) {
+      if (p[index] == 0) {
+        if (q[index] < 0) return false;
+        continue;
+      }
+      final ratio = q[index] / p[index];
+      if (p[index] < 0) {
+        lower = lower > ratio ? lower : ratio;
+      } else {
+        upper = upper < ratio ? upper : ratio;
+      }
+      if (lower > upper) return false;
+    }
+    return upper >= 0 && lower <= 1;
   }
 }

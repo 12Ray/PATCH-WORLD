@@ -94,6 +94,7 @@ final class SentinelComponent extends RectangleComponent
   }
 
   Future<void> _fire() async {
+    if (!game.world.canSpawnProjectile) return;
     await parent?.add(
       EnemyProjectileComponent(
         position: position.clone(),

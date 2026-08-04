@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 import 'package:patch_world/game/components/enemies/composite_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
+import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/tiled/tiled_room_map.dart';
 
@@ -14,21 +15,38 @@ final class RoomThreeController extends Component
   CrawlerComponent? _crawlerB;
   bool _mergeStarted = false;
   bool _completed = false;
+  late final Vector2 playerSpawn;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await add(TiledRoomMap(fileName: 'collision_archive.tmx'));
-    await add(MergeZoneComponent(position: Vector2(520, 270)));
+    final roomMap = TiledRoomMap(fileName: 'collision_archive.tmx');
+    await add(roomMap);
+    playerSpawn = roomMap.singleByClass('PlayerSpawn').center;
+    await addAll(
+      roomMap
+          .allByClass('Wall')
+          .map(
+            (spec) => WallComponent(position: spec.position, size: spec.size),
+          ),
+    );
+    await add(
+      MergeZoneComponent(position: roomMap.singleByClass('MergeZone').center),
+    );
+    final enemySpawns = roomMap.allByClass('EnemySpawn')
+      ..sort(
+        (a, b) =>
+            a.requireInt('spawnOrder').compareTo(b.requireInt('spawnOrder')),
+      );
     final crawlerA = CrawlerComponent(
-      entityId: 'collision-crawler-a',
-      position: Vector2(350, 160),
+      entityId: enemySpawns[0].id,
+      position: enemySpawns[0].center,
       initialHealth: 3,
       mergeShielded: true,
     );
     final crawlerB = CrawlerComponent(
-      entityId: 'collision-crawler-b',
-      position: Vector2(350, 380),
+      entityId: enemySpawns[1].id,
+      position: enemySpawns[1].center,
       initialHealth: 3,
       mergeShielded: true,
     );

@@ -1,11 +1,17 @@
 import 'package:flame/game.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:patch_world/app/overlay_ids.dart';
+import 'package:patch_world/app/overlays/credits_overlay.dart';
+import 'package:patch_world/app/overlays/defeat_overlay.dart';
 import 'package:patch_world/app/overlays/ending_overlay.dart';
 import 'package:patch_world/app/overlays/hud_overlay.dart';
 import 'package:patch_world/app/overlays/patch_selection_overlay.dart';
+import 'package:patch_world/app/overlays/patch_applied_overlay.dart';
 import 'package:patch_world/app/overlays/pause_overlay.dart';
 import 'package:patch_world/app/overlays/settings_overlay.dart';
+import 'package:patch_world/app/overlays/title_overlay.dart';
+import 'package:patch_world/app/overlays/touch_controls_overlay.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/services/game_settings.dart';
 
@@ -49,24 +55,43 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
             aspectRatio:
                 PatchWorldGame.logicalWidth / PatchWorldGame.logicalHeight,
             child: ClipRect(
-              child: GameWidget<PatchWorldGame>(
-                game: _game,
-                autofocus: true,
-                initialActiveOverlays: const <String>[OverlayIds.hud],
-                overlayBuilderMap:
-                    <String, OverlayWidgetBuilder<PatchWorldGame>>{
-                      OverlayIds.hud: (context, game) => HudOverlay(game: game),
-                      OverlayIds.pause: (context, game) =>
-                          PauseOverlay(game: game),
-                      OverlayIds.ending: (context, game) =>
-                          EndingOverlay(game: game),
-                      OverlayIds.settings: (context, game) =>
-                          SettingsOverlay(game: game),
-                      OverlayIds.patchSelection: (context, game) =>
-                          PatchSelectionOverlay(game: game),
-                    },
-                loadingBuilder: (context) => const _LoadingView(),
-                errorBuilder: (context, error) => _ErrorView(error: error),
+              child: Listener(
+                onPointerDown: (event) {
+                  if (event.kind == PointerDeviceKind.mouse &&
+                      event.buttons == kPrimaryMouseButton) {
+                    _game.queuePointerAttack();
+                  }
+                },
+                child: GameWidget<PatchWorldGame>(
+                  game: _game,
+                  autofocus: true,
+                  initialActiveOverlays: const <String>[OverlayIds.title],
+                  overlayBuilderMap:
+                      <String, OverlayWidgetBuilder<PatchWorldGame>>{
+                        OverlayIds.title: (context, game) =>
+                            TitleOverlay(game: game),
+                        OverlayIds.hud: (context, game) =>
+                            HudOverlay(game: game),
+                        OverlayIds.touchControls: (context, game) =>
+                            TouchControlsOverlay(game: game),
+                        OverlayIds.pause: (context, game) =>
+                            PauseOverlay(game: game),
+                        OverlayIds.defeat: (context, game) =>
+                            DefeatOverlay(game: game),
+                        OverlayIds.ending: (context, game) =>
+                            EndingOverlay(game: game),
+                        OverlayIds.settings: (context, game) =>
+                            SettingsOverlay(game: game),
+                        OverlayIds.credits: (context, game) =>
+                            CreditsOverlay(game: game),
+                        OverlayIds.patchSelection: (context, game) =>
+                            PatchSelectionOverlay(game: game),
+                        OverlayIds.patchApplied: (context, game) =>
+                            PatchAppliedOverlay(game: game),
+                      },
+                  loadingBuilder: (context) => const _LoadingView(),
+                  errorBuilder: (context, error) => _ErrorView(error: error),
+                ),
               ),
             ),
           ),

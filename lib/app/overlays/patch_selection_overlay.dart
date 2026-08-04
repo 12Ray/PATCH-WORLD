@@ -2,13 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:patch_world/game/core/run_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 
-final class PatchSelectionOverlay extends StatelessWidget {
+final class PatchSelectionOverlay extends StatefulWidget {
   const PatchSelectionOverlay({required this.game, super.key});
 
   final PatchWorldGame game;
 
   @override
+  State<PatchSelectionOverlay> createState() => _PatchSelectionOverlayState();
+}
+
+final class _PatchSelectionOverlayState extends State<PatchSelectionOverlay> {
+  String? _selectedPatchId;
+
+  @override
   Widget build(BuildContext context) {
+    final game = widget.game;
     final request = game.pendingPatchSelection;
     if (request == null) {
       return const SizedBox.shrink();
@@ -24,9 +32,9 @@ final class PatchSelectionOverlay extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  const Text(
-                    'ANOMALY CONTAINED',
-                    style: TextStyle(
+                  Text(
+                    game.localization.text('patchSelection.title'),
+                    style: const TextStyle(
                       color: Color(0xFFF4F7FF),
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
@@ -34,9 +42,12 @@ final class PatchSelectionOverlay extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Choose one fix and accept its side effect.',
-                    style: TextStyle(color: Color(0xFFA9B4C8), fontSize: 16),
+                  Text(
+                    game.localization.text('patchSelection.subtitle'),
+                    style: const TextStyle(
+                      color: Color(0xFFA9B4C8),
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -49,8 +60,16 @@ final class PatchSelectionOverlay extends StatelessWidget {
                                 horizontal: 8,
                               ),
                               child: _PatchCard(
+                                game: game,
                                 patch: patch,
-                                onSelected: () => game.selectPatch(patch.id),
+                                isSelected: _selectedPatchId == patch.id,
+                                onSelected: () {
+                                  if (_selectedPatchId == patch.id) {
+                                    game.selectPatch(patch.id);
+                                  } else {
+                                    setState(() => _selectedPatchId = patch.id);
+                                  }
+                                },
                               ),
                             ),
                           ),
@@ -68,9 +87,16 @@ final class PatchSelectionOverlay extends StatelessWidget {
 }
 
 final class _PatchCard extends StatelessWidget {
-  const _PatchCard({required this.patch, required this.onSelected});
+  const _PatchCard({
+    required this.game,
+    required this.patch,
+    required this.isSelected,
+    required this.onSelected,
+  });
 
+  final PatchWorldGame game;
   final PatchDefinition patch;
+  final bool isSelected;
   final VoidCallback onSelected;
 
   @override
@@ -85,14 +111,19 @@ final class _PatchCard extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 330),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFF35425E)),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF36E1FF)
+                  : const Color(0xFF35425E),
+              width: isSelected ? 2 : 1,
+            ),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                patch.riskLabel,
+                _localized('risk', patch.riskLabel),
                 style: const TextStyle(
                   color: Color(0xFFFFC857),
                   fontWeight: FontWeight.bold,
@@ -101,7 +132,7 @@ final class _PatchCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                patch.title,
+                _localized('title', patch.title),
                 style: const TextStyle(
                   color: Color(0xFFF4F7FF),
                   fontWeight: FontWeight.w800,
@@ -110,28 +141,34 @@ final class _PatchCard extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               _CardSection(
-                label: 'FIX',
+                label: game.localization.text('patchSelection.fix'),
                 color: const Color(0xFF36E1FF),
-                body: patch.fix,
+                body: _localized('fix', patch.fix),
               ),
               const SizedBox(height: 16),
               _CardSection(
-                label: 'SIDE EFFECT',
+                label: game.localization.text('patchSelection.sideEffect'),
                 color: const Color(0xFFFF4FD8),
-                body: patch.sideEffect,
+                body: _localized('sideEffect', patch.sideEffect),
               ),
               const SizedBox(height: 16),
               _CardSection(
-                label: 'TACTIC',
+                label: game.localization.text('patchSelection.tactic'),
                 color: const Color(0xFFFFC857),
-                body: patch.tactic,
+                body: _localized('tactic', patch.tactic),
               ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: onSelected,
-                  child: const Text('APPLY PATCH'),
+                  child: Text(
+                    game.localization.text(
+                      isSelected
+                          ? 'patchSelection.confirm'
+                          : 'patchSelection.select',
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -139,6 +176,11 @@ final class _PatchCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _localized(String field, String fallback) {
+    final value = game.localization.text('${patch.id}.$field');
+    return value.startsWith('[') ? fallback : value;
   }
 }
 
