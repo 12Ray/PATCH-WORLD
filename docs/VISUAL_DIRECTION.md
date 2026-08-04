@@ -72,8 +72,11 @@ combat states:
 | Character | State | Frames | FPS | Loop |
 |---|---|---:|---:|---|
 | QA hero | idle | 4 | 6 | yes |
+| QA hero | move | 6 | 10 | yes |
 | QA hero | pulse | 4 | 10 | no |
+| QA hero | hurt | 3 | 10 | no |
 | Crawler | chase | 6 | 9 | yes |
+| Crawler | heal | 3 | 8 | no |
 | Crawler | overflow | 5 | 12 | no |
 
 `tool/process_animation_sheets.py` removes chroma, despills edges, divides the
@@ -84,8 +87,9 @@ bottom baseline. Runtime metadata and validation results live in
 
 The processed strips passed transparent-corner, exact-frame-count, alpha
 coverage, motion-presence, sub-pixel centroid, and shared baseline checks.
-Static source sprites remain as safe loading fallbacks. Move, hurt, and heal
-states remain code-driven until a later character-wide animation pass.
+Static source sprites remain as safe loading fallbacks. Movement state changes
+update the loop to which an active attack or hurt one-shot returns, so input
+changes never cut a reaction short or restore the wrong pose.
 
 ## Verification — 2026-08-04
 

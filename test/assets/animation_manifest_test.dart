@@ -16,8 +16,11 @@ void main() {
 
       expect(manifest.keys, {
         'qa-hero-idle',
+        'qa-hero-move',
         'qa-hero-pulse',
+        'qa-hero-hurt',
         'crawler-chase',
+        'crawler-heal',
         'crawler-overflow',
       });
 

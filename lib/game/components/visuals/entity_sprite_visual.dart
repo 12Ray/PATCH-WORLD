@@ -53,7 +53,11 @@ final class EntitySpriteVisual extends SpriteComponent {
     if (frames.isEmpty || fps <= 0) return;
     _defaultFrames = frames;
     _defaultFps = fps;
-    _startAnimation(frames, fps: fps, loops: true);
+    // Movement can change during a hit or attack. Update the return state
+    // without cutting the active one-shot short.
+    if (_activeFrames == null || _animationLoops) {
+      _startAnimation(frames, fps: fps, loops: true);
+    }
   }
 
   void playOnce(List<Sprite> frames, {required double fps}) {

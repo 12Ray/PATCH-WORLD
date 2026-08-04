@@ -27,8 +27,11 @@ class AnimationSpec:
 
 SPECS = (
     AnimationSpec("qa-hero-idle", "qa-hero-idle-source.png", 4, 6, True),
+    AnimationSpec("qa-hero-move", "qa-hero-move-source.png", 6, 10, True),
     AnimationSpec("qa-hero-pulse", "qa-hero-pulse-source.png", 4, 10, False),
+    AnimationSpec("qa-hero-hurt", "qa-hero-hurt-source.png", 3, 10, False),
     AnimationSpec("crawler-chase", "crawler-chase-source.png", 6, 9, True),
+    AnimationSpec("crawler-heal", "crawler-heal-source.png", 3, 8, False),
     AnimationSpec("crawler-overflow", "crawler-overflow-source.png", 5, 12, False),
 )
 

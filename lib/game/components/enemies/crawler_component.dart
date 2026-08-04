@@ -48,6 +48,7 @@ final class CrawlerComponent extends RectangleComponent
   bool _mergeConsumed = false;
   bool _duplicateClaimed = false;
   EntitySpriteVisual? _visual;
+  List<Sprite>? _healFrames;
   List<Sprite>? _overflowFrames;
 
   int get health => healthState.current;
@@ -111,8 +112,12 @@ final class CrawlerComponent extends RectangleComponent
     final overflowImage = await game.images.load(
       'sprites/animations/crawler-overflow.png',
     );
+    final healImage = await game.images.load(
+      'sprites/animations/crawler-heal.png',
+    );
     if (isRemoving) return;
     visual.setDefaultAnimation(_frames(chaseImage, 6), fps: 9);
+    _healFrames = _frames(healImage, 3);
     _overflowFrames = _frames(overflowImage, 5);
   }
 
@@ -144,6 +149,10 @@ final class CrawlerComponent extends RectangleComponent
   void receiveHealing(int amount) {
     final mutation = healthState.applyHealing(amount);
     if (mutation == HealthMutation.healed) {
+      final healFrames = _healFrames;
+      if (healFrames != null) {
+        _visual?.playOnce(healFrames, fps: 8);
+      }
       _visual?.flash(const Color(0xFF36E1FF));
     } else if (mutation == HealthMutation.overflowed) {
       _overflowStarted = true;

@@ -36,7 +36,11 @@ final class PlayerComponent extends RectangleComponent
   double _hitInvulnerability = 0;
   int _dataShardCharge = 0;
   EntitySpriteVisual? _visual;
+  List<Sprite>? _idleFrames;
+  List<Sprite>? _moveFrames;
   List<Sprite>? _pulseFrames;
+  List<Sprite>? _hurtFrames;
+  bool _usingMoveAnimation = false;
   String? lastDamageCauseId;
 
   bool get canAttack => _attackCooldown <= 0 && !isRemoving;
@@ -79,12 +83,21 @@ final class PlayerComponent extends RectangleComponent
     final idleImage = await game.images.load(
       'sprites/animations/qa-hero-idle.png',
     );
+    final moveImage = await game.images.load(
+      'sprites/animations/qa-hero-move.png',
+    );
     final pulseImage = await game.images.load(
       'sprites/animations/qa-hero-pulse.png',
     );
+    final hurtImage = await game.images.load(
+      'sprites/animations/qa-hero-hurt.png',
+    );
     if (isRemoving) return;
-    visual.setDefaultAnimation(_frames(idleImage, 4), fps: 6);
+    _idleFrames = _frames(idleImage, 4);
+    _moveFrames = _frames(moveImage, 6);
     _pulseFrames = _frames(pulseImage, 4);
+    _hurtFrames = _frames(hurtImage, 3);
+    _syncMovementAnimation(force: true);
   }
 
   List<Sprite> _frames(Image image, int count) => List.generate(
@@ -136,6 +149,10 @@ final class PlayerComponent extends RectangleComponent
     }
     lastDamageCauseId = causeId;
     _hitInvulnerability = hitInvulnerabilitySeconds;
+    final hurtFrames = _hurtFrames;
+    if (hurtFrames != null) {
+      _visual?.playOnce(hurtFrames, fps: 10);
+    }
     _visual?.flash(const Color(0xFFFF6464), seconds: 0.18);
     _visual?.squash(seconds: 0.20);
     if (isMounted) {
@@ -171,9 +188,19 @@ final class PlayerComponent extends RectangleComponent
     _previousPosition.setFrom(position);
     position += _movementInput * (moveSpeed * statusDt);
     _visual?.faceMovement(_movementInput);
+    _syncMovementAnimation();
     _clampToLogicalWorld();
     _updateDamageBlink();
     super.update(dt);
+  }
+
+  void _syncMovementAnimation({bool force = false}) {
+    final moving = _movementInput.length2 > 0.01;
+    if (!force && moving == _usingMoveAnimation) return;
+    final frames = moving ? _moveFrames : _idleFrames;
+    if (frames == null) return;
+    _usingMoveAnimation = moving;
+    _visual?.setDefaultAnimation(frames, fps: moving ? 10 : 6);
   }
 
   void _clampToLogicalWorld() {
