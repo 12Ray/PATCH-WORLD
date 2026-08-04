@@ -1,6 +1,7 @@
 import 'package:flame/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/patch_world_app.dart';
+import 'package:patch_world/app/overlay_ids.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 
 void main() {
@@ -17,6 +18,9 @@ void main() {
     expect(gameWidget.autofocus, isTrue);
     expect(gameWidget.loadingBuilder, isNotNull);
     expect(gameWidget.errorBuilder, isNotNull);
+    expect(gameWidget.initialActiveOverlays, contains(OverlayIds.hud));
+    expect(gameWidget.overlayBuilderMap, contains(OverlayIds.pause));
+    expect(gameWidget.overlayBuilderMap, contains(OverlayIds.patchSelection));
     expect(find.text('PATCH//WORLD'), findsNothing);
   });
 }

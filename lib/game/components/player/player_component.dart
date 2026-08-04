@@ -30,6 +30,7 @@ final class PlayerComponent extends RectangleComponent
 
   double _attackCooldown = 0;
   double _hitInvulnerability = 0;
+  String? lastDamageCauseId;
 
   bool get canAttack => _attackCooldown <= 0 && !isRemoving;
   bool get isInvulnerable => _hitInvulnerability > 0;
@@ -57,28 +58,29 @@ final class PlayerComponent extends RectangleComponent
     }
 
     _attackCooldown = attackCooldownSeconds;
-    game.world.spawnPatchPulse(position);
+    final pulsePosition = position.clone();
+    game.world.spawnPatchPulse(pulsePosition);
+    game.patchEffects.onPatchPulseEmitted(pulsePosition);
   }
 
   void tryInteract() {
     // Terminals are introduced in P5 and P7.
   }
 
-  void takeDamage(int amount) {
-    if (amount <= 0 || isInvulnerable) {
+  void takeDamage(int amount, {String causeId = 'unknown'}) {
+    if (amount <= 0 || isInvulnerable || integrity <= 0) {
       return;
     }
 
     integrity = math.max(0, integrity - amount);
+    lastDamageCauseId = causeId;
     _hitInvulnerability = hitInvulnerabilitySeconds;
-    if (integrity == 0) {
-      _debugRespawn();
+    if (isMounted) {
+      game.publishUiSnapshot();
     }
-  }
-
-  void _debugRespawn() {
-    integrity = maxIntegrity;
-    position.setFrom(spawnPosition);
+    if (integrity == 0) {
+      game.requestRoomRestart(causeId: causeId);
+    }
   }
 
   @override
@@ -128,7 +130,7 @@ final class PlayerComponent extends RectangleComponent
     PositionComponent other,
   ) {
     if (other is CrawlerComponent) {
-      takeDamage(1);
+      takeDamage(1, causeId: 'enemy.crawler.contact');
     }
     super.onCollisionStart(intersectionPoints, other);
   }

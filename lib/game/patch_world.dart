@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 import 'package:flutter/material.dart' show FontWeight, TextStyle;
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
+import 'package:patch_world/game/components/effects/retaliation_echo_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
@@ -12,7 +13,7 @@ import 'package:patch_world/game/rooms/room_one_controller.dart';
 
 final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   late final PlayerComponent player;
-  late final RoomOneController roomOne;
+  RoomOneController? _roomOne;
 
   bool _isReady = false;
   bool get isReady => _isReady;
@@ -38,8 +39,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       spawnPosition: Vector2(160, 270),
     );
     await add(player);
-    roomOne = RoomOneController();
-    await add(roomOne);
+    await _loadRoomOne();
     await add(
       TextComponent(
         text: 'MOVE  WASD / ARROWS     PULSE  SPACE / J     PAUSE  ESC',
@@ -103,6 +103,38 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
 
   Future<void> spawnPatchPulse(Vector2 worldPosition) async {
     await add(PatchPulseComponent(position: worldPosition.clone()));
+  }
+
+  Future<void> spawnRetaliationEcho(Vector2 worldPosition) async {
+    final echoes = children.whereType<RetaliationEchoComponent>().toList(
+      growable: false,
+    );
+    if (echoes.length >= 3) {
+      echoes.first.removeFromParent();
+    }
+    await add(RetaliationEchoComponent(position: worldPosition));
+  }
+
+  Future<void> _loadRoomOne() async {
+    final controller = RoomOneController();
+    _roomOne = controller;
+    await add(controller);
+    player
+      ..integrity = player.maxIntegrity
+      ..position.setFrom(player.spawnPosition);
+  }
+
+  Future<void> restartCurrentRoom() async {
+    final existing = _roomOne;
+    if (existing != null) {
+      existing.removeFromParent();
+      await existing.removed;
+    }
+    for (final echo
+        in children.whereType<RetaliationEchoComponent>().toList()) {
+      echo.removeFromParent();
+    }
+    await _loadRoomOne();
   }
 
   Future<void> showPostPatchSandbox() async {
