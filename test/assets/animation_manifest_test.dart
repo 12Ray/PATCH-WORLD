@@ -27,6 +27,10 @@ void main() {
         'sentinel-cooldown',
         'composite-stalk',
         'composite-shockwave',
+        'optimizer-analyze',
+        'optimizer-predict',
+        'optimizer-perfect',
+        'optimizer-overflow',
       });
 
       for (final entry in manifest.entries) {

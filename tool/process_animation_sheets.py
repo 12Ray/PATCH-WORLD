@@ -39,6 +39,10 @@ SPECS = (
     AnimationSpec("sentinel-cooldown", "sentinel-cooldown-source.png", 3, 8, False),
     AnimationSpec("composite-stalk", "composite-stalk-source.png", 6, 8, True),
     AnimationSpec("composite-shockwave", "composite-shockwave-source.png", 5, 10, False),
+    AnimationSpec("optimizer-analyze", "optimizer-analyze-source.png", 6, 6, True),
+    AnimationSpec("optimizer-predict", "optimizer-predict-source.png", 5, 10, False),
+    AnimationSpec("optimizer-perfect", "optimizer-perfect-source.png", 4, 6, True),
+    AnimationSpec("optimizer-overflow", "optimizer-overflow-source.png", 6, 9, False),
 )
 
 
@@ -50,7 +54,11 @@ def remove_green(image: Image.Image) -> Image.Image:
 
     def is_background(x: int, y: int) -> bool:
         r, g, b, _ = source[x, y]
-        return (g > 105 and g - max(r, b) > 34) or (r > 242 and g > 242 and b > 242)
+        return (
+            (g > 55 and g - max(r, b) > 25)
+            or (r > 242 and g > 242 and b > 242)
+            or (r < 10 and g < 10 and b < 10)
+        )
 
     for x in range(rgba.width):
         queue.append((x, 0))
@@ -81,7 +89,7 @@ def remove_green(image: Image.Image) -> Image.Image:
             pixels.append((r, g, b, 0))
             continue
         dominance = g - max(r, b)
-        if g > 105 and dominance > 34:
+        if g > 55 and dominance > 25:
             alpha = max(0, min(255, int((82 - dominance) * 5.3)))
             # Despill edge pixels so the chroma color cannot halo in-game.
             g = min(g, max(r, b) + 16)
@@ -136,11 +144,10 @@ def clear_panel_seams(frame: Image.Image, width: int = 16) -> Image.Image:
 def remove_tall_dividers(frame: Image.Image) -> Image.Image:
     """Erase narrow, nearly full-height divider remnants inside a panel."""
     cleaned = frame.copy()
-    alpha = cleaned.getchannel("A")
     suspicious = []
     for x in range(cleaned.width):
-        occupied = sum(alpha.getpixel((x, y)) > 20 for y in range(cleaned.height))
-        if occupied > cleaned.height * 0.55:
+        occupied = sum(cleaned.getpixel((x, y))[3] > 20 for y in range(cleaned.height))
+        if occupied > cleaned.height * 0.75:
             suspicious.append(x)
     if not suspicious:
         return cleaned
@@ -152,13 +159,37 @@ def remove_tall_dividers(frame: Image.Image) -> Image.Image:
     return cleaned
 
 
+def remove_long_horizontal_dividers(frame: Image.Image) -> Image.Image:
+    """Erase nearly full-width panel borders left by generated filmstrips."""
+    cleaned = frame.copy()
+    suspicious = []
+    for y in range(cleaned.height):
+        seam_pixels = 0
+        for x in range(cleaned.width):
+            r, g, b, alpha = cleaned.getpixel((x, y))
+            if alpha > 20 and g - max(r, b) > 5:
+                seam_pixels += 1
+        if seam_pixels > cleaned.width * 0.75:
+            suspicious.append(y)
+    if not suspicious:
+        return cleaned
+    pixels = cleaned.load()
+    for divider_y in suspicious:
+        for y in range(max(0, divider_y - 3), min(cleaned.height, divider_y + 4)):
+            for x in range(cleaned.width):
+                pixels[x, y] = (0, 0, 0, 0)
+    return cleaned
+
+
 def process(spec: AnimationSpec) -> dict[str, object]:
     source = Image.open(SOURCE_DIR / spec.source).convert("RGBA")
     # ImageGen sometimes draws pale dividers between filmstrip panels. Removing
     # border-connected backgrounds per panel makes those dividers reachable
     # without erasing white highlights enclosed inside the character artwork.
     raw_frames = [
-        remove_tall_dividers(clear_panel_seams(remove_green(frame)))
+        remove_long_horizontal_dividers(
+            remove_tall_dividers(clear_panel_seams(remove_green(frame)))
+        )
         for frame in split_frames(source, spec.frames)
     ]
     crops = [frame.crop(alpha_bbox(frame)) for frame in raw_frames]

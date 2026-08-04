@@ -10,6 +10,9 @@ Room-specific concept anchors:
 - [Collision Archive](visual-concepts/collision-archive-concept-v1.png) —
   cyan/magenta magnetic containment core, pulse-steered shielded Crawlers,
   and a twin-core Composite whose animated shockwave makes fusion readable.
+- [Optimizer Core](visual-concepts/optimizer-core-concept-v1.png) — ordered
+  analysis lanes, predictive path strikes, an immaculate white PERFECT shell
+  recalling selected patch hazards, and cyan legacy energy cracking the core.
 
 ## Direction
 
