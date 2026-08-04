@@ -344,6 +344,30 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
   }
 
+  int recordSurvivalKillAt(
+    Vector2 position, {
+    bool elite = false,
+    bool miniBoss = false,
+    int rewardMultiplier = 1,
+  }) {
+    if (mode != PatchWorldMode.survival) return 0;
+    final scoreBefore = survivalRun.score;
+    recordSurvivalKill(
+      elite: elite,
+      miniBoss: miniBoss,
+      rewardMultiplier: rewardMultiplier,
+    );
+    final gainedScore = math.max(0, survivalRun.score - scoreBefore);
+    world.spawnSurvivalScorePopup(
+      position,
+      score: gainedScore,
+      elite: elite,
+      miniBoss: miniBoss,
+    );
+    if (elite || miniBoss) triggerImpactFeedback();
+    return gainedScore;
+  }
+
   void recordSurvivalHit() {
     if (mode != PatchWorldMode.survival) return;
     survivalRun.recordHit();

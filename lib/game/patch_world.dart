@@ -11,6 +11,7 @@ import 'package:patch_world/game/components/effects/data_surge_ring_component.da
 import 'package:patch_world/game/components/effects/retaliation_echo_component.dart';
 import 'package:patch_world/game/components/effects/friendly_error_burst_component.dart';
 import 'package:patch_world/game/components/effects/time_freeze_overlay_component.dart';
+import 'package:patch_world/game/components/effects/survival_score_popup_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
@@ -32,6 +33,8 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   late final PlayerComponent player;
   Component? _activeRoom;
   bool _isReady = false;
+  final List<SurvivalScorePopupComponent> _scorePopups =
+      <SurvivalScorePopupComponent>[];
 
   bool get isReady => _isReady;
   Component? get activeRoom => _activeRoom;
@@ -116,10 +119,13 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       await existing.removed;
     }
     for (final child in children.toList()) {
-      if (child is RetaliationEchoComponent || child is DataShardComponent) {
+      if (child is RetaliationEchoComponent ||
+          child is DataShardComponent ||
+          child is SurvivalScorePopupComponent) {
         child.removeFromParent();
       }
     }
+    _scorePopups.clear();
     final nextRoom = switch (roomId) {
       RoomId.damageLab => RoomOneController(),
       RoomId.temporalHall => RoomTwoController(),
@@ -202,7 +208,8 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       onDefeated: game.mode == PatchWorldMode.survival
           ? () {
               final modifiers = game.survivalModifiers;
-              game.recordSurvivalKill(
+              game.recordSurvivalKillAt(
+                duplicate.position,
                 rewardMultiplier: modifiers.duplicateRewardMultiplier,
               );
               if (modifiers.duplicateBurstDamage > 0) {
@@ -257,6 +264,30 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
 
   void spawnDataSurgeRing(Vector2 worldPosition) {
     add(DataSurgeRingComponent(position: worldPosition.clone()));
+  }
+
+  void spawnSurvivalScorePopup(
+    Vector2 worldPosition, {
+    required int score,
+    bool elite = false,
+    bool miniBoss = false,
+  }) {
+    if (game.mode != PatchWorldMode.survival || score <= 0) return;
+    _scorePopups.removeWhere((popup) => popup.isExpired || popup.isRemoving);
+    while (_scorePopups.length >= 16) {
+      _scorePopups.removeAt(0).removeFromParent();
+    }
+    final popup = SurvivalScorePopupComponent(
+      position: worldPosition.clone(),
+      score: score,
+      kind: miniBoss
+          ? SurvivalScorePopupKind.miniBoss
+          : elite
+          ? SurvivalScorePopupKind.elite
+          : SurvivalScorePopupKind.normal,
+    );
+    _scorePopups.add(popup);
+    add(popup);
   }
 
   Future<void> spawnRetaliationEcho(Vector2 worldPosition, int tier) async {

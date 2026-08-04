@@ -224,13 +224,13 @@ final class SurvivalArenaController extends Component
     final sentinelPosition = position + Vector2(0, 58);
     sentinelPosition.x = sentinelPosition.x.clamp(36, 924).toDouble();
     sentinelPosition.y = sentinelPosition.y.clamp(36, 504).toDouble();
-    await add(
-      SentinelComponent(
-        entityId: 'survival-cache-sentinel-${_spawnId++}',
-        position: sentinelPosition,
-        onDefeated: game.recordSurvivalKill,
-      ),
+    late final SentinelComponent sentinel;
+    sentinel = SentinelComponent(
+      entityId: 'survival-cache-sentinel-${_spawnId++}',
+      position: sentinelPosition,
+      onDefeated: () => game.recordSurvivalKillAt(sentinel.position),
     );
+    await add(sentinel);
   }
 
   void _updateSurvivalMilestone() {
@@ -339,13 +339,13 @@ final class SurvivalArenaController extends Component
       index < plan.sentinels.clamp(0, sentinelCap);
       index += 1
     ) {
-      await add(
-        SentinelComponent(
-          entityId: 'survival-sentinel-${_spawnId++}',
-          position: _nextSpawn(),
-          onDefeated: game.recordSurvivalKill,
-        ),
+      late final SentinelComponent sentinel;
+      sentinel = SentinelComponent(
+        entityId: 'survival-sentinel-${_spawnId++}',
+        position: _nextSpawn(),
+        onDefeated: () => game.recordSurvivalKillAt(sentinel.position),
       );
+      await add(sentinel);
     }
   }
 
@@ -354,18 +354,19 @@ final class SurvivalArenaController extends Component
       'ELITE ERROR // ${game.survivalRun.elapsedSeconds.floor()}s',
       const Color(0xFFFFC857),
     );
-    await add(
-      SentinelComponent(
-        entityId: 'survival-elite-sentinel-${_spawnId++}',
-        position: _nextSpawn(),
-        isElite: true,
-        healthMaximum: 5,
-        fireInterval: 1.0,
-        telegraphSeconds: 0.42,
-        projectileSpeed: 165,
-        onDefeated: () => game.recordSurvivalKill(elite: true),
-      ),
+    late final SentinelComponent sentinel;
+    sentinel = SentinelComponent(
+      entityId: 'survival-elite-sentinel-${_spawnId++}',
+      position: _nextSpawn(),
+      isElite: true,
+      healthMaximum: 5,
+      fireInterval: 1.0,
+      telegraphSeconds: 0.42,
+      projectileSpeed: 165,
+      onDefeated: () =>
+          game.recordSurvivalKillAt(sentinel.position, elite: true),
     );
+    await add(sentinel);
   }
 
   Future<void> _spawnComposite() async {
@@ -373,25 +374,27 @@ final class SurvivalArenaController extends Component
       'COMPOSITE BREACH // ${game.survivalRun.elapsedSeconds.floor()}s',
       const Color(0xFFFF4FD8),
     );
-    await add(
-      CompositeComponent(
-        entityId: 'survival-composite-${_spawnId++}',
-        position: _nextSpawn(),
-        combinedHealth: 8,
-        onDefeated: () => game.recordSurvivalKill(miniBoss: true),
-      ),
+    late final CompositeComponent composite;
+    composite = CompositeComponent(
+      entityId: 'survival-composite-${_spawnId++}',
+      position: _nextSpawn(),
+      combinedHealth: 8,
+      onDefeated: () =>
+          game.recordSurvivalKillAt(composite.position, miniBoss: true),
     );
+    await add(composite);
   }
 
   Future<void> _spawnOptimizerFragment() async {
     _showAlert('OPTIMIZER FRAGMENT // 450s', const Color(0xFFFFC857));
-    await add(
-      OptimizerFragmentComponent(
-        entityId: 'survival-optimizer-fragment-${_spawnId++}',
-        position: _nextSpawn(),
-        onDefeated: () => game.recordSurvivalKill(miniBoss: true),
-      ),
+    late final OptimizerFragmentComponent fragment;
+    fragment = OptimizerFragmentComponent(
+      entityId: 'survival-optimizer-fragment-${_spawnId++}',
+      position: _nextSpawn(),
+      onDefeated: () =>
+          game.recordSurvivalKillAt(fragment.position, miniBoss: true),
     );
+    await add(fragment);
   }
 
   void _showAlert(String text, Color color) {
@@ -432,15 +435,15 @@ final class SurvivalArenaController extends Component
   }
 
   Future<void> _spawnCrawler(Vector2 position) async {
-    await add(
-      CrawlerComponent(
-        entityId: 'survival-crawler-${_spawnId++}',
-        position: position,
-        initialHealth: 2,
-        healthMaximum: 2,
-        onDefeated: game.recordSurvivalKill,
-      ),
+    late final CrawlerComponent crawler;
+    crawler = CrawlerComponent(
+      entityId: 'survival-crawler-${_spawnId++}',
+      position: position,
+      initialHealth: 2,
+      healthMaximum: 2,
+      onDefeated: () => game.recordSurvivalKillAt(crawler.position),
     );
+    await add(crawler);
   }
 
   Vector2 _nextSpawn() {
