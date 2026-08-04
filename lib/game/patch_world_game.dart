@@ -391,6 +391,43 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     overlays.add(OverlayIds.survivalUpgrade);
   }
 
+  bool get canRerouteSurvivalUpgrade {
+    final request = pendingSurvivalUpgrade;
+    if (request == null || survivalRun.reroutesRemaining <= 0) return false;
+    final rerouted = SurvivalUpgradeCatalog.reroutedChoicesForLevel(
+      level: request.level,
+      currentChoices: request.choices,
+      patchTiers: survivalRun.patchTiers,
+    );
+    return !_samePatchChoices(request.choices, rerouted);
+  }
+
+  bool rerouteSurvivalUpgrade() {
+    final request = pendingSurvivalUpgrade;
+    if (request == null || survivalRun.reroutesRemaining <= 0) return false;
+    final rerouted = SurvivalUpgradeCatalog.reroutedChoicesForLevel(
+      level: request.level,
+      currentChoices: request.choices,
+      patchTiers: survivalRun.patchTiers,
+    );
+    if (_samePatchChoices(request.choices, rerouted)) return false;
+    if (!survivalRun.consumeReroute()) return false;
+    pendingSurvivalUpgrade = SurvivalUpgradeRequest(
+      level: request.level,
+      choices: rerouted,
+    );
+    return true;
+  }
+
+  bool _samePatchChoices(
+    List<PatchDefinition> left,
+    List<PatchDefinition> right,
+  ) {
+    if (left.length != right.length) return false;
+    final leftIds = left.map((patch) => patch.id).toSet();
+    return right.every((patch) => leftIds.contains(patch.id));
+  }
+
   void selectSurvivalUpgrade(String patchId) {
     final request = pendingSurvivalUpgrade;
     if (request == null) return;

@@ -32,6 +32,7 @@ void main() {
     );
 
     expect(find.text('퓨전 경로'), findsWidgets);
+    expect(find.text('재탐색 x1'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

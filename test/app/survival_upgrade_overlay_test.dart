@@ -32,6 +32,13 @@ void main() {
     expect(find.text('SIDE EFFECT'), findsNWidgets(3));
     expect(find.textContaining('Pulse deals +1 damage'), findsOneWidget);
     expect(find.textContaining('Moving builds Heat'), findsOneWidget);
+    expect(find.text('REROUTE x1'), findsOneWidget);
+    expect(find.text('FRAME BURST'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey<String>('survival-reroute')));
+    await tester.pump();
+    expect(find.text('REROUTE x0'), findsOneWidget);
+    expect(find.text('MOTION TAX'), findsNothing);
+    expect(find.text('FRAME BURST'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

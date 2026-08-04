@@ -61,6 +61,50 @@ void main() {
     expect(SurvivalRunState.flowDataRewardForCombo(40), 2);
   });
 
+  test('reroute starts once, refills on mini-bosses, and resets', () {
+    final state = SurvivalRunState();
+    expect(state.reroutesRemaining, 1);
+    expect(state.consumeReroute(), isTrue);
+    expect(state.consumeReroute(), isFalse);
+
+    state.recordKill(miniBoss: true);
+    expect(state.reroutesRemaining, 1);
+    state.grantReroute();
+    state.grantReroute();
+    expect(state.reroutesRemaining, SurvivalRunState.maxReroutes);
+
+    state.reset();
+    expect(state.reroutesRemaining, 1);
+  });
+
+  test('reroute prioritizes a different non-maxed patch offer', () {
+    final firstOffer = SurvivalUpgradeCatalog.choicesForLevel(2);
+    final rerouted = SurvivalUpgradeCatalog.reroutedChoicesForLevel(
+      level: 2,
+      currentChoices: firstOffer,
+    );
+    expect(rerouted, hasLength(3));
+    expect(
+      rerouted
+          .map((patch) => patch.id)
+          .toSet()
+          .intersection(firstOffer.map((patch) => patch.id).toSet()),
+      isEmpty,
+    );
+
+    final maxedPatchId = rerouted.first.id;
+    final filtered = SurvivalUpgradeCatalog.reroutedChoicesForLevel(
+      level: 2,
+      currentChoices: firstOffer,
+      patchTiers: <String, int>{maxedPatchId: 3},
+    );
+    expect(filtered.any((patch) => patch.id == maxedPatchId), isFalse);
+    expect(
+      filtered.map((patch) => patch.id).toSet(),
+      isNot(equals(firstOffer.map((patch) => patch.id).toSet())),
+    );
+  });
+
   test('result snapshot preserves run data after the live state resets', () {
     final state = SurvivalRunState()
       ..elapsedSeconds = 91.8

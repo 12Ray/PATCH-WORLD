@@ -3,10 +3,17 @@ import 'package:patch_world/game/core/run_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/survival/survival_patch_fusions.dart';
 
-final class SurvivalUpgradeOverlay extends StatelessWidget {
+final class SurvivalUpgradeOverlay extends StatefulWidget {
   const SurvivalUpgradeOverlay({required this.game, super.key});
 
   final PatchWorldGame game;
+
+  @override
+  State<SurvivalUpgradeOverlay> createState() => _SurvivalUpgradeOverlayState();
+}
+
+final class _SurvivalUpgradeOverlayState extends State<SurvivalUpgradeOverlay> {
+  PatchWorldGame get game => widget.game;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +46,43 @@ final class SurvivalUpgradeOverlay extends StatelessWidget {
                   Text(
                     game.localization.text('survivalUpgrade.subtitle'),
                     style: const TextStyle(color: Color(0xFFA9B4C8)),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 6,
+                    children: <Widget>[
+                      OutlinedButton.icon(
+                        key: const ValueKey<String>('survival-reroute'),
+                        onPressed: game.canRerouteSurvivalUpgrade
+                            ? () => setState(() {
+                                game.rerouteSurvivalUpgrade();
+                              })
+                            : null,
+                        icon: const Icon(Icons.shuffle, size: 16),
+                        label: Text(
+                          game.localization.text(
+                            'survivalUpgrade.reroute',
+                            parameters: <String, Object>{
+                              'count': game.survivalRun.reroutesRemaining,
+                            },
+                          ),
+                        ),
+                      ),
+                      Text(
+                        game.localization.text(
+                          game.canRerouteSurvivalUpgrade
+                              ? 'survivalUpgrade.rerouteHint'
+                              : 'survivalUpgrade.rerouteUnavailable',
+                        ),
+                        style: const TextStyle(
+                          color: Color(0xFFA9B4C8),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
                   LayoutBuilder(

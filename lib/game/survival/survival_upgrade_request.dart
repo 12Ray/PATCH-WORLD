@@ -34,6 +34,39 @@ abstract final class SurvivalUpgradeCatalog {
     return List<PatchDefinition>.unmodifiable(choices);
   }
 
+  static List<PatchDefinition> reroutedChoicesForLevel({
+    required int level,
+    required List<PatchDefinition> currentChoices,
+    Map<String, int> patchTiers = const <String, int>{},
+  }) {
+    final currentIds = currentChoices.map((patch) => patch.id).toSet();
+    final start = (((level - 2) * 2) + 3) % all.length;
+    final choices = <PatchDefinition>[];
+    for (var offset = 0; offset < all.length; offset += 1) {
+      final patch = all[(start + offset) % all.length];
+      if ((patchTiers[patch.id] ?? 0) >= 3 || currentIds.contains(patch.id)) {
+        continue;
+      }
+      choices.add(patch);
+      if (choices.length == 3) break;
+    }
+    if (choices.isEmpty) {
+      return List<PatchDefinition>.unmodifiable(currentChoices);
+    }
+    for (
+      var offset = 0;
+      offset < all.length && choices.length < 3;
+      offset += 1
+    ) {
+      final patch = all[(start + offset) % all.length];
+      if ((patchTiers[patch.id] ?? 0) >= 3 || choices.contains(patch)) {
+        continue;
+      }
+      choices.add(patch);
+    }
+    return List<PatchDefinition>.unmodifiable(choices);
+  }
+
   static int riskTierFor(PatchDefinition patch) => switch (patch.riskLabel) {
     'STABLE' => 1,
     'RISKY' => 2,

@@ -99,14 +99,24 @@ void main() {
     expect(game.overlays.isActive(OverlayIds.survivalUpgrade), isTrue);
     expect(game.paused, isTrue);
 
+    final firstOfferIds = game.pendingSurvivalUpgrade!.choices
+        .map((patch) => patch.id)
+        .toSet();
+    expect(game.canRerouteSurvivalUpgrade, isTrue);
+    expect(game.rerouteSurvivalUpgrade(), isTrue);
+    expect(game.paused, isTrue);
+    expect(game.survivalRun.reroutesRemaining, 0);
+    expect(
+      game.pendingSurvivalUpgrade!.choices.map((patch) => patch.id).toSet(),
+      isNot(equals(firstOfferIds)),
+    );
     final chosen = game.pendingSurvivalUpgrade!.choices.first;
     game.selectSurvivalUpgrade(chosen.id);
     await tester.pump();
     expect(game.pendingSurvivalUpgrade, isNull);
     expect(game.runState.hasPatch(chosen.id), isTrue);
     expect(game.survivalRun.patchTier(chosen.id), 1);
-    expect(game.survivalModifiers.pulseDamage, 2);
-    expect(game.survivalModifiers.pulseRadiusMultiplier, closeTo(1.14, 0.001));
+    expect(game.survivalModifiers.tier(chosen.id), 1);
     expect(
       arena.children.whereType<TextComponent>().any(
         (label) => label.text.contains('COMBO x5 // FLOW x2 // DATA +1'),

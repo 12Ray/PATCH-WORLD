@@ -6,6 +6,8 @@ import 'package:patch_world/game/survival/survival_patch_fusions.dart';
 enum PatchWorldMode { campaign, survival }
 
 final class SurvivalRunState {
+  static const int maxReroutes = 2;
+
   final SurvivalPlaytestTelemetry telemetry = SurvivalPlaytestTelemetry();
   final Map<String, int> _patchTiers = <String, int>{};
   final List<double> _killTimes = <double>[];
@@ -25,6 +27,7 @@ final class SurvivalRunState {
   double turboOverclockRemaining = 0;
   double frameOverclockRemaining = 0;
   double dataSurgeRemaining = 0;
+  int reroutesRemaining = 1;
 
   Map<String, int> get patchTiers => Map<String, int>.unmodifiable(_patchTiers);
 
@@ -96,7 +99,10 @@ final class SurvivalRunState {
     kills += 1;
     _killTimes.add(elapsedSeconds);
     if (elite) eliteKills += 1;
-    if (miniBoss) miniBossKills += 1;
+    if (miniBoss) {
+      miniBossKills += 1;
+      grantReroute();
+    }
     combo += 1;
     maxCombo = math.max(maxCombo, combo);
     comboRemaining = comboWindowForCombo(combo);
@@ -137,6 +143,17 @@ final class SurvivalRunState {
     telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.dataSurge);
   }
 
+  bool consumeReroute() {
+    if (reroutesRemaining <= 0) return false;
+    reroutesRemaining -= 1;
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.reroute);
+    return true;
+  }
+
+  void grantReroute() {
+    reroutesRemaining = math.min(maxReroutes, reroutesRemaining + 1);
+  }
+
   void recordMaxedBuildLevel() => bonusScore += 250;
 
   int upgradePatch(String patchId, {required int riskTier}) {
@@ -166,6 +183,7 @@ final class SurvivalRunState {
     turboOverclockRemaining = 0;
     frameOverclockRemaining = 0;
     dataSurgeRemaining = 0;
+    reroutesRemaining = 1;
     _patchTiers.clear();
     _killTimes.clear();
     telemetry.reset();

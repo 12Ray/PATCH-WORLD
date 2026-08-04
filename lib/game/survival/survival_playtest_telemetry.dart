@@ -11,6 +11,7 @@ enum SurvivalMeaningfulEvent {
   endlessTier,
   dataSurge,
   fusionUnlocked,
+  reroute,
 }
 
 final class SurvivalPacingSnapshot {
