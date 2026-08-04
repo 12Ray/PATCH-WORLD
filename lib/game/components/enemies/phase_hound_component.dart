@@ -1,0 +1,295 @@
+import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui';
+
+import 'package:flame/collisions.dart';
+import 'package:flame/components.dart';
+import 'package:patch_world/game/components/environment/phase_wall_component.dart';
+import 'package:patch_world/game/components/environment/wall_component.dart';
+import 'package:patch_world/game/components/player/player_component.dart';
+import 'package:patch_world/game/components/visuals/entity_sprite_visual.dart';
+import 'package:patch_world/game/core/health_state.dart';
+import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/systems/combat_system.dart';
+import 'package:patch_world/game/systems/duplicate_fault_system.dart';
+
+enum PhaseHoundState { stalk, telegraph, dash, recovery }
+
+/// A survival-only hunter that breaks circular kiting with a readable dash.
+final class PhaseHoundComponent extends RectangleComponent
+    with CollisionCallbacks, HasGameReference<PatchWorldGame>
+    implements CombatTarget, DuplicateSource {
+  PhaseHoundComponent({
+    required this.entityId,
+    required super.position,
+    required this.onDefeated,
+    this.targetPosition,
+  }) : healthState = HealthState(max: maxHealth, current: maxHealth),
+       super(
+         size: Vector2(38, 30),
+         anchor: Anchor.center,
+         paint: Paint()..color = const Color(0x00000000),
+         priority: 12,
+       );
+
+  static const int maxHealth = 3;
+  static const double stalkSeconds = 1.0;
+  static const double telegraphSeconds = 0.65;
+  static const double dashSeconds = 0.32;
+  static const double recoverySeconds = 0.85;
+  static const double stalkSpeed = 82;
+  static const double dashSpeed = 330;
+
+  @override
+  final String entityId;
+  final void Function() onDefeated;
+  final Vector2 Function()? targetPosition;
+  final HealthState healthState;
+  final Vector2 _previousPosition = Vector2.zero();
+  Vector2 _lockedDirection = Vector2(1, 0);
+  EntitySpriteVisual? _visual;
+  PhaseHoundState state = PhaseHoundState.stalk;
+  double stateTimer = stalkSeconds;
+  bool _dashHitClaimed = false;
+  bool _duplicateClaimed = false;
+  bool _defeatReported = false;
+
+  Vector2 get lockedDirection => _lockedDirection.clone();
+
+  @override
+  Vector2 get duplicatePosition => position;
+
+  @override
+  DuplicateArchetype get duplicateArchetype => DuplicateArchetype.crawler;
+
+  @override
+  bool claimDuplicate() {
+    if (_duplicateClaimed || isRemoving) return false;
+    _duplicateClaimed = true;
+    return true;
+  }
+
+  bool claimDashHit() {
+    if (state != PhaseHoundState.dash || _dashHitClaimed) return false;
+    _dashHitClaimed = true;
+    return true;
+  }
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    unawaited(_loadVisual());
+    await add(
+      RectangleHitbox.relative(
+        Vector2.all(0.72),
+        parentSize: size,
+        position: size / 2,
+        anchor: Anchor.center,
+      ),
+    );
+  }
+
+  Future<void> _loadVisual() async {
+    try {
+      final visual = EntitySpriteVisual(
+        sprite: await game.loadSprite('sprites/crawler.png'),
+        size: Vector2(66, 58),
+        parentSize: size,
+        bobAmplitude: 1,
+        bobSpeed: 7,
+        rotationAmplitude: 0.025,
+      );
+      if (isRemoving) return;
+      _visual = visual;
+      await add(visual);
+      final chaseImage = await game.images.load(
+        'sprites/animations/crawler-chase.png',
+      );
+      if (isRemoving) return;
+      visual.setDefaultAnimation(
+        List.generate(
+          6,
+          (index) => Sprite(
+            chaseImage,
+            srcPosition: Vector2(index * 256.0, 0),
+            srcSize: Vector2.all(256),
+          ),
+        ),
+        fps: 12,
+      );
+      visual.setStateTint(const Color(0xFF36E1FF));
+    } catch (_) {
+      paint.color = const Color(0xFF36E1FF);
+    }
+  }
+
+  @override
+  void update(double dt) {
+    final enemyDt = isMounted ? game.clock.enemyDt : dt;
+    if (enemyDt <= 0) {
+      super.update(dt);
+      return;
+    }
+    _previousPosition.setFrom(position);
+    stateTimer -= enemyDt;
+    final target = targetPosition?.call() ?? game.world.player.position;
+    switch (state) {
+      case PhaseHoundState.stalk:
+        _updateStalk(target, enemyDt);
+        if (stateTimer <= 0 && position.distanceTo(target) <= 360) {
+          _enterTelegraph(target);
+        }
+      case PhaseHoundState.telegraph:
+        _visual?.setStateTint(
+          (stateTimer * 14).floor().isEven
+              ? const Color(0xFF36E1FF)
+              : const Color(0xFFFF4FD8),
+        );
+        if (stateTimer <= 0) _enterDash();
+      case PhaseHoundState.dash:
+        position += _lockedDirection * (dashSpeed * enemyDt);
+        _visual?.setStateTint(const Color(0xFFFFFFFF));
+        if (stateTimer <= 0) _enterRecovery();
+      case PhaseHoundState.recovery:
+        _visual?.setStateTint(const Color(0xFF7E7394));
+        if (stateTimer <= 0) {
+          state = PhaseHoundState.stalk;
+          stateTimer = stalkSeconds;
+          _visual?.setStateTint(const Color(0xFF36E1FF));
+        }
+    }
+    super.update(dt);
+  }
+
+  void _updateStalk(Vector2 target, double dt) {
+    final delta = target - position;
+    final distance = delta.length;
+    if (distance <= 1) return;
+    final direction = delta / distance;
+    final radial = distance > 210
+        ? 1.0
+        : distance < 145
+        ? -0.65
+        : 0.15;
+    final sideSign = entityId.hashCode.isEven ? 1.0 : -1.0;
+    final tangent = Vector2(-direction.y, direction.x) * sideSign;
+    final steering = direction * radial + tangent * 0.48;
+    if (steering.length2 > 1) steering.normalize();
+    if (isMounted) {
+      steering.add(
+        game.world.survivalCrowdSteering(
+          entityId: entityId,
+          position: position,
+          separationRadius: 62,
+        ),
+      );
+      if (steering.length2 > 1) steering.normalize();
+    }
+    position += steering * (stalkSpeed * dt);
+    _visual?.faceMovement(steering);
+  }
+
+  void _enterTelegraph(Vector2 target) {
+    final delta = target - position;
+    _lockedDirection = delta.length2 == 0 ? Vector2(1, 0) : delta.normalized();
+    state = PhaseHoundState.telegraph;
+    stateTimer = telegraphSeconds;
+    scale.setAll(1.08);
+  }
+
+  void _enterDash() {
+    state = PhaseHoundState.dash;
+    stateTimer = dashSeconds;
+    _dashHitClaimed = false;
+    scale.setAll(1.18);
+  }
+
+  void _enterRecovery() {
+    state = PhaseHoundState.recovery;
+    stateTimer = recoverySeconds;
+    scale.setAll(1);
+  }
+
+  @override
+  void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
+    if (other is WallComponent ||
+        (other is PhaseWallComponent && other.isSolid)) {
+      position.setFrom(_previousPosition);
+      if (state == PhaseHoundState.dash) _enterRecovery();
+    } else if (other is PlayerComponent && claimDashHit()) {
+      other.takeDamage(1, causeId: 'enemy.phase_hound.dash');
+    }
+    super.onCollision(intersectionPoints, other);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final center = Offset(width / 2, height / 2);
+    final ringColor = state == PhaseHoundState.recovery
+        ? const Color(0x887E7394)
+        : const Color(0xCC36E1FF);
+    canvas.drawCircle(
+      center,
+      24 + math.sin(stateTimer * 12).abs() * 3,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = state == PhaseHoundState.telegraph ? 3 : 1.5
+        ..color = ringColor,
+    );
+    if (state == PhaseHoundState.telegraph) {
+      final progress = (1 - stateTimer / telegraphSeconds).clamp(0.0, 1.0);
+      final target =
+          center + Offset(_lockedDirection.x, _lockedDirection.y) * 900;
+      canvas.drawLine(
+        center,
+        target,
+        Paint()
+          ..strokeWidth = 1.5 + progress * 3
+          ..color = Color.fromRGBO(54, 225, 255, 0.3 + progress * 0.6),
+      );
+    }
+    if (state == PhaseHoundState.dash) {
+      final trail = Offset(-_lockedDirection.x, -_lockedDirection.y);
+      for (var index = 1; index <= 3; index += 1) {
+        canvas.drawCircle(
+          center + trail * (index * 12),
+          12 - index * 2,
+          Paint()..color = Color.fromRGBO(54, 225, 255, 0.22 / index),
+        );
+      }
+    }
+    final ratio = healthState.current / healthState.max;
+    canvas.drawRect(
+      Rect.fromLTWH(3, -7, 32, 3),
+      Paint()..color = const Color(0xFF25304A),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(3, -7, 32 * ratio, 3),
+      Paint()..color = const Color(0xFF36E1FF),
+    );
+    super.render(canvas);
+  }
+
+  @override
+  void receiveDamage(int amount) {
+    if (amount <= 0 || _defeatReported) return;
+    if (healthState.applyDamage(amount) == HealthMutation.defeated) {
+      _defeatReported = true;
+      if (isMounted) {
+        game.world.spawnDataShards(
+          position,
+          count: 3,
+          alternatingCorruption: false,
+        );
+      }
+      onDefeated();
+      removeFromParent();
+    } else {
+      _visual?.flash(const Color(0xFFFFFFFF));
+      _visual?.squash();
+    }
+  }
+
+  @override
+  void receiveHealing(int amount) => healthState.applyHealing(amount);
+}

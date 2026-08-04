@@ -52,7 +52,7 @@ flutter build web --release --base-href "/PATCH-WORLD/"
 powershell -ExecutionPolicy Bypass -File tool/check.ps1
 ```
 
-Linux/macOS에서는 `./tool/check.sh`를 사용합니다. 현재 기준은 `flutter analyze`, 자동 테스트 128개, release web build 통과입니다.
+Linux/macOS에서는 `./tool/check.sh`를 사용합니다. 현재 기준은 `flutter analyze`, 자동 테스트 132개, release web build 통과입니다.
 
 ## 배포
 

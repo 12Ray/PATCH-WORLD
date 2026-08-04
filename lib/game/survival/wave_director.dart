@@ -4,6 +4,7 @@ final class SurvivalWavePlan {
   const SurvivalWavePlan({
     required this.crawlers,
     required this.sentinels,
+    required this.phaseHounds,
     required this.spawnElite,
     required this.spawnComposite,
     required this.threatBudget,
@@ -12,6 +13,7 @@ final class SurvivalWavePlan {
 
   final int crawlers;
   final int sentinels;
+  final int phaseHounds;
   final bool spawnElite;
   final bool spawnComposite;
   final double threatBudget;
@@ -84,6 +86,13 @@ final class SurvivalWaveDirector {
     final elite = !composite && safeSecond > 0 && safeSecond % 90 == 0;
 
     var remaining = composite ? math.max(0, budget - 7) : budget;
+    final phaseHoundLimit = safeSecond < 120
+        ? 0
+        : safeSecond < 300
+        ? 1
+        : math.min(3, 2 + endlessTier ~/ 3);
+    final phaseHounds = math.min(phaseHoundLimit, (remaining / 4).floor());
+    remaining -= phaseHounds * 4;
     final sentinelLimit = safeSecond < 45
         ? 0
         : 1 + safeSecond ~/ 150 + endlessTier ~/ 2;
@@ -93,6 +102,7 @@ final class SurvivalWaveDirector {
     return SurvivalWavePlan(
       crawlers: crawlers,
       sentinels: sentinels,
+      phaseHounds: phaseHounds,
       spawnElite: elite,
       spawnComposite: composite,
       threatBudget: budget,

@@ -94,4 +94,33 @@ void main() {
     expect(twelveMinutes.endlessTier, 3);
     expect(twelveMinutes.threatBudget, greaterThan(tenMinutes.threatBudget));
   });
+
+  test('phase hounds join after two minutes without removing all crawlers', () {
+    final director = SurvivalWaveDirector(seed: 12);
+    final before = director.planForSecond(
+      second: 119,
+      integrityRatio: 1,
+      recentKillsPerSecond: 1,
+    );
+    final first = director.planForSecond(
+      second: 120,
+      integrityRatio: 1,
+      recentKillsPerSecond: 1,
+    );
+    final storm = director.planForSecond(
+      second: 300,
+      integrityRatio: 1,
+      recentKillsPerSecond: 1,
+    );
+    final recovering = director.planForSecond(
+      second: 120,
+      integrityRatio: 0.3,
+      recentKillsPerSecond: 1,
+    );
+
+    expect(before.phaseHounds, 0);
+    expect(first.phaseHounds, 1);
+    expect(storm.phaseHounds, 2);
+    expect(recovering.crawlers, greaterThanOrEqualTo(1));
+  });
 }

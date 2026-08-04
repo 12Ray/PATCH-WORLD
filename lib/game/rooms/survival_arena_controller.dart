@@ -7,6 +7,7 @@ import 'package:flutter/painting.dart';
 import 'package:patch_world/game/components/enemies/composite_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/enemies/sentinel_component.dart';
+import 'package:patch_world/game/components/enemies/phase_hound_component.dart';
 import 'package:patch_world/game/components/enemies/optimizer_fragment_component.dart';
 import 'package:patch_world/game/components/effects/temporal_storm_component.dart';
 import 'package:patch_world/game/components/effects/volatile_cache_component.dart';
@@ -319,6 +320,7 @@ final class SurvivalArenaController extends Component
           (child) =>
               child is CrawlerComponent ||
               child is SentinelComponent ||
+              child is PhaseHoundComponent ||
               child is CompositeComponent ||
               child is OptimizerFragmentComponent,
         )
@@ -347,6 +349,36 @@ final class SurvivalArenaController extends Component
       );
       await add(sentinel);
     }
+    final phaseHoundCap = plan.endlessTier >= 3
+        ? 3
+        : state.elapsedSeconds < 300
+        ? 1
+        : 2;
+    final activePhaseHounds = children
+        .whereType<PhaseHoundComponent>()
+        .where((hound) => !hound.isRemoving)
+        .length;
+    final availablePhaseHoundSlots = math.max(
+      0,
+      phaseHoundCap - activePhaseHounds,
+    );
+    for (
+      var index = 0;
+      index < plan.phaseHounds.clamp(0, availablePhaseHoundSlots);
+      index += 1
+    ) {
+      await _spawnPhaseHound();
+    }
+  }
+
+  Future<void> _spawnPhaseHound() async {
+    late final PhaseHoundComponent hound;
+    hound = PhaseHoundComponent(
+      entityId: 'survival-phase-hound-${_spawnId++}',
+      position: _nextSpawn(),
+      onDefeated: () => game.recordSurvivalKillAt(hound.position),
+    );
+    await add(hound);
   }
 
   Future<void> _spawnEliteSentinel() async {
