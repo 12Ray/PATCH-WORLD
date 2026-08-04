@@ -1,7 +1,9 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flame/text.dart';
+import 'package:flutter/painting.dart';
+import 'package:patch_world/game/components/enemies/composite_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/enemies/sentinel_component.dart';
 import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
@@ -20,6 +22,7 @@ final class SurvivalArenaController extends Component
   double _spawnRemaining = 4;
   bool _spawning = false;
   int _spawnId = 0;
+  int _lastWaveSecond = 0;
 
   @override
   Future<void> onLoad() async {
@@ -73,15 +76,30 @@ final class SurvivalArenaController extends Component
 
   Future<void> _spawnWave() async {
     final state = game.survivalRun;
+    final second = state.elapsedSeconds.floor();
+    final milestones = _director.milestonesBetween(
+      previousSecond: _lastWaveSecond,
+      currentSecond: second,
+    );
+    _lastWaveSecond = second;
     final plan = _director.planForSecond(
-      second: state.elapsedSeconds.floor(),
+      second: second,
       integrityRatio:
           game.world.player.integrity / game.world.player.maxIntegrity,
       recentKillsPerSecond: state.kills / (state.elapsedSeconds + 1),
     );
+    if (milestones.spawnComposite) {
+      await _spawnComposite();
+      return;
+    }
+    if (milestones.spawnElite) await _spawnEliteSentinel();
+
     final activeEnemies = children
         .where(
-          (child) => child is CrawlerComponent || child is SentinelComponent,
+          (child) =>
+              child is CrawlerComponent ||
+              child is SentinelComponent ||
+              child is CompositeComponent,
         )
         .length;
     if (activeEnemies >= 28) return;
@@ -93,10 +111,65 @@ final class SurvivalArenaController extends Component
         SentinelComponent(
           entityId: 'survival-sentinel-${_spawnId++}',
           position: _nextSpawn(),
-          onDefeated: () => game.recordSurvivalKill(elite: plan.spawnElite),
+          onDefeated: game.recordSurvivalKill,
         ),
       );
     }
+  }
+
+  Future<void> _spawnEliteSentinel() async {
+    _showAlert('ELITE ERROR // 90s', const Color(0xFFFFC857));
+    await add(
+      SentinelComponent(
+        entityId: 'survival-elite-sentinel-${_spawnId++}',
+        position: _nextSpawn(),
+        isElite: true,
+        healthMaximum: 5,
+        fireInterval: 1.0,
+        telegraphSeconds: 0.42,
+        projectileSpeed: 165,
+        onDefeated: () => game.recordSurvivalKill(elite: true),
+      ),
+    );
+  }
+
+  Future<void> _spawnComposite() async {
+    _showAlert('COMPOSITE BREACH // 180s', const Color(0xFFFF4FD8));
+    await add(
+      CompositeComponent(
+        entityId: 'survival-composite-${_spawnId++}',
+        position: _nextSpawn(),
+        combinedHealth: 8,
+        onDefeated: () => game.recordSurvivalKill(miniBoss: true),
+      ),
+    );
+  }
+
+  void _showAlert(String text, Color color) {
+    final label = TextComponent(
+      text: text,
+      position: Vector2(480, 104),
+      anchor: Anchor.center,
+      priority: 80,
+      textRenderer: TextPaint(
+        style: TextStyle(
+          color: color,
+          fontSize: 22,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.6,
+        ),
+      ),
+    );
+    add(label);
+    add(
+      TimerComponent(
+        period: 1.4,
+        removeOnFinish: true,
+        onTick: () {
+          if (label.isMounted) label.removeFromParent();
+        },
+      ),
+    );
   }
 
   Future<void> _spawnCrawler(Vector2 position) async {

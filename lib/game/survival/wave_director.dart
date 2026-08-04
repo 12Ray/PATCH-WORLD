@@ -26,10 +26,34 @@ final class SurvivalSpawnPoint {
       x < 0 || y < 0 || x > width || y > height;
 }
 
+final class SurvivalMilestonePlan {
+  const SurvivalMilestonePlan({
+    required this.spawnElite,
+    required this.spawnComposite,
+  });
+
+  final bool spawnElite;
+  final bool spawnComposite;
+}
+
 final class SurvivalWaveDirector {
   SurvivalWaveDirector({int seed = 20260804}) : _random = math.Random(seed);
 
   final math.Random _random;
+
+  SurvivalMilestonePlan milestonesBetween({
+    required int previousSecond,
+    required int currentSecond,
+  }) {
+    final previous = math.max(0, previousSecond);
+    final current = math.max(previous, currentSecond);
+    final crossedComposite = current ~/ 180 > previous ~/ 180;
+    final crossedElite = current ~/ 90 > previous ~/ 90;
+    return SurvivalMilestonePlan(
+      spawnElite: crossedElite && !crossedComposite,
+      spawnComposite: crossedComposite,
+    );
+  }
 
   SurvivalWavePlan planForSecond({
     required int second,

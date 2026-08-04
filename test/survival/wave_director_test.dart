@@ -47,4 +47,21 @@ void main() {
       expect(dx * dx + dy * dy, greaterThan(160 * 160));
     },
   );
+
+  test('milestones cannot be skipped by a coarse wave interval', () {
+    final director = SurvivalWaveDirector();
+    final elite = director.milestonesBetween(
+      previousSecond: 88,
+      currentSecond: 92,
+    );
+    final composite = director.milestonesBetween(
+      previousSecond: 176,
+      currentSecond: 180,
+    );
+
+    expect(elite.spawnElite, isTrue);
+    expect(elite.spawnComposite, isFalse);
+    expect(composite.spawnElite, isFalse);
+    expect(composite.spawnComposite, isTrue);
+  });
 }

@@ -20,7 +20,10 @@ final class SentinelComponent extends RectangleComponent
     this.fireInterval = 1.6,
     this.telegraphSeconds = 0.55,
     this.onDefeated,
-  }) : health = HealthState(max: 2, current: 2),
+    this.isElite = false,
+    this.projectileSpeed = 130,
+    int healthMaximum = 2,
+  }) : health = HealthState(max: healthMaximum, current: healthMaximum),
        super(
          size: Vector2(34, 44),
          anchor: Anchor.center,
@@ -33,6 +36,8 @@ final class SentinelComponent extends RectangleComponent
   final double fireInterval;
   final double telegraphSeconds;
   final void Function()? onDefeated;
+  final bool isElite;
+  final double projectileSpeed;
   final HealthState health;
   SentinelState _state = SentinelState.scan;
   double _stateTimer = 0;
@@ -64,7 +69,7 @@ final class SentinelComponent extends RectangleComponent
     try {
       final visual = EntitySpriteVisual(
         sprite: await game.loadSprite('sprites/sentinel.png'),
-        size: Vector2.all(62),
+        size: Vector2.all(isElite ? 78 : 62),
         parentSize: size,
         bobAmplitude: 2.4,
         bobSpeed: 2.8,
@@ -173,13 +178,23 @@ final class SentinelComponent extends RectangleComponent
     await parent?.add(
       EnemyProjectileComponent(
         position: position.clone(),
-        velocity: _lockedDirection * 130,
+        velocity: _lockedDirection * projectileSpeed,
       ),
     );
   }
 
   @override
   void render(Canvas canvas) {
+    if (isElite) {
+      canvas.drawCircle(
+        Offset(width / 2, height / 2),
+        28,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..color = const Color(0xFFFFC857),
+      );
+    }
     if (_state == SentinelState.telegraph) {
       final progress = (1 - _stateTimer / telegraphSeconds).clamp(0, 1);
       final origin = Offset(width / 2, height / 2);
@@ -207,7 +222,9 @@ final class SentinelComponent extends RectangleComponent
   @override
   void receiveDamage(int amount) {
     if (health.applyDamage(amount) == HealthMutation.defeated) {
-      if (isMounted) game.world.spawnDataShards(position, count: 2);
+      if (isMounted) {
+        game.world.spawnDataShards(position, count: isElite ? 6 : 2);
+      }
       onDefeated?.call();
       removeFromParent();
     } else {

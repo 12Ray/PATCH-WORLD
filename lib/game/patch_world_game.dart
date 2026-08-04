@@ -56,6 +56,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
 
   static const double logicalWidth = 960;
   static const double logicalHeight = 540;
+  static const int survivalQaStartSecond = int.fromEnvironment(
+    'SURVIVAL_START_SECOND',
+    defaultValue: 0,
+  );
 
   final RoomId initialRoom;
 
@@ -213,6 +217,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     mode = PatchWorldMode.survival;
     runState.reset();
     survivalRun.reset();
+    survivalRun.elapsedSeconds = survivalQaStartSecond.toDouble();
     completedRun.value = null;
     ruleEngine.setRules(const <GameRule>[]);
     overlays.remove(OverlayIds.title);

@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
+import 'package:patch_world/game/components/enemies/composite_component.dart';
+import 'package:patch_world/game/components/enemies/sentinel_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
@@ -90,7 +92,39 @@ void main() {
     expect(game.survivalModifiers.pulseDamage, 2);
     expect(game.survivalModifiers.pulseRadiusMultiplier, closeTo(1.14, 0.001));
     expect(game.paused, isFalse);
+
+    game.world.player.integrity = 999;
+    game.survivalRun.elapsedSeconds = 88;
+    await _pumpUntil(
+      tester,
+      () => arena.children.whereType<SentinelComponent>().any(
+        (sentinel) => sentinel.isElite,
+      ),
+    );
+    expect(
+      arena.children
+          .whereType<SentinelComponent>()
+          .singleWhere((sentinel) => sentinel.isElite)
+          .health
+          .max,
+      5,
+    );
+
+    game.survivalRun.elapsedSeconds = 176;
+    await _pumpUntil(
+      tester,
+      () => arena.children.whereType<CompositeComponent>().isNotEmpty,
+    );
+    expect(arena.children.whereType<CompositeComponent>().first.health.max, 10);
   });
+}
+
+Future<void> _pumpUntil(WidgetTester tester, bool Function() condition) async {
+  for (var frame = 0; frame < 120; frame += 1) {
+    await tester.pump(const Duration(milliseconds: 50));
+    if (condition()) return;
+  }
+  throw StateError('Timed out waiting for survival milestone');
 }
 
 Future<void> _waitForSurvival(WidgetTester tester, PatchWorldGame game) async {
