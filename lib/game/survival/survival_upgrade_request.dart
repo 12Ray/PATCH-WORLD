@@ -17,13 +17,21 @@ abstract final class SurvivalUpgradeCatalog {
     PatchCatalog.duplicateFault,
   ];
 
-  static List<PatchDefinition> choicesForLevel(int level) {
+  static List<PatchDefinition> choicesForLevel(
+    int level, {
+    Map<String, int> patchTiers = const <String, int>{},
+  }) {
     final start = ((level - 2) * 2) % all.length;
-    return List<PatchDefinition>.generate(
-      3,
-      (index) => all[(start + index) % all.length],
-      growable: false,
-    );
+    final choices = <PatchDefinition>[];
+    for (
+      var offset = 0;
+      offset < all.length && choices.length < 3;
+      offset += 1
+    ) {
+      final patch = all[(start + offset) % all.length];
+      if ((patchTiers[patch.id] ?? 0) < 3) choices.add(patch);
+    }
+    return List<PatchDefinition>.unmodifiable(choices);
   }
 
   static int riskTierFor(PatchDefinition patch) => switch (patch.riskLabel) {

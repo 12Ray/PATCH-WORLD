@@ -18,5 +18,6 @@ void main() {
     expect(system.speedMultiplier, 2);
     system.update(0.6);
     expect(system.speedMultiplier, 1);
+    expect(system.didFrameBurstEnd, isTrue);
   });
 }

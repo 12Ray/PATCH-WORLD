@@ -87,4 +87,28 @@ void main() {
     expect(levelThree, hasLength(3));
     expect(levelTwo.first.id, isNot(levelThree.first.id));
   });
+
+  test('max-tier patches are excluded from future choices', () {
+    final maxed = <String, int>{
+      SurvivalUpgradeCatalog.all.first.id: 3,
+      SurvivalUpgradeCatalog.all[1].id: 3,
+      SurvivalUpgradeCatalog.all[2].id: 3,
+    };
+    final choices = SurvivalUpgradeCatalog.choicesForLevel(
+      2,
+      patchTiers: maxed,
+    );
+    expect(choices, hasLength(3));
+    expect(choices.any((patch) => maxed.containsKey(patch.id)), isFalse);
+  });
+
+  test('overclock timers expire independently', () {
+    final state = SurvivalRunState()
+      ..triggerTurboOverclock()
+      ..triggerFrameOverclock();
+    expect(state.overclockActive, isTrue);
+    expect(state.overclockCooldownMultiplier, 0.65);
+    state.update(1.51);
+    expect(state.overclockActive, isFalse);
+  });
 }

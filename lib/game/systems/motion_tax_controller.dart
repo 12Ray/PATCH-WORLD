@@ -22,6 +22,11 @@ final class MotionTaxController {
   double get heat => _heat;
   double get normalizedHeat => (_heat / maximumHeat).clamp(0, 1);
 
+  void cool(double amount) {
+    if (amount <= 0) return;
+    _heat = (_heat - amount).clamp(0, maximumHeat);
+  }
+
   MotionTaxUpdate update({required double dt, required bool isMoving}) {
     if (dt <= 0) {
       return MotionTaxUpdate(heat: _heat, didOverheat: false);

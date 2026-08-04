@@ -9,17 +9,25 @@ import 'package:patch_world/game/systems/combat_system.dart';
 
 final class RetaliationEchoComponent extends CircleComponent
     with CollisionCallbacks, HasGameReference<PatchWorldGame> {
-  RetaliationEchoComponent({required super.position})
-    : super(
-        radius: blastRadius,
-        anchor: Anchor.center,
-        paint: Paint()..color = const Color(0x33FF4FD8),
-        priority: 40,
-      );
+  RetaliationEchoComponent({
+    required super.position,
+    this.pullsTargets = false,
+    this.damage = 1,
+    this.damagesPlayer = true,
+  }) : super(
+         radius: blastRadius,
+         anchor: Anchor.center,
+         paint: Paint()..color = const Color(0x33FF4FD8),
+         priority: 40,
+       );
 
   static const double warningSeconds = 0.75;
   static const double blastSeconds = 0.12;
   static const double blastRadius = 60;
+
+  final bool pullsTargets;
+  final int damage;
+  final bool damagesPlayer;
 
   final Set<Object> _hitTargets = <Object>{};
   double _warningRemaining = warningSeconds;
@@ -32,6 +40,7 @@ final class RetaliationEchoComponent extends CircleComponent
   void update(double dt) {
     final simulationDt = isMounted ? game.clock.simulationDt : dt;
     if (!_blastStarted) {
+      if (pullsTargets && isMounted) _pullTargets(simulationDt);
       _warningRemaining -= simulationDt;
       final progress = (1 - (_warningRemaining / warningSeconds)).clamp(0, 1);
       scale.setAll(0.85 + (progress * 0.15));
@@ -54,6 +63,16 @@ final class RetaliationEchoComponent extends CircleComponent
       removeFromParent();
     }
     super.update(dt);
+  }
+
+  void _pullTargets(double dt) {
+    for (final target in game.world.activeCombatTargets) {
+      final delta = position - target.position;
+      final distance = delta.length;
+      if (distance <= 1 || distance > blastRadius * 1.35) continue;
+      delta.normalize();
+      target.position += delta * (72 * dt);
+    }
   }
 
   Future<void> _startBlast() async {
@@ -79,11 +98,11 @@ final class RetaliationEchoComponent extends CircleComponent
     if (!_blastStarted || !_hitTargets.add(other)) {
       return;
     }
-    if (other is PlayerComponent) {
+    if (other is PlayerComponent && damagesPlayer) {
       other.takeDamage(1, causeId: 'patch.retaliation_echo');
     }
     if (other is CombatTarget) {
-      (other as CombatTarget).receiveDamage(1);
+      (other as CombatTarget).receiveDamage(damage);
     }
     super.onCollisionStart(intersectionPoints, other);
   }

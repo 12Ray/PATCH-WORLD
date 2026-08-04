@@ -8,6 +8,7 @@ import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/effects/data_shard_component.dart';
 import 'package:patch_world/game/components/effects/retaliation_echo_component.dart';
+import 'package:patch_world/game/components/effects/friendly_error_burst_component.dart';
 import 'package:patch_world/game/components/effects/time_freeze_overlay_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
@@ -169,22 +170,34 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
         .where((crawler) => crawler.entityId.endsWith('.echo'))
         .length;
     if (activeDuplicates >= 6) return;
-    await room.add(
-      CrawlerComponent(
-        entityId: '$sourceEntityId.echo',
-        position: position + Vector2(38, 24),
-        initialHealth: 1,
-        healthMaximum: 1,
-        canDuplicate: false,
-        speedMultiplier: 1.15,
-        onDefeated: game.mode == PatchWorldMode.survival
-            ? () => game.recordSurvivalKill(
-                rewardMultiplier:
-                    game.survivalModifiers.duplicateRewardMultiplier,
-              )
-            : null,
-      ),
+    late final CrawlerComponent duplicate;
+    duplicate = CrawlerComponent(
+      entityId: '$sourceEntityId.echo',
+      position: position + Vector2(38, 24),
+      initialHealth: 1,
+      healthMaximum: 1,
+      canDuplicate: false,
+      speedMultiplier: 1.15,
+      onDefeated: game.mode == PatchWorldMode.survival
+          ? () {
+              final modifiers = game.survivalModifiers;
+              game.recordSurvivalKill(
+                rewardMultiplier: modifiers.duplicateRewardMultiplier,
+              );
+              if (modifiers.duplicateBurstDamage > 0) {
+                unawaited(
+                  spawnFriendlyErrorBurst(
+                    duplicate.position.clone(),
+                    damage: modifiers.duplicateBurstDamage,
+                    radius: modifiers.duplicateBurstRadius,
+                    excludedEntityId: duplicate.entityId,
+                  ),
+                );
+              }
+            }
+          : null,
     );
+    await room.add(duplicate);
   }
 
   Future<void> restartCurrentRoom() => loadRoom(game.currentRoom);
@@ -220,12 +233,35 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     }
   }
 
-  Future<void> spawnRetaliationEcho(Vector2 worldPosition) async {
+  Future<void> spawnRetaliationEcho(Vector2 worldPosition, int tier) async {
     final echoes = children.whereType<RetaliationEchoComponent>().toList(
       growable: false,
     );
     if (echoes.length >= 3) echoes.first.removeFromParent();
-    await add(RetaliationEchoComponent(position: worldPosition));
+    await add(
+      RetaliationEchoComponent(
+        position: worldPosition,
+        pullsTargets: tier >= 2,
+        damage: tier >= 3 ? 2 : 1,
+        damagesPlayer: tier < 3,
+      ),
+    );
+  }
+
+  Future<void> spawnFriendlyErrorBurst(
+    Vector2 worldPosition, {
+    required int damage,
+    required double radius,
+    String? excludedEntityId,
+  }) async {
+    await add(
+      FriendlyErrorBurstComponent(
+        position: worldPosition,
+        damage: damage,
+        blastRadius: radius,
+        excludedEntityId: excludedEntityId,
+      ),
+    );
   }
 
   Future<void> _addGrid() async {

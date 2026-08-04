@@ -9,6 +9,7 @@ import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/visuals/entity_sprite_visual.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
 import 'package:patch_world/services/game_settings.dart';
 
@@ -123,9 +124,22 @@ final class PlayerComponent extends RectangleComponent
     final survivalModifiers = game.mode == PatchWorldMode.survival
         ? game.survivalModifiers
         : null;
+    final ventDamageBonus =
+        survivalModifiers?.motionVentEnabled == true &&
+            game.patchEffects.consumeMotionVentCharge()
+        ? 2
+        : 0;
+    final frameDamageBonus =
+        game.mode == PatchWorldMode.survival &&
+            game.survivalRun.frameOverclockActive
+        ? survivalModifiers?.frameOverclockDamageBonus ?? 0
+        : 0;
     _attackCooldown =
         attackCooldownSeconds *
-        (survivalModifiers?.pulseCooldownMultiplier ?? 1);
+        (survivalModifiers?.pulseCooldownMultiplier ?? 1) *
+        (game.mode == PatchWorldMode.survival
+            ? game.survivalRun.overclockCooldownMultiplier
+            : 1);
     final pulseFrames = _pulseFrames;
     if (pulseFrames != null) {
       _visual?.playOnce(pulseFrames, fps: 10);
@@ -135,10 +149,16 @@ final class PlayerComponent extends RectangleComponent
     final pulsePosition = position.clone();
     game.world.spawnPatchPulse(
       pulsePosition,
-      damage: survivalModifiers?.pulseDamage ?? 1,
+      damage:
+          (survivalModifiers?.pulseDamage ?? 1) +
+          ventDamageBonus +
+          frameDamageBonus,
       radiusMultiplier: survivalModifiers?.pulseRadiusMultiplier ?? 1,
     );
-    game.patchEffects.onPatchPulseEmitted(pulsePosition);
+    game.patchEffects.onPatchPulseEmitted(
+      pulsePosition,
+      retaliationEchoTier: survivalModifiers?.retaliationEchoTier ?? 0,
+    );
     unawaited(game.audio.playPatchPulse());
   }
 
@@ -150,6 +170,14 @@ final class PlayerComponent extends RectangleComponent
     if (isMounted &&
         game.mode == PatchWorldMode.survival &&
         PatchWorldGame.survivalQaInvincible) {
+      return;
+    }
+    final activeRoom = isMounted ? game.world.activeRoom : null;
+    if (isMounted &&
+        game.mode == PatchWorldMode.survival &&
+        game.survivalModifiers.phaseOpenGuard &&
+        activeRoom is SurvivalArenaController &&
+        activeRoom.isPhaseWindowOpen) {
       return;
     }
     if (amount <= 0 || isInvulnerable || integrity <= 0) {
@@ -202,7 +230,15 @@ final class PlayerComponent extends RectangleComponent
     _hitInvulnerability = math.max(0, _hitInvulnerability - statusDt);
 
     _previousPosition.setFrom(position);
-    position += _movementInput * (moveSpeed * statusDt);
+    final activeRoom = isMounted ? game.world.activeRoom : null;
+    final phaseMoveMultiplier =
+        isMounted &&
+            game.mode == PatchWorldMode.survival &&
+            activeRoom is SurvivalArenaController &&
+            activeRoom.isPhaseWindowOpen
+        ? game.survivalModifiers.phaseOpenMoveMultiplier
+        : 1.0;
+    position += _movementInput * (moveSpeed * phaseMoveMultiplier * statusDt);
     _visual?.faceMovement(_movementInput);
     _syncMovementAnimation();
     _clampToLogicalWorld();

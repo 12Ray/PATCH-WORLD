@@ -68,6 +68,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     'SURVIVAL_QA_INVINCIBLE',
     defaultValue: false,
   );
+  static const String survivalQaBuild = String.fromEnvironment(
+    'SURVIVAL_QA_BUILD',
+    defaultValue: '',
+  );
 
   final RoomId initialRoom;
 
@@ -169,9 +173,18 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     );
     patchEffects = PatchEffectsSystem(
       runState: runState,
-      spawnEcho: (position) {
-        unawaited(world.spawnRetaliationEcho(position));
+      spawnEcho: (position, tier) {
+        unawaited(world.spawnRetaliationEcho(position, tier));
       },
+      spawnFriendlyBurst: (position, damage, radius, {excludedEntityId}) =>
+          unawaited(
+            world.spawnFriendlyErrorBurst(
+              position,
+              damage: damage,
+              radius: radius,
+              excludedEntityId: excludedEntityId,
+            ),
+          ),
       damagePlayer: (amount, causeId) {
         if (world.isReady) {
           world.player.takeDamage(amount, causeId: causeId);
@@ -233,6 +246,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     survivalRun.reset();
     survivalResult.value = null;
     survivalRun.elapsedSeconds = survivalQaStartSecond.toDouble();
+    _applySurvivalQaBuild();
     completedRun.value = null;
     ruleEngine.setRules(const <GameRule>[]);
     overlays.remove(OverlayIds.title);
@@ -249,6 +263,32 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     publishUiSnapshot(force: true);
   }
 
+  void _applySurvivalQaBuild() {
+    if (survivalQaBuild.isEmpty) return;
+    for (final entry in survivalQaBuild.split(',')) {
+      final parts = entry.split(':');
+      if (parts.length != 2) continue;
+      final requestedTier = int.tryParse(parts[1])?.clamp(1, 3);
+      if (requestedTier == null) continue;
+      PatchDefinition? patch;
+      for (final candidate in SurvivalUpgradeCatalog.all) {
+        if (candidate.id == parts[0] ||
+            candidate.id.split('.').last == parts[0]) {
+          patch = candidate;
+          break;
+        }
+      }
+      if (patch == null) continue;
+      runState.selectPatch(patch.id);
+      for (var tier = 0; tier < requestedTier; tier += 1) {
+        survivalRun.upgradePatch(
+          patch.id,
+          riskTier: SurvivalUpgradeCatalog.riskTierFor(patch),
+        );
+      }
+    }
+  }
+
   void recordSurvivalKill({
     bool elite = false,
     bool miniBoss = false,
@@ -261,6 +301,14 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       rewardMultiplier:
           rewardMultiplier * survivalModifiers.killExperienceMultiplier,
     );
+    final modifiers = survivalModifiers;
+    if (modifiers.turboBonusShardInterval case final int interval
+        when interval > 0 && survivalRun.kills % interval == 0) {
+      world.spawnDataShards(world.player.position, count: 1);
+    }
+    if (modifiers.turboOverclockOnKill) {
+      survivalRun.triggerTurboOverclock();
+    }
     final activeRoom = world.activeRoom;
     if (activeRoom is SurvivalArenaController) {
       activeRoom.showComboMilestone(survivalRun.combo);
@@ -272,9 +320,21 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void _openSurvivalUpgrade() {
+    final choices = SurvivalUpgradeCatalog.choicesForLevel(
+      survivalRun.level,
+      patchTiers: survivalRun.patchTiers,
+    );
+    if (choices.isEmpty) {
+      survivalRun.recordMaxedBuildLevel();
+      final activeRoom = world.activeRoom;
+      if (activeRoom is SurvivalArenaController) {
+        activeRoom.showPatchPowerDemo('BUILD MAXED // +250');
+      }
+      return;
+    }
     pendingSurvivalUpgrade = SurvivalUpgradeRequest(
       level: survivalRun.level,
-      choices: SurvivalUpgradeCatalog.choicesForLevel(survivalRun.level),
+      choices: choices,
     );
     input.clearAll();
     pauseEngine();
@@ -379,6 +439,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         ? survivalQaTimeScale
         : 1.0;
     enemyTempo.update(dt);
+    if (mode == PatchWorldMode.survival &&
+        survivalModifiers.frameOverclockOnBurstEnd &&
+        enemyTempo.didFrameBurstEnd) {
+      survivalRun.triggerFrameOverclock();
+    }
     clock.beginFrame(
       realDt: dt,
       simulationAdvances:
@@ -399,6 +464,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     patchEffects.update(
       playerStatusDt: clock.playerStatusDt,
       isPlayerMoving: movement.length2 > 0,
+      motionTaxTier: mode == PatchWorldMode.survival
+          ? survivalModifiers.motionTaxTier
+          : 0,
+      playerPosition: world.player.position,
     );
     if (input.consumeAttack()) {
       patternTracker.recordAttack();
@@ -892,6 +961,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           ? survivalRun.experienceToNext
           : null,
       survivalCombo: mode == PatchWorldMode.survival ? survivalRun.combo : null,
+      survivalOverclock:
+          mode == PatchWorldMode.survival && survivalRun.overclockActive,
+      motionVentReady:
+          mode == PatchWorldMode.survival && patchEffects.motionVentCharged,
       normalizedHeat: patchEffects.normalizedHeat,
       echoPulseCount: patchEffects.echoPulseCount,
       frameBurstPhase: burst?.phase,

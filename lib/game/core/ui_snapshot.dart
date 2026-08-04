@@ -23,6 +23,8 @@ final class UiSnapshot {
     this.survivalExperience,
     this.survivalExperienceToNext,
     this.survivalCombo,
+    this.survivalOverclock = false,
+    this.motionVentReady = false,
   });
 
   factory UiSnapshot.initial() => const UiSnapshot(
@@ -53,6 +55,8 @@ final class UiSnapshot {
   final int? survivalExperience;
   final int? survivalExperienceToNext;
   final int? survivalCombo;
+  final bool survivalOverclock;
+  final bool motionVentReady;
 
   @override
   bool operator ==(Object other) =>
@@ -76,10 +80,12 @@ final class UiSnapshot {
           survivalLevel == other.survivalLevel &&
           survivalExperience == other.survivalExperience &&
           survivalExperienceToNext == other.survivalExperienceToNext &&
-          survivalCombo == other.survivalCombo;
+          survivalCombo == other.survivalCombo &&
+          survivalOverclock == other.survivalOverclock &&
+          motionVentReady == other.motionVentReady;
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll(<Object?>[
     integrity,
     maxIntegrity,
     roomLabel,
@@ -99,5 +105,7 @@ final class UiSnapshot {
     survivalExperience,
     survivalExperienceToNext,
     survivalCombo,
-  );
+    survivalOverclock,
+    motionVentReady,
+  ]);
 }

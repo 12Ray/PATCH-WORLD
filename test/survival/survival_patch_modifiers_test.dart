@@ -36,5 +36,24 @@ void main() {
     expect(modifiers.pulseDamage, 4);
     expect(modifiers.pulseRadiusMultiplier, closeTo(1.42, 0.001));
     expect(modifiers.pulseCooldownMultiplier, closeTo(0.46, 0.001));
+    expect(modifiers.motionVentEnabled, isTrue);
+    expect(modifiers.overheatBurstDamage, 2);
+    expect(modifiers.frameOverclockDamageBonus, 1);
+  });
+
+  test('tier three side effects convert into offensive tools', () {
+    const modifiers = SurvivalPatchModifiers(<String, int>{
+      RuleIds.retaliationEcho: 3,
+      RuleIds.hostileTurbo: 3,
+      RuleIds.phaseLeak: 3,
+      RuleIds.duplicateFault: 3,
+    });
+    expect(modifiers.echoPullsTargets, isTrue);
+    expect(modifiers.echoDamage, 2);
+    expect(modifiers.echoDamagesPlayer, isFalse);
+    expect(modifiers.turboOverclockOnKill, isTrue);
+    expect(modifiers.phaseOpenGuard, isTrue);
+    expect(modifiers.duplicateBurstDamage, 2);
+    expect(modifiers.duplicateRewardMultiplier, 3);
   });
 }

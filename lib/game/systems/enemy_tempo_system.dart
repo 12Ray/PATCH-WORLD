@@ -11,6 +11,7 @@ final class EnemyTempoSystem {
   bool get hasFrameBurst => runState.hasPatch(RuleIds.frameBurst);
   FrameBurstSnapshot? get frameBurstSnapshot =>
       hasFrameBurst ? frameBurst.snapshot : null;
+  bool didFrameBurstEnd = false;
 
   double get speedMultiplier {
     var multiplier = 1.0;
@@ -20,12 +21,20 @@ final class EnemyTempoSystem {
   }
 
   void update(double realDt) {
+    didFrameBurstEnd = false;
     if (hasFrameBurst) {
+      final previousPhase = frameBurst.phase;
       frameBurst.update(realDt);
+      didFrameBurstEnd =
+          previousPhase == FrameBurstPhase.active &&
+          frameBurst.phase == FrameBurstPhase.normal;
     } else {
       frameBurst.reset();
     }
   }
 
-  void resetForRoomRestart() => frameBurst.reset();
+  void resetForRoomRestart() {
+    frameBurst.reset();
+    didFrameBurstEnd = false;
+  }
 }

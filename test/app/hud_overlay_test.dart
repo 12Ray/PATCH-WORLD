@@ -19,8 +19,8 @@ void main() {
       integrity: 5,
       maxIntegrity: 5,
       roomLabel: 'OPTIMIZATION CORE',
-      anomalyLabel: '행동 패턴 분석 중',
-      objectiveLabel: '목표: 터미널(E) 활성화 후 6초 내 펄스 4회 · 안정성 75/150',
+      anomalyLabel: '패턴 분석 중',
+      objectiveLabel: '목표: 안정성 75/150',
       selectedPatchIds: <String>[
         'patch.motion_tax',
         'patch.frame_burst',

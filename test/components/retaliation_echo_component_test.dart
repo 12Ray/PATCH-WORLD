@@ -21,4 +21,20 @@ void main() {
 
     expect(crawler.health, CrawlerComponent.maxHealth - 1);
   });
+
+  test('tier three echo deals two damage', () {
+    final echo = RetaliationEchoComponent(
+      position: Vector2.zero(),
+      damage: 2,
+      damagesPlayer: false,
+    );
+    final crawler = CrawlerComponent(
+      entityId: 'tier-three-target',
+      position: Vector2.zero(),
+    );
+
+    echo.update(RetaliationEchoComponent.warningSeconds + 0.01);
+    echo.onCollisionStart(<Vector2>{}, crawler);
+    expect(crawler.health, CrawlerComponent.maxHealth - 2);
+  });
 }

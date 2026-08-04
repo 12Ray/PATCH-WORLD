@@ -73,6 +73,10 @@ final class SurvivalArenaController extends Component
     return (0.85 + wave * 0.50 + endlessTier * 0.03).clamp(0.85, 1.55);
   }
 
+  bool get isPhaseWindowOpen =>
+      game.survivalModifiers.phaseWallsLeak &&
+      _phaseLeak.phase == PhaseLeakPhase.open;
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();

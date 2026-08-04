@@ -132,13 +132,17 @@ final class _UpgradeCard extends StatelessWidget {
               _EffectSection(
                 label: game.localization.text('survivalUpgrade.benefit'),
                 color: const Color(0xFF36E1FF),
-                body: _localized('survivalBenefit', patch.fix),
+                body: _localizedTier('survivalBenefit', nextTier, patch.fix),
               ),
               const SizedBox(height: 12),
               _EffectSection(
                 label: game.localization.text('survivalUpgrade.sideEffect'),
                 color: const Color(0xFFFF4FD8),
-                body: _localized('survivalRisk', patch.sideEffect),
+                body: _localizedTier(
+                  'survivalRisk',
+                  nextTier,
+                  patch.sideEffect,
+                ),
               ),
               const SizedBox(height: 18),
               SizedBox(
@@ -158,6 +162,12 @@ final class _UpgradeCard extends StatelessWidget {
   String _localized(String field, String fallback) {
     final value = game.localization.text('${patch.id}.$field');
     return value.startsWith('[') ? fallback : value;
+  }
+
+  String _localizedTier(String field, int tier, String fallback) {
+    final tierValue = game.localization.text('${patch.id}.$field.tier$tier');
+    if (!tierValue.startsWith('[')) return tierValue;
+    return _localized(field, fallback);
   }
 }
 

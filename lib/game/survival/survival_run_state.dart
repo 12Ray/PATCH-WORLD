@@ -18,6 +18,8 @@ final class SurvivalRunState {
   int riskTierTotal = 0;
   int bonusScore = 0;
   String? firstPatchId;
+  double turboOverclockRemaining = 0;
+  double frameOverclockRemaining = 0;
 
   Map<String, int> get patchTiers => Map<String, int>.unmodifiable(_patchTiers);
 
@@ -42,9 +44,16 @@ final class SurvivalRunState {
               riskMultiplier)
           .round();
 
+  bool get turboOverclockActive => turboOverclockRemaining > 0;
+  bool get frameOverclockActive => frameOverclockRemaining > 0;
+  bool get overclockActive => turboOverclockActive || frameOverclockActive;
+  double get overclockCooldownMultiplier => overclockActive ? 0.65 : 1;
+
   void update(double dt) {
     if (dt <= 0) return;
     elapsedSeconds += dt;
+    turboOverclockRemaining = math.max(0, turboOverclockRemaining - dt);
+    frameOverclockRemaining = math.max(0, frameOverclockRemaining - dt);
     if (comboRemaining <= 0) return;
     comboRemaining = math.max(0, comboRemaining - dt);
     if (comboRemaining == 0) combo = 0;
@@ -95,6 +104,12 @@ final class SurvivalRunState {
     if (tier > 0) riskTierTotal += tier;
   }
 
+  void triggerTurboOverclock() => turboOverclockRemaining = 1.5;
+
+  void triggerFrameOverclock() => frameOverclockRemaining = 1.5;
+
+  void recordMaxedBuildLevel() => bonusScore += 250;
+
   int upgradePatch(String patchId, {required int riskTier}) {
     final nextTier = math.min(3, patchTier(patchId) + 1);
     if (nextTier == patchTier(patchId)) return nextTier;
@@ -118,6 +133,8 @@ final class SurvivalRunState {
     riskTierTotal = 0;
     bonusScore = 0;
     firstPatchId = null;
+    turboOverclockRemaining = 0;
+    frameOverclockRemaining = 0;
     _patchTiers.clear();
     _killTimes.clear();
   }

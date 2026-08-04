@@ -10,10 +10,11 @@ void main() {
     var damage = 0;
     final system = PatchEffectsSystem(
       runState: runState,
-      spawnEcho: (_) {},
+      spawnEcho: (_, _) {},
+      spawnFriendlyBurst: (_, _, _, {excludedEntityId}) {},
       damagePlayer: (amount, causeId) => damage += amount,
     );
-    system.update(playerStatusDt: 9, isPlayerMoving: true);
+    system.update(playerStatusDt: 9, isPlayerMoving: true, motionTaxTier: 1);
     expect(damage, 1);
   });
 
@@ -22,12 +23,53 @@ void main() {
     Vector2? spawnedPosition;
     final system = PatchEffectsSystem(
       runState: runState,
-      spawnEcho: (position) => spawnedPosition = position,
+      spawnEcho: (position, _) => spawnedPosition = position,
+      spawnFriendlyBurst: (_, _, _, {excludedEntityId}) {},
       damagePlayer: (_, _) {},
     );
     for (var i = 0; i < 4; i += 1) {
       system.onPatchPulseEmitted(Vector2(10 + i.toDouble(), 20));
     }
     expect(spawnedPosition, Vector2(13, 20));
+  });
+
+  test('tier two motion tax charges and consumes a vent pulse', () {
+    final runState = RunState()..selectPatch(RuleIds.motionTax);
+    final system = PatchEffectsSystem(
+      runState: runState,
+      spawnEcho: (_, _) {},
+      spawnFriendlyBurst: (_, _, _, {excludedEntityId}) {},
+      damagePlayer: (_, _) {},
+    );
+
+    system.update(
+      playerStatusDt: 0.76,
+      isPlayerMoving: false,
+      motionTaxTier: 2,
+    );
+    expect(system.motionVentCharged, isTrue);
+    expect(system.consumeMotionVentCharge(), isTrue);
+    expect(system.consumeMotionVentCharge(), isFalse);
+  });
+
+  test('tier three motion tax releases a burst on overheat', () {
+    final runState = RunState()..selectPatch(RuleIds.motionTax);
+    var burstDamage = 0;
+    final system = PatchEffectsSystem(
+      runState: runState,
+      spawnEcho: (_, _) {},
+      spawnFriendlyBurst: (_, damage, _, {excludedEntityId}) {
+        burstDamage = damage;
+      },
+      damagePlayer: (_, _) {},
+    );
+
+    system.update(
+      playerStatusDt: 9,
+      isPlayerMoving: true,
+      motionTaxTier: 3,
+      playerPosition: Vector2.zero(),
+    );
+    expect(burstDamage, 2);
   });
 }

@@ -227,6 +227,28 @@ final class _RuleView extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+                if (snapshot.motionVentReady) ...<Widget>[
+                  const SizedBox(width: 8),
+                  const Text(
+                    'VENT READY',
+                    style: TextStyle(
+                      color: Color(0xFF36E1FF),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+                if (snapshot.survivalOverclock) ...<Widget>[
+                  const SizedBox(width: 8),
+                  const Text(
+                    'OVERCLOCK',
+                    style: TextStyle(
+                      color: Color(0xFFFFC857),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ],
             ],
           ),
