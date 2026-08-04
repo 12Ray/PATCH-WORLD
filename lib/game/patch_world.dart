@@ -2,146 +2,109 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
+import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
+import 'package:patch_world/game/components/enemies/crawler_component.dart';
+import 'package:patch_world/game/components/environment/wall_component.dart';
+import 'package:patch_world/game/components/player/player_component.dart';
+import 'package:patch_world/game/patch_world_game.dart';
 
-final class PatchWorld extends World {
-  static final Vector2 _logicalSize = Vector2(960, 540);
-  static final Vector2 _topLeft = Vector2(-480, -270);
+final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
+  late final PlayerComponent player;
+
+  bool _isReady = false;
+  bool get isReady => _isReady;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    addAll([
+    await add(
       RectangleComponent(
-        position: _topLeft,
-        size: _logicalSize,
-        paint: Paint()..color = const Color(0xFF080B14),
-      ),
-      _GridBackdrop(position: _topLeft, size: _logicalSize),
-      RectangleComponent(
-        position: Vector2(-420, -206),
-        size: Vector2(840, 348),
-        paint: Paint()
-          ..color = const Color(0xFF0D1420)
-          ..style = PaintingStyle.fill,
-      ),
-      RectangleComponent(
-        position: Vector2(-420, -206),
-        size: Vector2(840, 348),
-        paint: Paint()
-          ..color = const Color(0xFF45F3A6)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
-      ),
-      TextComponent(
-        text: 'PATCH//WORLD',
-        position: Vector2(-388, -178),
-        textRenderer: TextPaint(
-          style: const TextStyle(
-            color: Color(0xFFE9FFF5),
-            fontSize: 42,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 3,
-          ),
+        size: Vector2(
+          PatchWorldGame.logicalWidth,
+          PatchWorldGame.logicalHeight,
         ),
+        paint: Paint()..color = const Color(0xFF0B1020),
+        priority: -100,
       ),
+    );
+    await _addGrid();
+    await _addBoundaryWalls();
+
+    player = PlayerComponent(
+      position: Vector2(160, 270),
+      spawnPosition: Vector2(160, 270),
+    );
+    await add(player);
+    await add(
+      CrawlerComponent(
+        entityId: 'crawler-debug-01',
+        position: Vector2(700, 270),
+      ),
+    );
+    await add(
       TextComponent(
-        text: 'THE LAST RULE CHOSEN BY A HUMAN',
-        position: Vector2(-384, -122),
+        text: 'MOVE  WASD / ARROWS     PULSE  SPACE / J     PAUSE  ESC',
+        position: Vector2(48, 42),
         textRenderer: TextPaint(
           style: const TextStyle(
-            color: Color(0xFF45F3A6),
-            fontSize: 16,
-            letterSpacing: 1.5,
-          ),
-        ),
-      ),
-      _StatusPanel(position: Vector2(-384, -62)),
-      TextComponent(
-        text: 'P0 // WEB BOOTSTRAP ONLINE',
-        position: Vector2(-388, 105),
-        textRenderer: TextPaint(
-          style: const TextStyle(
-            color: Color(0xFFFFD166),
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.2,
-          ),
-        ),
-      ),
-      TextComponent(
-        text: '960 x 540  |  FLUTTER 3.44  |  FLAME 1.38',
-        position: Vector2(-388, 162),
-        textRenderer: TextPaint(
-          style: const TextStyle(
-            color: Color(0xFF8190A8),
+            color: Color(0xFF9CB0C9),
             fontSize: 14,
-            letterSpacing: 1,
+            letterSpacing: 1.1,
           ),
         ),
+        priority: 40,
+      ),
+    );
+
+    _isReady = true;
+  }
+
+  Future<void> _addGrid() async {
+    final gridPaint = Paint()
+      ..color = const Color(0x122F6E5B)
+      ..strokeWidth = 1;
+    for (double x = 32; x < PatchWorldGame.logicalWidth; x += 32) {
+      await add(
+        RectangleComponent(
+          position: Vector2(x, 0),
+          size: Vector2(1, PatchWorldGame.logicalHeight),
+          paint: gridPaint,
+          priority: -90,
+        ),
+      );
+    }
+    for (double y = 32; y < PatchWorldGame.logicalHeight; y += 32) {
+      await add(
+        RectangleComponent(
+          position: Vector2(0, y),
+          size: Vector2(PatchWorldGame.logicalWidth, 1),
+          paint: gridPaint,
+          priority: -90,
+        ),
+      );
+    }
+  }
+
+  Future<void> _addBoundaryWalls() async {
+    const thickness = 24.0;
+    const width = PatchWorldGame.logicalWidth;
+    const height = PatchWorldGame.logicalHeight;
+    await addAll(<WallComponent>[
+      WallComponent(position: Vector2.zero(), size: Vector2(width, thickness)),
+      WallComponent(
+        position: Vector2(0, height - thickness),
+        size: Vector2(width, thickness),
+      ),
+      WallComponent(position: Vector2.zero(), size: Vector2(thickness, height)),
+      WallComponent(
+        position: Vector2(width - thickness, 0),
+        size: Vector2(thickness, height),
       ),
     ]);
   }
-}
 
-final class _StatusPanel extends PositionComponent {
-  _StatusPanel({required super.position}) : super(size: Vector2(768, 128));
-
-  @override
-  void render(Canvas canvas) {
-    super.render(canvas);
-
-    final panelPaint = Paint()..color = const Color(0xFF111C2A);
-    final linePaint = Paint()
-      ..color = const Color(0xFF24384A)
-      ..strokeWidth = 1;
-    canvas.drawRect(size.toRect(), panelPaint);
-    canvas.drawLine(const Offset(0, 64), const Offset(768, 64), linePaint);
-
-    _drawLabel(canvas, 'CURRENT RULE', const Offset(20, 16));
-    _drawValue(canvas, 'DAMAGE_SIGN_INVERTED', const Offset(196, 16));
-    _drawLabel(canvas, 'NEXT GATE', const Offset(20, 80));
-    _drawValue(canvas, 'PLAYER + BASE COMBAT', const Offset(196, 80));
-  }
-
-  void _drawLabel(Canvas canvas, String text, Offset offset) {
-    TextPaint(
-      style: const TextStyle(
-        color: Color(0xFF8190A8),
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 1,
-      ),
-    ).render(canvas, text, Vector2(offset.dx, offset.dy));
-  }
-
-  void _drawValue(Canvas canvas, String text, Offset offset) {
-    TextPaint(
-      style: const TextStyle(
-        color: Color(0xFFE9FFF5),
-        fontSize: 17,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.8,
-      ),
-    ).render(canvas, text, Vector2(offset.dx, offset.dy));
-  }
-}
-
-final class _GridBackdrop extends PositionComponent {
-  _GridBackdrop({required super.position, required super.size});
-
-  @override
-  void render(Canvas canvas) {
-    super.render(canvas);
-    final paint = Paint()
-      ..color = const Color(0x122F6E5B)
-      ..strokeWidth = 1;
-
-    for (double x = 0; x <= size.x; x += 32) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.y), paint);
-    }
-    for (double y = 0; y <= size.y; y += 32) {
-      canvas.drawLine(Offset(0, y), Offset(size.x, y), paint);
-    }
+  Future<void> spawnPatchPulse(Vector2 worldPosition) async {
+    await add(PatchPulseComponent(position: worldPosition.clone()));
   }
 }
