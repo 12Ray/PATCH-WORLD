@@ -669,6 +669,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     runMetrics.update(clock.realDt);
     _updateScreenShake(clock.realDt);
     world.player.setMovementInput(movement);
+    world.player.setJumpHeld(input.jumpHeld);
+    if (input.consumeJump()) world.player.queueJump();
     patternTracker.update(clock.realDt);
     if (movement.length2 > 0) {
       patternTracker.recordMovement(movement.x, movement.y);

@@ -100,7 +100,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     await add(TimeFreezeOverlayComponent());
     await add(
       TextComponent(
-        text: 'MOVE  WASD / ARROWS     PULSE  SPACE / J     INTERACT  E',
+        text: 'MOVE  A/D / ARROWS     JUMP  W / UP     PULSE  SPACE / J',
         position: Vector2(48, 66),
         textRenderer: TextPaint(
           style: const TextStyle(
@@ -149,6 +149,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     };
     player
       ..integrity = player.maxIntegrity
+      ..resetMotionForRoomTransition()
       ..position.setFrom(spawn);
     _isReady = true;
   }

@@ -32,6 +32,16 @@ void main() {
       expect(input.consumeInteract(), isFalse);
     });
 
+    test('up queues a jump and exposes held state', () {
+      final input = InputController();
+      input.syncPressedKeys(<LogicalKeyboardKey>{LogicalKeyboardKey.keyW});
+      input.handleKeyDown(LogicalKeyboardKey.keyW);
+
+      expect(input.jumpHeld, isTrue);
+      expect(input.consumeJump(), isTrue);
+      expect(input.consumeJump(), isFalse);
+    });
+
     test('supports arrow keys', () {
       final input = InputController();
       input.syncPressedKeys(<LogicalKeyboardKey>{LogicalKeyboardKey.arrowLeft});
@@ -44,6 +54,8 @@ void main() {
       final input = InputController()..setVirtualMovement(1, -1);
 
       expect(input.movementAxis.length, closeTo(1, 0.0001));
+      expect(input.jumpHeld, isTrue);
+      expect(input.consumeJump(), isTrue);
       input.queueAttack();
       input.queueInteract();
       expect(input.consumeAttack(), isTrue);

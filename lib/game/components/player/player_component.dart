@@ -7,8 +7,10 @@ import 'package:flame/components.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
+import 'package:patch_world/game/components/player/platformer_motion.dart';
 import 'package:patch_world/game/components/visuals/entity_sprite_visual.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/room_one_controller.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
 import 'package:patch_world/services/game_settings.dart';
@@ -30,6 +32,8 @@ final class PlayerComponent extends RectangleComponent
   final Vector2 spawnPosition;
   final Vector2 _movementInput = Vector2.zero();
   final Vector2 _previousPosition = Vector2.zero();
+  final PlatformerMotion _platformerMotion = PlatformerMotion();
+  bool _jumpHeld = false;
 
   int maxIntegrity = 5;
   int integrity = 5;
@@ -47,7 +51,9 @@ final class PlayerComponent extends RectangleComponent
 
   bool get canAttack => _attackCooldown <= 0 && !isRemoving;
   bool get isInvulnerable => _hitInvulnerability > 0;
-  bool get isMoving => _movementInput.length2 > 0.01;
+  bool get isMoving => _usesPlatformerMovement
+      ? _platformerMotion.velocity.length2 > 0.01
+      : _movementInput.length2 > 0.01;
   int get dataShardCharge => _dataShardCharge;
 
   @override
@@ -115,6 +121,22 @@ final class PlayerComponent extends RectangleComponent
   void setMovementInput(Vector2 input) {
     _movementInput.setFrom(input);
   }
+
+  void setJumpHeld(bool value) => _jumpHeld = value;
+
+  void queueJump() {
+    if (_usesPlatformerMovement) _platformerMotion.queueJump();
+  }
+
+  void resetMotionForRoomTransition() {
+    _platformerMotion.reset();
+    _jumpHeld = false;
+  }
+
+  bool get _usesPlatformerMovement =>
+      isMounted &&
+      game.mode == PatchWorldMode.campaign &&
+      game.world.activeRoom is RoomOneController;
 
   void tryAttack() {
     if (!canAttack) {
@@ -275,16 +297,92 @@ final class PlayerComponent extends RectangleComponent
             activeRoom.isPhaseWindowOpen
         ? game.survivalModifiers.phaseOpenMoveMultiplier
         : 1.0;
-    position += _movementInput * (moveSpeed * phaseMoveMultiplier * statusDt);
+    if (activeRoom is RoomOneController && _usesPlatformerMovement) {
+      _updatePlatformer(statusDt, activeRoom);
+    } else {
+      position += _movementInput * (moveSpeed * phaseMoveMultiplier * statusDt);
+      _clampToLogicalWorld();
+    }
     _visual?.faceMovement(_movementInput);
     _syncMovementAnimation();
-    _clampToLogicalWorld();
     _updateDamageBlink();
     super.update(dt);
   }
 
+  void _updatePlatformer(double dt, RoomOneController room) {
+    var remaining = math.min(dt, 0.10);
+    while (remaining > 0) {
+      final step = math.min(remaining, 1 / 120);
+      _platformerMotion.advance(
+        step,
+        horizontal: _movementInput.x,
+        jumpHeld: _jumpHeld,
+      );
+
+      final oldX = position.x;
+      position.x += _platformerMotion.velocity.x * step;
+      _resolvePlatformerHorizontal(room.solidBounds, oldX);
+
+      final oldY = position.y;
+      _platformerMotion.beginVerticalResolution();
+      position.y += _platformerMotion.velocity.y * step;
+      _resolvePlatformerVertical(room.solidBounds, oldY);
+      remaining -= step;
+    }
+
+    if (position.y > PatchWorldGame.logicalHeight + 48) {
+      takeDamage(1, causeId: 'hazard.damage-lab.data-pit');
+      if (integrity > 0) {
+        position.setFrom(room.playerSpawn);
+        _platformerMotion.reset();
+      }
+    }
+  }
+
+  void _resolvePlatformerHorizontal(Iterable<Rect> solids, double oldX) {
+    final halfWidth = size.x / 2;
+    final oldLeft = oldX - halfWidth;
+    final oldRight = oldX + halfWidth;
+    for (final solid in solids) {
+      final bounds = _boundsAt(position.x, position.y);
+      if (!bounds.overlaps(solid)) continue;
+      if (_platformerMotion.velocity.x > 0 && oldRight <= solid.left + 1) {
+        position.x = solid.left - halfWidth;
+        _platformerMotion.hitWall();
+      } else if (_platformerMotion.velocity.x < 0 &&
+          oldLeft >= solid.right - 1) {
+        position.x = solid.right + halfWidth;
+        _platformerMotion.hitWall();
+      }
+    }
+  }
+
+  void _resolvePlatformerVertical(Iterable<Rect> solids, double oldY) {
+    final halfHeight = size.y / 2;
+    final oldTop = oldY - halfHeight;
+    final oldBottom = oldY + halfHeight;
+    for (final solid in solids) {
+      final bounds = _boundsAt(position.x, position.y);
+      if (!bounds.overlaps(solid)) continue;
+      if (_platformerMotion.velocity.y >= 0 && oldBottom <= solid.top + 1) {
+        position.y = solid.top - halfHeight;
+        _platformerMotion.land();
+      } else if (_platformerMotion.velocity.y < 0 &&
+          oldTop >= solid.bottom - 1) {
+        position.y = solid.bottom + halfHeight;
+        _platformerMotion.hitCeiling();
+      }
+    }
+  }
+
+  Rect _boundsAt(double centerX, double centerY) => Rect.fromCenter(
+    center: Offset(centerX, centerY),
+    width: size.x,
+    height: size.y,
+  );
+
   void _syncMovementAnimation({bool force = false}) {
-    final moving = _movementInput.length2 > 0.01;
+    final moving = isMoving;
     if (!force && moving == _usingMoveAnimation) return;
     final frames = moving ? _moveFrames : _idleFrames;
     if (frames == null) return;

@@ -8,7 +8,7 @@
   "ui.back": "BACK",
   "ui.credits": "CREDITS / LICENSES",
   "title.subtitle": "Fix one rule. Break another. Preserve the flaw that wins.",
-  "title.controls": "MOVE  WASD / ARROWS   •   PULSE  SPACE / J / LEFT CLICK\nINTERACT  E / ENTER   •   PAUSE  ESC / P",
+  "title.controls": "MOVE  A/D / LEFT-RIGHT   •   JUMP  W / UP   •   PULSE  SPACE / J\nINTERACT  E / ENTER   •   PAUSE  ESC / P",
   "defeat.title": "SYSTEM FAILURE",
   "defeat.cause": "Failure source",
   "defeat.assistPrompt": "Three failures detected. Assist Mode adds Integrity and slows hazards by 15%.",

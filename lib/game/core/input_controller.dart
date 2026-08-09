@@ -6,6 +6,7 @@ final class InputController {
 
   bool _attackQueued = false;
   bool _interactQueued = false;
+  bool _jumpQueued = false;
   Vector2 _virtualMovement = Vector2.zero();
 
   void syncPressedKeys(Set<LogicalKeyboardKey> keysPressed) {
@@ -22,6 +23,9 @@ final class InputController {
     if (key == LogicalKeyboardKey.keyE || key == LogicalKeyboardKey.enter) {
       _interactQueued = true;
     }
+    if (key == LogicalKeyboardKey.keyW || key == LogicalKeyboardKey.arrowUp) {
+      _jumpQueued = true;
+    }
   }
 
   void queueAttack() => _attackQueued = true;
@@ -29,6 +33,7 @@ final class InputController {
   void queueInteract() => _interactQueued = true;
 
   void setVirtualMovement(double x, double y) {
+    if (y < -0.5 && _virtualMovement.y >= -0.5) _jumpQueued = true;
     _virtualMovement = Vector2(x, y);
     if (_virtualMovement.length2 > 1) _virtualMovement.normalize();
   }
@@ -60,7 +65,20 @@ final class InputController {
   }
 
   bool get hasGameplayIntent =>
-      movementAxis.length2 > 0 || _attackQueued || _interactQueued;
+      movementAxis.length2 > 0 ||
+      _attackQueued ||
+      _interactQueued ||
+      _jumpQueued;
+
+  bool get jumpHeld =>
+      _isPressed(LogicalKeyboardKey.keyW, LogicalKeyboardKey.arrowUp) ||
+      _virtualMovement.y < -0.5;
+
+  bool consumeJump() {
+    final value = _jumpQueued;
+    _jumpQueued = false;
+    return value;
+  }
 
   bool consumeAttack() {
     final value = _attackQueued;
@@ -77,6 +95,7 @@ final class InputController {
   void clearTransientActions() {
     _attackQueued = false;
     _interactQueued = false;
+    _jumpQueued = false;
   }
 
   void clearAll() {
