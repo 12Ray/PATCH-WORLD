@@ -1,5 +1,23 @@
 # PATCH//WORLD visual direction v1
 
+## Platformer campaign pivot — 2026-08-09
+
+The campaign's production view is now a strict side-view action platformer.
+The original top-down room art remains a prototype and palette reference, but
+new campaign characters, enemies, collision geometry, and animation sheets
+must be authored for horizontal movement, jumping, ledges, and vertical space.
+
+Each of the first three rooms owns a five-enemy roster: four normal enemies and
+one mid-boss. Their names, combat roles, telegraphs, and exact animation states
+are specified in [PLATFORMER_ENEMY_ROSTER.md](PLATFORMER_ENEMY_ROSTER.md).
+
+Room roster concept sheets:
+
+- [Damage Lab enemy roster](visual-concepts/platformer-room-1-enemy-roster-v1.png)
+- [Temporal Hall enemy roster](visual-concepts/platformer-room-2-enemy-roster-v1.png)
+- [Collision Archive enemy roster](visual-concepts/platformer-room-3-enemy-roster-v1.png)
+- [ImageGen prompt record](visual-concepts/platformer-enemy-roster-prompts.md)
+
 ![Gameplay concept](visual-concepts/patchworld-gameplay-concept-v1.png)
 
 Room-specific concept anchors:
@@ -24,7 +42,8 @@ of relying on HUD copy alone.
 - Corruption and overflow: hot magenta.
 - Hostile physical machinery: red and graphite.
 - World base: deep navy panel grid with limited amber warnings.
-- View: top-down three-quarter, readable at the 960x540 gameplay resolution.
+- Production campaign view: strict side profile, readable at the 960x540
+  gameplay resolution. Existing top-down assets are legacy prototype material.
 
 ## Reference findings
 
