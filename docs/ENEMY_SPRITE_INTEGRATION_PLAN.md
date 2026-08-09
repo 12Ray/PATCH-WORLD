@@ -1,13 +1,32 @@
 # Enemy sprite integration plan
 
-Status: planned, runtime sprite work not started  
+Status: implemented and verified (100%)
 Date: 2026-08-09
 
 The detailed behavior, state-machine, attack, and test architecture is defined
 in `ENEMY_COMBAT_ANIMATION_IMPLEMENTATION_PLAN.md`. This document remains the
 asset-production and visual-integration checklist.
 
-## Diagnosis
+## Completion record
+
+- Generated and normalized fifteen transparent RGBA sprite strips from the
+  approved room concept sheets.
+- Registered the sprite folder in `pubspec.yaml` and added a fifteen-entry
+  manifest with a 256x256 frame contract.
+- Connected idle, move, action, and hurt/defeat poses to runtime combat state
+  while preserving the procedural fallback for missing assets.
+- Kept gameplay hitboxes and telegraphs independent from visual size.
+- Added automated validation for all fifteen paths, 1024x256 dimensions, and
+  transparent corners.
+- Verified with `flutter analyze`, all 161 tests, and `flutter build web`.
+
+The in-app browser could not reach the host-local server because of localhost
+isolation. End-to-end release verification therefore uses the existing room
+progression/widget tests plus the successful web build; a local manual visual
+pass remains recommended for art polish and balance, not implementation
+completion.
+
+## Original diagnosis
 
 The fifteen platformer archetypes are present in the campaign runtime. Each
 room spawns four normal enemies and one mid-boss through
@@ -27,8 +46,8 @@ This is an asset-integration gap, not a room-spawn failure.
 
 - Every archetype keeps its existing stable enum ID, combat callback, and room
   placement.
-- Normal enemies render from 64x64 transparent RGBA animation strips;
-  mid-bosses render from 96x96 strips.
+- Every enemy renders from a four-frame 1024x256 transparent RGBA strip and is
+  scaled independently for normal and mid-boss gameplay bodies.
 - Movement, anticipation, action, hurt, and defeat states are visibly distinct.
 - Missing or invalid assets fall back to the current procedural proxy so a bad
   export cannot block the game from loading.
@@ -57,8 +76,8 @@ Acceptance: all current tests pass with proxy rendering still enabled.
 2. Export one horizontal strip per state using the frame counts in
    `PLATFORMER_ENEMY_ROSTER.md`.
 3. Store assets under
-   `assets/images/sprites/platformer/<room>/<enemy>/<state>.png`.
-4. Extend `assets/images/sprites/animations/manifest.json` with frame size,
+   `assets/images/sprites/platformer/<enemy>.png`.
+4. Add `assets/images/sprites/platformer/manifest.json` with frame size,
    frame count, FPS, loop, pivot, baseline, and validation data.
 5. Add an asset validator for exact dimensions, transparent corners, stable
    baseline, centered pivot, and alpha coverage.
@@ -125,9 +144,9 @@ enemy's core mechanic can be identified before contact.
 | `lib/game/components/enemies/platformer_enemy_component.dart` | Separate behavior/state from procedural rendering and attach the sprite visual |
 | `lib/game/components/enemies/platformer_enemy_definition.dart` | Add data-driven archetype and animation-key definitions |
 | `lib/game/components/visuals/platformer_enemy_sprite_visual.dart` | Load, switch, mirror, and fall back between animations |
-| `assets/images/sprites/platformer/` | Add final per-room, per-enemy RGBA strips |
-| `assets/images/sprites/animations/manifest.json` | Register all platformer enemy states and validation metadata |
-| `tool/validate_sprite_manifest.dart` | Validate files, dimensions, alpha, pivot, and baseline |
+| `assets/images/sprites/platformer/` | Final per-enemy RGBA strips and manifest |
+| `tool/process_platformer_enemy_atlases.py` | Normalize generated room atlases into frame-aligned strips |
+| `test/assets/platformer_enemy_manifest_test.dart` | Validate files, dimensions, and transparent corners |
 | `test/components/platformer_enemy_visual_test.dart` | Verify state mapping, mirroring, fallback, and hitbox stability |
 | `test/game/*_platformer_test.dart` | Verify five-enemy roster and room completion after visual replacement |
 

@@ -1,0 +1,23 @@
+{
+  "frameSize": [256, 256],
+  "frames": 4,
+  "states": ["idle", "move", "action", "hurt-defeat"],
+  "pivot": [0.5, 0.9375],
+  "assets": {
+    "patchMite": "patch-mite.png",
+    "checksumHopper": "checksum-hopper.png",
+    "pulseTurret": "pulse-turret.png",
+    "repairLeech": "repair-leech.png",
+    "overflowWarden": "overflow-warden.png",
+    "tickRunner": "tick-runner.png",
+    "echoBat": "echo-bat.png",
+    "delaySniper": "delay-sniper.png",
+    "rewindSkater": "rewind-skater.png",
+    "chronoJailer": "chrono-jailer.png",
+    "vectorRam": "vector-ram.png",
+    "polarityDrone": "polarity-drone.png",
+    "phaseMimic": "phase-mimic.png",
+    "shardLobber": "shard-lobber.png",
+    "kernelChimera": "kernel-chimera.png"
+  }
+}

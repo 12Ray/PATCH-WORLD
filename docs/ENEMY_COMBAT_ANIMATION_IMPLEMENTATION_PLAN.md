@@ -1,6 +1,6 @@
 # 적 15종 고유 전투·애니메이션 코드 수정 계획
 
-상태: 구현 전  
+상태: 구현 완료 (100%)
 작성일: 2026-08-09  
 관련 명세: `PLATFORMER_ENEMY_ROSTER.md`, `ENEMY_SPRITE_INTEGRATION_PLAN.md`
 
@@ -30,6 +30,23 @@
   telegraph로 표시.
 - 전체 계획 진행률: 약 55%. 적별 Brain 파일 분리, motion-history 정밀 재생,
   최종 RGBA animation strip 연결과 실플레이 밸런스는 남아 있다.
+
+### 완료 업데이트 — 2026-08-09
+
+- 15종의 4상태 RGBA strip을 ImageGen 기반으로 제작하고 manifest 및 런타임
+  state mapping에 연결했다.
+- 15종의 기본 공격 ID가 서로 겹치지 않는 `PlatformerEnemyBrain` 계약을
+  추가하고, 일반 패턴과 보스 변형 패턴의 타이밍을 실제 스케줄러에서 이
+  계약으로 읽도록 연결했다.
+- Echo Bat player motion history, Rewind Skater reverse position buffer,
+  Kernel Chimera cyan/magenta half 판정을 구현했다.
+- 모든 sprite atlas는 1024x256, transparent corner, 4 frame 계약을 통과한다.
+- `flutter analyze`, 전체 161개 테스트, web build를 통과했다.
+- 로컬 HTTP 서버는 응답했지만 in-app browser의 localhost 격리로 UI 자동화는
+  연결되지 않아, 기존 widget/full-run tests와 web build를 릴리스 검증으로
+  사용했다.
+- 계획 구현 진행률: 100%. 후속 작업은 새 기능이 아니라 플레이테스트 기반
+  밸런스 조정과 아트 품질 개선이다.
 
 ## 1. 문제 정의
 

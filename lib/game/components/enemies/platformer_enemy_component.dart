@@ -8,6 +8,7 @@ import 'package:flame/text.dart';
 import 'package:patch_world/game/components/effects/enemy_damage_volume_component.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_action_timeline.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_combat_state.dart';
+import 'package:patch_world/game/components/enemies/platformer/platformer_enemy_brain.dart';
 import 'package:patch_world/game/core/health_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/components/projectiles/enemy_projectile_component.dart';
@@ -35,6 +36,9 @@ enum PlatformerEnemyArchetype {
 }
 
 extension PlatformerEnemyArchetypeSpec on PlatformerEnemyArchetype {
+  String get assetSlug => name
+      .replaceAllMapped(RegExp(r'([a-z0-9])([A-Z])'), (m) => '${m[1]}-${m[2]}')
+      .toLowerCase();
   String get displayName => switch (this) {
     PlatformerEnemyArchetype.patchMite => 'PATCH MITE',
     PlatformerEnemyArchetype.checksumHopper => 'CHECKSUM HOPPER',
@@ -127,6 +131,9 @@ final class PlatformerEnemyComponent extends PositionComponent
   int _wardenPatternIndex = 0;
   bool _rewindReturning = false;
   bool _polarityPushes = false;
+  SpriteComponent? _spriteVisual;
+  List<Sprite>? _spriteFrames;
+  final List<Vector2> _motionHistory = <Vector2>[];
 
   @override
   String get entityId => 'platformer.${archetype.name}';
@@ -141,6 +148,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   Future<void> onLoad() async {
     await super.onLoad();
     _homePosition = position.clone();
+    unawaited(_loadSpriteVisual());
     await add(
       RectangleHitbox.relative(
         archetype.isMidBoss ? Vector2(0.78, 0.86) : Vector2(0.76, 0.78),
@@ -164,6 +172,35 @@ final class PlatformerEnemyComponent extends PositionComponent
         ),
       ),
     );
+  }
+
+  Future<void> _loadSpriteVisual() async {
+    try {
+      final image = await game.images.load(
+        'sprites/platformer/${archetype.assetSlug}.png',
+      );
+      if (isRemoving) return;
+      final frames = List<Sprite>.generate(
+        4,
+        (index) => Sprite(
+          image,
+          srcPosition: Vector2(index * 256.0, 0),
+          srcSize: Vector2.all(256),
+        ),
+      );
+      final visual = SpriteComponent(
+        sprite: frames.first,
+        size: Vector2.all(archetype.isMidBoss ? 104 : 70),
+        position: size / 2,
+        anchor: Anchor.center,
+        priority: 4,
+      )..paint.filterQuality = FilterQuality.none;
+      _spriteFrames = frames;
+      _spriteVisual = visual;
+      await add(visual);
+    } catch (_) {
+      // Procedural proxy remains available during development.
+    }
   }
 
   @override
@@ -254,6 +291,7 @@ final class PlatformerEnemyComponent extends PositionComponent
           PlatformerEnemyMobility.boss:
         _updateGrounded(enemyDt, room.solidBounds);
     }
+    _updateMotionHistory();
     if (_action == null && _combatState != EnemyCombatState.hurt) {
       _combatState = _velocity.length2 > 1
           ? EnemyCombatState.moving
@@ -261,7 +299,45 @@ final class PlatformerEnemyComponent extends PositionComponent
     } else if (_combatState == EnemyCombatState.hurt) {
       _combatState = EnemyCombatState.idle;
     }
+    _syncSpriteVisual();
     super.update(dt);
+  }
+
+  void _updateMotionHistory() {
+    if (archetype == PlatformerEnemyArchetype.echoBat ||
+        archetype == PlatformerEnemyArchetype.chronoJailer) {
+      _motionHistory.add(game.world.player.position.clone());
+    } else if (archetype == PlatformerEnemyArchetype.rewindSkater) {
+      if (_action?.id == 'rewindSkater.rewind' &&
+          _action?.phase == EnemyActionPhase.active &&
+          _motionHistory.isNotEmpty) {
+        position.setFrom(_motionHistory.removeLast());
+        return;
+      }
+      _motionHistory.add(position.clone());
+    } else {
+      return;
+    }
+    if (_motionHistory.length > 72) _motionHistory.removeAt(0);
+  }
+
+  void _syncSpriteVisual() {
+    final visual = _spriteVisual;
+    final frames = _spriteFrames;
+    if (visual == null || frames == null) return;
+    final frameIndex = switch (_combatState) {
+      EnemyCombatState.idle => 0,
+      EnemyCombatState.moving => 1,
+      EnemyCombatState.telegraph ||
+      EnemyCombatState.attacking ||
+      EnemyCombatState.recovering => 2,
+      EnemyCombatState.hurt ||
+      EnemyCombatState.staggered ||
+      EnemyCombatState.overflowing ||
+      EnemyCombatState.defeated => 3,
+    };
+    visual.sprite = frames[frameIndex];
+    visual.scale.x = _facing;
   }
 
   void _scheduleDamageLabAction() {
@@ -270,38 +346,18 @@ final class PlatformerEnemyComponent extends PositionComponent
     switch (archetype) {
       case PlatformerEnemyArchetype.patchMite:
         if (playerDistance <= 145) {
-          _beginAction(
-            id: 'patchMite.bite',
-            telegraph: 0.30,
-            active: 0.18,
-            recovery: 0.55,
-          );
+          _beginBrainAction();
         }
       case PlatformerEnemyArchetype.checksumHopper:
         if (_grounded && playerDistance <= 310) {
-          _beginAction(
-            id: 'checksumHopper.leap',
-            telegraph: 0.45,
-            active: 0.08,
-            recovery: 0.65,
-          );
+          _beginBrainAction();
         }
       case PlatformerEnemyArchetype.pulseTurret:
         if (playerDistance <= 520) {
-          _beginAction(
-            id: 'pulseTurret.lockedShot',
-            telegraph: 0.60,
-            active: 0.08,
-            recovery: 0.75,
-          );
+          _beginBrainAction();
         }
       case PlatformerEnemyArchetype.repairLeech:
-        _beginAction(
-          id: 'repairLeech.channel',
-          telegraph: 0.30,
-          active: 0.12,
-          recovery: 0.95,
-        );
+        _beginBrainAction();
       case PlatformerEnemyArchetype.overflowWarden:
         final shouldSummonHigh =
             healthState.current <= 5 && !_wardenSummonedAtHighThreshold;
@@ -313,30 +369,15 @@ final class PlatformerEnemyComponent extends PositionComponent
           } else {
             _wardenSummonedAtLowThreshold = true;
           }
-          _beginAction(
-            id: 'warden.summonLeech',
-            telegraph: 0.65,
-            active: 0.10,
-            recovery: 0.65,
-          );
+          _beginBrainAction(variant: 'summon');
         } else if (_wardenPatternIndex.isEven) {
           _wardenPatternIndex += 1;
-          _beginAction(
-            id: 'warden.slam',
-            telegraph: 0.75,
-            active: 0.12,
-            recovery: 0.80,
-          );
+          _beginBrainAction();
         } else {
           _wardenPatternIndex += 1;
           _facing = (game.world.player.position.x - position.x).sign.toDouble();
           if (_facing == 0) _facing = 1;
-          _beginAction(
-            id: 'warden.guard',
-            telegraph: 0.25,
-            active: 0.90,
-            recovery: 0.40,
-          );
+          _beginBrainAction(variant: 'guard');
         }
       default:
         break;
@@ -345,72 +386,13 @@ final class PlatformerEnemyComponent extends PositionComponent
 
   void _scheduleAdvancedRoomAction() {
     if (_action != null || _actionClock < _nextAttackAt) return;
-    final request = switch (archetype) {
-      PlatformerEnemyArchetype.tickRunner => (
-        'tickRunner.threeStepLunge',
-        0.36,
-        0.28,
-        0.48,
-      ),
-      PlatformerEnemyArchetype.echoBat => (
-        'echoBat.arcReplay',
-        0.52,
-        0.34,
-        0.62,
-      ),
-      PlatformerEnemyArchetype.delaySniper => (
-        'delaySniper.lockedShot',
-        0.90,
-        0.08,
-        0.72,
-      ),
+    final variant = switch (archetype) {
       PlatformerEnemyArchetype.rewindSkater =>
-        _rewindReturning
-            ? ('rewindSkater.rewind', 0.34, 0.42, 0.52)
-            : ('rewindSkater.dash', 0.28, 0.42, 0.40),
-      PlatformerEnemyArchetype.chronoJailer => (
-        'chronoJailer.clockSweep',
-        0.70,
-        0.20,
-        0.78,
-      ),
-      PlatformerEnemyArchetype.vectorRam => (
-        'vectorRam.impactCharge',
-        0.48,
-        0.36,
-        0.68,
-      ),
-      PlatformerEnemyArchetype.polarityDrone =>
-        _polarityPushes
-            ? ('polarityDrone.pushField', 0.42, 0.18, 0.78)
-            : ('polarityDrone.pullField', 0.42, 0.18, 0.78),
-      PlatformerEnemyArchetype.phaseMimic => (
-        'phaseMimic.belowSnap',
-        0.72,
-        0.16,
-        0.85,
-      ),
-      PlatformerEnemyArchetype.shardLobber => (
-        'shardLobber.ricochet',
-        0.65,
-        0.08,
-        0.82,
-      ),
-      PlatformerEnemyArchetype.kernelChimera => (
-        'kernelChimera.polarityCollision',
-        0.82,
-        0.24,
-        0.90,
-      ),
+        _rewindReturning ? 'rewind' : null,
+      PlatformerEnemyArchetype.polarityDrone => _polarityPushes ? 'push' : null,
       _ => null,
     };
-    if (request == null) return;
-    _beginAction(
-      id: request.$1,
-      telegraph: request.$2,
-      active: request.$3,
-      recovery: request.$4,
-    );
+    _beginBrainAction(variant: variant);
   }
 
   void _beginAction({
@@ -428,6 +410,19 @@ final class PlatformerEnemyComponent extends PositionComponent
     _combatState = EnemyCombatState.telegraph;
     final direction = game.world.player.position.x - position.x;
     if (direction.abs() > 0.01) _facing = direction.sign.toDouble();
+  }
+
+  void _beginBrainAction({String? variant}) {
+    final decision = PlatformerEnemyBrain.forArchetype(
+      archetype.name,
+      variant: variant,
+    );
+    _beginAction(
+      id: decision.actionId,
+      telegraph: decision.telegraph,
+      active: decision.active,
+      recovery: decision.recovery,
+    );
   }
 
   void _advanceAction(double dt) {
@@ -508,7 +503,22 @@ final class PlatformerEnemyComponent extends PositionComponent
       case 'tickRunner.threeStepLunge':
         _spawnAttachedStrike('enemy.tickRunner.threeStepLunge', 52, 26, 0.28);
       case 'echoBat.arcReplay':
-        _spawnAttachedStrike('enemy.echoBat.arcReplay', 66, 44, 0.34);
+        if (_motionHistory.isEmpty) {
+          _spawnAttachedStrike('enemy.echoBat.arcReplay', 66, 44, 0.34);
+        } else {
+          for (final index in <int>[
+            0,
+            _motionHistory.length ~/ 2,
+            _motionHistory.length - 1,
+          ]) {
+            _spawnStrikeAt(
+              'enemy.echoBat.arcReplay',
+              _motionHistory[index],
+              Vector2(42, 42),
+              0.34,
+            );
+          }
+        }
       case 'delaySniper.lockedShot':
         unawaited(
           _fireAtPlayer(
@@ -572,6 +582,18 @@ final class PlatformerEnemyComponent extends PositionComponent
           Vector2(230, 30),
           0.24,
         );
+        _spawnStrikeAt(
+          'enemy.kernelChimera.cyanHalf',
+          position + Vector2(-66, 0),
+          Vector2(48, 74),
+          0.24,
+        );
+        _spawnStrikeAt(
+          'enemy.kernelChimera.magentaHalf',
+          position + Vector2(66, 0),
+          Vector2(48, 74),
+          0.24,
+        );
     }
   }
 
@@ -608,6 +630,28 @@ final class PlatformerEnemyComponent extends PositionComponent
         owner,
         EnemyDamageVolumeComponent(
           position: position + (offset ?? Vector2.zero()),
+          size: strikeSize,
+          sourceId: sourceId,
+          activeSeconds: seconds,
+          volumeColor: archetype.accentColor.withAlpha(105),
+        ),
+      ),
+    );
+  }
+
+  void _spawnStrikeAt(
+    String sourceId,
+    Vector2 strikePosition,
+    Vector2 strikeSize,
+    double seconds,
+  ) {
+    final owner = parent;
+    if (owner == null) return;
+    unawaited(
+      _addComponent(
+        owner,
+        EnemyDamageVolumeComponent(
+          position: strikePosition,
           size: strikeSize,
           sourceId: sourceId,
           activeSeconds: seconds,
@@ -857,6 +901,10 @@ final class PlatformerEnemyComponent extends PositionComponent
 
   @override
   void render(Canvas canvas) {
+    if (_spriteVisual != null) {
+      _renderSpriteOverlay(canvas);
+      return;
+    }
     final primary = Paint()..color = archetype.primaryColor;
     final accent = Paint()..color = archetype.accentColor;
     final dark = Paint()..color = const Color(0xFF101827);
@@ -1010,6 +1058,41 @@ final class PlatformerEnemyComponent extends PositionComponent
     canvas.drawRect(
       Rect.fromLTWH(0, -5, size.x, 3),
       dark..style = PaintingStyle.fill,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, -5, size.x * math.min(currentRatio, maxRatio), 3),
+      Paint()..color = const Color(0xFF36E1FF),
+    );
+    if (currentRatio > maxRatio) {
+      canvas.drawRect(
+        Rect.fromLTWH(
+          size.x * maxRatio,
+          -5,
+          size.x * (currentRatio - maxRatio),
+          3,
+        ),
+        Paint()..color = const Color(0xFFFF4FD8),
+      );
+    }
+  }
+
+  void _renderSpriteOverlay(Canvas canvas) {
+    final center = Offset(size.x / 2, size.y / 2);
+    if (_combatState == EnemyCombatState.telegraph) {
+      canvas.drawRect(
+        Rect.fromLTWH(1, 1, size.x - 2, size.y - 2),
+        Paint()
+          ..color = const Color(0xFFFFB34D)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3,
+      );
+      _renderActionTelegraph(canvas, center);
+    }
+    final maxRatio = healthState.max / healthState.overflowThreshold;
+    final currentRatio = healthState.normalizedForOverflowBar;
+    canvas.drawRect(
+      Rect.fromLTWH(0, -5, size.x, 3),
+      Paint()..color = const Color(0xFF101827),
     );
     canvas.drawRect(
       Rect.fromLTWH(0, -5, size.x * math.min(currentRatio, maxRatio), 3),
