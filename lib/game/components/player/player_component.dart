@@ -5,12 +5,13 @@ import 'dart:ui';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
+import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/player/platformer_motion.dart';
 import 'package:patch_world/game/components/visuals/entity_sprite_visual.dart';
 import 'package:patch_world/game/patch_world_game.dart';
-import 'package:patch_world/game/rooms/room_one_controller.dart';
+import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
 import 'package:patch_world/services/game_settings.dart';
@@ -136,7 +137,7 @@ final class PlayerComponent extends RectangleComponent
   bool get _usesPlatformerMovement =>
       isMounted &&
       game.mode == PatchWorldMode.campaign &&
-      game.world.activeRoom is RoomOneController;
+      game.world.activeRoom is PlatformerRoomGeometry;
 
   void tryAttack() {
     if (!canAttack) {
@@ -297,8 +298,11 @@ final class PlayerComponent extends RectangleComponent
             activeRoom.isPhaseWindowOpen
         ? game.survivalModifiers.phaseOpenMoveMultiplier
         : 1.0;
-    if (activeRoom is RoomOneController && _usesPlatformerMovement) {
-      _updatePlatformer(statusDt, activeRoom);
+    final platformRoom = activeRoom is PlatformerRoomGeometry
+        ? activeRoom as PlatformerRoomGeometry
+        : null;
+    if (platformRoom != null && _usesPlatformerMovement) {
+      _updatePlatformer(statusDt, platformRoom);
     } else {
       position += _movementInput * (moveSpeed * phaseMoveMultiplier * statusDt);
       _clampToLogicalWorld();
@@ -309,7 +313,7 @@ final class PlayerComponent extends RectangleComponent
     super.update(dt);
   }
 
-  void _updatePlatformer(double dt, RoomOneController room) {
+  void _updatePlatformer(double dt, PlatformerRoomGeometry room) {
     var remaining = math.min(dt, 0.10);
     while (remaining > 0) {
       final step = math.min(remaining, 1 / 120);
@@ -432,6 +436,8 @@ final class PlayerComponent extends RectangleComponent
   ) {
     if (other is CrawlerComponent) {
       takeDamage(1, causeId: 'enemy.crawler.contact');
+    } else if (other is PlatformerEnemyComponent) {
+      takeDamage(1, causeId: 'enemy.${other.archetype.name}.contact');
     }
     super.onCollisionStart(intersectionPoints, other);
   }

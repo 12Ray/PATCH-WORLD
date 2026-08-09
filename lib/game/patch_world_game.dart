@@ -22,6 +22,7 @@ import 'package:patch_world/game/rules/rule_engine.dart';
 import 'package:patch_world/game/rules/rule_ids.dart';
 import 'package:patch_world/game/rooms/room_one_controller.dart';
 import 'package:patch_world/game/rooms/room_two_controller.dart';
+import 'package:patch_world/game/rooms/room_three_controller.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
 import 'package:patch_world/game/systems/enemy_tempo_system.dart';
@@ -1149,12 +1150,17 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           'objective.temporalHall',
           parameters: <String, Object>{
             'count': activeRoom is RoomTwoController
-                ? activeRoom.activatedTerminalCount
+                ? activeRoom.defeatedCount
                 : 0,
           },
         ),
         RoomId.collisionArchive => localization.text(
           'objective.collisionArchive',
+          parameters: <String, Object>{
+            'count': activeRoom is RoomThreeController
+                ? activeRoom.defeatedCount
+                : 0,
+          },
         ),
         RoomId.optimizerCore => switch (boss?.phase.name) {
           'perfect' => localization.text(

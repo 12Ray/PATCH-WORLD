@@ -11,7 +11,7 @@ final class PlatformerMotion {
     this.runDeceleration = 1600,
     this.gravity = 1100,
     this.maxFallSpeed = 650,
-    this.jumpSpeed = 420,
+    this.jumpSpeed = 470,
     this.coyoteSeconds = 0.10,
     this.jumpBufferSeconds = 0.12,
     this.jumpCutMultiplier = 0.45,

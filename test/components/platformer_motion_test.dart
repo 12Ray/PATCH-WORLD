@@ -49,5 +49,22 @@ void main() {
 
       expect(released.velocity.y, greaterThan(held.velocity.y));
     });
+
+    test('full jump clears a ninety pixel mandatory platform step', () {
+      final motion = PlatformerMotion()..grounded = true;
+      motion.queueJump();
+      var height = 0.0;
+      var peak = 0.0;
+
+      for (var frame = 0; frame < 120; frame += 1) {
+        motion.advance(1 / 120, horizontal: 0, jumpHeld: true);
+        height -= motion.velocity.y / 120;
+        peak = peak < height ? height : peak;
+        motion.beginVerticalResolution();
+        if (motion.velocity.y >= 0) break;
+      }
+
+      expect(peak, greaterThan(90));
+    });
   });
 }

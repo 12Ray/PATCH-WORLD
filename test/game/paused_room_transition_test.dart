@@ -42,8 +42,8 @@ void main() {
     expect(game.world.activeRoom, isA<RoomTwoController>());
     expect(game.world.isReady, isTrue);
     expect(game.paused, isFalse);
-    expect(game.uiSnapshot.value.objectiveLabel, contains('0/2'));
-    expect(game.uiSnapshot.value.objectiveLabel, contains('E'));
+    expect(game.uiSnapshot.value.objectiveLabel, contains('0/5'));
+    expect(game.uiSnapshot.value.objectiveLabel, contains('시간'));
     await tester.pump(const Duration(seconds: 7));
   });
 }

@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
+import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/room_one_controller.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -25,6 +26,20 @@ void main() {
 
     final room = game.world.activeRoom! as RoomOneController;
     expect(room.children.whereType<PlatformSurfaceComponent>(), hasLength(9));
+    expect(room.children.whereType<PlatformerEnemyComponent>(), hasLength(5));
+    expect(
+      room.children
+          .whereType<PlatformerEnemyComponent>()
+          .map((enemy) => enemy.archetype)
+          .toSet(),
+      const <PlatformerEnemyArchetype>{
+        PlatformerEnemyArchetype.patchMite,
+        PlatformerEnemyArchetype.checksumHopper,
+        PlatformerEnemyArchetype.pulseTurret,
+        PlatformerEnemyArchetype.repairLeech,
+        PlatformerEnemyArchetype.overflowWarden,
+      },
+    );
     expect(game.world.player.position, room.playerSpawn);
 
     game.resumeEngine();

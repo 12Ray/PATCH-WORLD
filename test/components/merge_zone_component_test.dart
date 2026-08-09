@@ -1,12 +1,20 @@
-import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:patch_world/game/rooms/room_three_controller.dart';
+import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 
 void main() {
-  test('merge zone only accepts targets inside the containment core', () {
-    final zone = MergeZoneComponent(position: Vector2(480, 270));
+  test('collision archive exposes four enemies and one mid-boss concept', () {
+    const roomThree = <PlatformerEnemyArchetype>[
+      PlatformerEnemyArchetype.vectorRam,
+      PlatformerEnemyArchetype.polarityDrone,
+      PlatformerEnemyArchetype.phaseMimic,
+      PlatformerEnemyArchetype.shardLobber,
+      PlatformerEnemyArchetype.kernelChimera,
+    ];
 
-    expect(zone.containsTarget(Vector2(520, 270)), isTrue);
-    expect(zone.containsTarget(Vector2(551, 270)), isFalse);
+    expect(roomThree.map((item) => item.displayName).toSet(), hasLength(5));
+    expect(
+      roomThree.where((item) => item.isMidBoss),
+      <PlatformerEnemyArchetype>[PlatformerEnemyArchetype.kernelChimera],
+    );
   });
 }
