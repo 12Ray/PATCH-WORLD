@@ -5,6 +5,9 @@ import 'dart:ui';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
+import 'package:patch_world/game/components/effects/enemy_damage_volume_component.dart';
+import 'package:patch_world/game/components/enemies/platformer/enemy_action_timeline.dart';
+import 'package:patch_world/game/components/enemies/platformer/enemy_combat_state.dart';
 import 'package:patch_world/game/core/health_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/components/projectiles/enemy_projectile_component.dart';
@@ -116,12 +119,22 @@ final class PlatformerEnemyComponent extends PositionComponent
   double _overflowTimer = 0;
   bool _grounded = false;
   bool _resolved = false;
+  double _facing = 1;
+  EnemyActionTimeline? _action;
+  EnemyCombatState _combatState = EnemyCombatState.idle;
+  bool _hopperLandingPending = false;
+  bool _wardenSummonedAtHighThreshold = false;
+  bool _wardenSummonedAtLowThreshold = false;
+  int _wardenPatternIndex = 0;
 
   @override
   String get entityId => 'platformer.${archetype.name}';
 
   int get health => healthState.current;
   bool get isOverflowing => _overflowTimer > 0;
+  EnemyCombatState get combatState => _combatState;
+  String? get activeActionId => _action?.id;
+  bool get dealsContactDamage => archetype.index >= 5;
 
   @override
   Future<void> onLoad() async {
@@ -156,20 +169,46 @@ final class PlatformerEnemyComponent extends PositionComponent
   void receiveDamage(int amount) {
     if (_resolved || amount <= 0) return;
     final mutation = healthState.applyDamage(amount);
-    if (mutation == HealthMutation.defeated) _resolveDefeat();
+    if (mutation == HealthMutation.defeated) {
+      _resolveDefeat();
+    } else {
+      _combatState = EnemyCombatState.hurt;
+    }
   }
 
   @override
   void receiveHealing(int amount) {
     if (_resolved || amount <= 0) return;
+    if (_isWardenGuardBlockingPlayer) return;
+    _applyHealing(amount);
+  }
+
+  void _receiveSupportHealing(int amount) {
+    if (_resolved || amount <= 0) return;
+    _applyHealing(amount);
+  }
+
+  void _applyHealing(int amount) {
     final mutation = healthState.applyHealing(amount);
     if (mutation == HealthMutation.overflowed) _overflowTimer = 0.36;
+  }
+
+  bool get _isWardenGuardBlockingPlayer {
+    if (archetype != PlatformerEnemyArchetype.overflowWarden ||
+        _action?.id != 'warden.guard' ||
+        _action?.phase != EnemyActionPhase.active ||
+        !isMounted) {
+      return false;
+    }
+    final playerDelta = game.world.player.position.x - position.x;
+    return playerDelta.sign == _facing.sign;
   }
 
   @override
   void update(double dt) {
     final simulationDt = game.clock.simulationDt;
     if (_overflowTimer > 0) {
+      _combatState = EnemyCombatState.overflowing;
       _overflowTimer -= simulationDt;
       scale.setAll(1 + (0.36 - _overflowTimer) * 0.7);
       if (_overflowTimer <= 0) _resolveDefeat(corrupted: true);
@@ -197,6 +236,11 @@ final class PlatformerEnemyComponent extends PositionComponent
       return;
     }
 
+    if (archetype.index < 5) {
+      _scheduleDamageLabAction();
+      _advanceAction(enemyDt);
+    }
+
     switch (archetype.mobility) {
       case PlatformerEnemyMobility.flying:
         _updateFlying(enemyDt);
@@ -208,10 +252,215 @@ final class PlatformerEnemyComponent extends PositionComponent
         _updateGrounded(enemyDt, room.solidBounds);
     }
     _updateConceptAction();
+    if (_action == null && _combatState != EnemyCombatState.hurt) {
+      _combatState = _velocity.length2 > 1
+          ? EnemyCombatState.moving
+          : EnemyCombatState.idle;
+    } else if (_combatState == EnemyCombatState.hurt) {
+      _combatState = EnemyCombatState.idle;
+    }
     super.update(dt);
   }
 
+  void _scheduleDamageLabAction() {
+    if (_action != null || _actionClock < _nextAttackAt) return;
+    final playerDistance = game.world.player.position.distanceTo(position);
+    switch (archetype) {
+      case PlatformerEnemyArchetype.patchMite:
+        if (playerDistance <= 145) {
+          _beginAction(
+            id: 'patchMite.bite',
+            telegraph: 0.30,
+            active: 0.18,
+            recovery: 0.55,
+          );
+        }
+      case PlatformerEnemyArchetype.checksumHopper:
+        if (_grounded && playerDistance <= 310) {
+          _beginAction(
+            id: 'checksumHopper.leap',
+            telegraph: 0.45,
+            active: 0.08,
+            recovery: 0.65,
+          );
+        }
+      case PlatformerEnemyArchetype.pulseTurret:
+        if (playerDistance <= 520) {
+          _beginAction(
+            id: 'pulseTurret.lockedShot',
+            telegraph: 0.60,
+            active: 0.08,
+            recovery: 0.75,
+          );
+        }
+      case PlatformerEnemyArchetype.repairLeech:
+        _beginAction(
+          id: 'repairLeech.channel',
+          telegraph: 0.30,
+          active: 0.12,
+          recovery: 0.95,
+        );
+      case PlatformerEnemyArchetype.overflowWarden:
+        final shouldSummonHigh =
+            healthState.current <= 5 && !_wardenSummonedAtHighThreshold;
+        final shouldSummonLow =
+            healthState.current <= 2 && !_wardenSummonedAtLowThreshold;
+        if (shouldSummonHigh || shouldSummonLow) {
+          if (shouldSummonHigh) {
+            _wardenSummonedAtHighThreshold = true;
+          } else {
+            _wardenSummonedAtLowThreshold = true;
+          }
+          _beginAction(
+            id: 'warden.summonLeech',
+            telegraph: 0.65,
+            active: 0.10,
+            recovery: 0.65,
+          );
+        } else if (_wardenPatternIndex.isEven) {
+          _wardenPatternIndex += 1;
+          _beginAction(
+            id: 'warden.slam',
+            telegraph: 0.75,
+            active: 0.12,
+            recovery: 0.80,
+          );
+        } else {
+          _wardenPatternIndex += 1;
+          _facing = (game.world.player.position.x - position.x).sign.toDouble();
+          if (_facing == 0) _facing = 1;
+          _beginAction(
+            id: 'warden.guard',
+            telegraph: 0.25,
+            active: 0.90,
+            recovery: 0.40,
+          );
+        }
+      default:
+        break;
+    }
+  }
+
+  void _beginAction({
+    required String id,
+    required double telegraph,
+    required double active,
+    required double recovery,
+  }) {
+    _action = EnemyActionTimeline(
+      id: id,
+      telegraphSeconds: telegraph,
+      activeSeconds: active,
+      recoverySeconds: recovery,
+    );
+    _combatState = EnemyCombatState.telegraph;
+    final direction = game.world.player.position.x - position.x;
+    if (direction.abs() > 0.01) _facing = direction.sign.toDouble();
+  }
+
+  void _advanceAction(double dt) {
+    final action = _action;
+    if (action == null) return;
+    final tick = action.advance(dt);
+    _combatState = switch (action.phase) {
+      EnemyActionPhase.telegraph => EnemyCombatState.telegraph,
+      EnemyActionPhase.active => EnemyCombatState.attacking,
+      EnemyActionPhase.recovery => EnemyCombatState.recovering,
+      EnemyActionPhase.completed => EnemyCombatState.idle,
+    };
+    if (tick.enteredActive) _executeDamageLabAction(action.id);
+    if (tick.completed) {
+      _action = null;
+      _nextAttackAt =
+          _actionClock +
+          switch (archetype) {
+            PlatformerEnemyArchetype.patchMite => 1.0,
+            PlatformerEnemyArchetype.checksumHopper => 1.25,
+            PlatformerEnemyArchetype.pulseTurret => 1.3,
+            PlatformerEnemyArchetype.repairLeech => 1.1,
+            PlatformerEnemyArchetype.overflowWarden => 0.85,
+            _ => 1.5,
+          };
+    }
+  }
+
+  void _executeDamageLabAction(String id) {
+    switch (id) {
+      case 'patchMite.bite':
+        unawaited(
+          _addComponent(
+            this,
+            EnemyDamageVolumeComponent(
+              position: Vector2(size.x / 2 + _facing * 22, size.y / 2),
+              size: Vector2(24, 22),
+              sourceId: 'enemy.patchMite.bite',
+              activeSeconds: 0.18,
+            ),
+          ),
+        );
+      case 'checksumHopper.leap':
+        _velocity.x = _facing * 92;
+        _velocity.y = -405;
+        _grounded = false;
+        _hopperLandingPending = true;
+      case 'pulseTurret.lockedShot':
+        unawaited(
+          _fireAtPlayer(
+            sourceId: 'enemy.pulseTurret.pulseBolt',
+            speed: 92,
+            color: const Color(0xFFFF4FD8),
+          ),
+        );
+      case 'repairLeech.channel':
+        _repairNearestAlly();
+      case 'warden.slam':
+        final owner = parent;
+        if (owner != null) {
+          unawaited(
+            _addComponent(
+              owner,
+              EnemyDamageVolumeComponent(
+                position: Vector2(position.x, position.y + size.y / 2),
+                size: Vector2(190, 22),
+                sourceId: 'enemy.overflowWarden.conduitSlam',
+                activeSeconds: 0.16,
+                volumeColor: const Color(0x77FFB34D),
+              ),
+            ),
+          );
+        }
+      case 'warden.summonLeech':
+        unawaited(_summonWardenLeech());
+      case 'warden.guard':
+        break;
+    }
+  }
+
+  Future<void> _summonWardenLeech() async {
+    final owner = parent;
+    if (owner == null || isRemoving) return;
+    await owner.add(
+      PlatformerEnemyComponent(
+        archetype: PlatformerEnemyArchetype.repairLeech,
+        position: Vector2(
+          (position.x - _facing * 76).clamp(
+            48,
+            PatchWorldGame.logicalWidth - 48,
+          ),
+          position.y - 12,
+        ),
+        // Summons are support hazards, not one of the room's five primary kills.
+        onDefeated: (_) {},
+      ),
+    );
+  }
+
+  Future<void> _addComponent(Component owner, Component child) async {
+    await owner.add(child);
+  }
+
   void _updateConceptAction() {
+    if (archetype.index < 5) return;
     final firesProjectile = switch (archetype) {
       PlatformerEnemyArchetype.pulseTurret ||
       PlatformerEnemyArchetype.delaySniper ||
@@ -222,7 +471,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     };
     if (firesProjectile && _actionClock >= _nextAttackAt) {
       _nextAttackAt = _actionClock + (archetype.isMidBoss ? 1.35 : 2.2);
-      unawaited(_fireAtPlayer());
+      unawaited(_fireAtPlayer(sourceId: 'enemy.${archetype.name}.projectile'));
     }
     if (archetype == PlatformerEnemyArchetype.repairLeech &&
         _actionClock >= _nextSupportAt) {
@@ -231,7 +480,11 @@ final class PlatformerEnemyComponent extends PositionComponent
     }
   }
 
-  Future<void> _fireAtPlayer() async {
+  Future<void> _fireAtPlayer({
+    String? sourceId,
+    double? speed,
+    Color color = const Color(0xFFFF4FD8),
+  }) async {
     if (!game.world.canSpawnProjectile || isRemoving) return;
     final direction = game.world.player.position - position;
     if (direction.length2 == 0) direction.x = 1;
@@ -239,7 +492,9 @@ final class PlatformerEnemyComponent extends PositionComponent
     await parent?.add(
       EnemyProjectileComponent(
         position: position.clone(),
-        velocity: direction * (archetype.isMidBoss ? 145 : 120),
+        velocity: direction * (speed ?? (archetype.isMidBoss ? 145 : 120)),
+        sourceId: sourceId ?? 'enemy.${archetype.name}.projectile',
+        projectileColor: color,
       ),
     );
   }
@@ -259,7 +514,7 @@ final class PlatformerEnemyComponent extends PositionComponent
         nearest = target;
       }
     }
-    if (nearestDistance <= 230 * 230) nearest?.receiveHealing(1);
+    if (nearestDistance <= 230 * 230) nearest?._receiveSupportHealing(1);
   }
 
   void _updateFlying(double dt) {
@@ -293,6 +548,15 @@ final class PlatformerEnemyComponent extends PositionComponent
     final targetX = playerDistanceX <= aggroRange ? player.x : patrolTarget;
     final direction = (targetX - position.x).sign.toDouble();
     var speed = archetype.isMidBoss ? 52.0 : 66.0;
+    if (archetype == PlatformerEnemyArchetype.patchMite &&
+        _action?.id == 'patchMite.bite' &&
+        _action?.phase == EnemyActionPhase.active) {
+      speed = 215;
+    }
+    if (archetype == PlatformerEnemyArchetype.overflowWarden &&
+        _action?.id == 'warden.guard') {
+      speed = 0;
+    }
     if (archetype == PlatformerEnemyArchetype.tickRunner) speed = 88;
     if (archetype == PlatformerEnemyArchetype.rewindSkater ||
         archetype == PlatformerEnemyArchetype.vectorRam) {
@@ -300,7 +564,8 @@ final class PlatformerEnemyComponent extends PositionComponent
     }
     _velocity.x = direction * speed;
     final shouldJump =
-        archetype.mobility == PlatformerEnemyMobility.hopper ||
+        (archetype.mobility == PlatformerEnemyMobility.hopper &&
+            archetype != PlatformerEnemyArchetype.checksumHopper) ||
         (_grounded && !_hasSupportAhead(solids, direction)) ||
         (player.y < position.y - 42 &&
             archetype.mobility != PlatformerEnemyMobility.grounded);
@@ -336,6 +601,24 @@ final class PlatformerEnemyComponent extends PositionComponent
     _grounded = false;
     position.y += _velocity.y * dt;
     _resolveVertical(solids, oldY);
+    if (_grounded && _hopperLandingPending) {
+      _hopperLandingPending = false;
+      final owner = parent;
+      if (owner != null) {
+        unawaited(
+          _addComponent(
+            owner,
+            EnemyDamageVolumeComponent(
+              position: Vector2(position.x, position.y + size.y / 2),
+              size: Vector2(104, 18),
+              sourceId: 'enemy.checksumHopper.landingShockwave',
+              activeSeconds: 0.14,
+              volumeColor: const Color(0x77FFB34D),
+            ),
+          ),
+        );
+      }
+    }
     if (position.y > PatchWorldGame.logicalHeight + 80) {
       position.setFrom(_homePosition);
       _velocity.setZero();
@@ -386,6 +669,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   void _resolveDefeat({bool corrupted = false}) {
     if (_resolved) return;
     _resolved = true;
+    _combatState = EnemyCombatState.defeated;
     if (isMounted) {
       game.world.spawnDataShards(
         position,
@@ -410,6 +694,24 @@ final class PlatformerEnemyComponent extends PositionComponent
     );
 
     canvas.drawRect(body, primary);
+    if (_combatState == EnemyCombatState.telegraph) {
+      canvas.drawRect(
+        Rect.fromLTWH(1, 1, size.x - 2, size.y - 2),
+        Paint()
+          ..color = const Color(0xFFFFB34D)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = archetype.isMidBoss ? 4 : 3,
+      );
+    } else if (_combatState == EnemyCombatState.attacking) {
+      canvas.drawCircle(
+        center,
+        math.min(size.x, size.y) * 0.46,
+        Paint()
+          ..color = const Color(0xAAFF4FD8)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3,
+      );
+    }
     switch (archetype) {
       case PlatformerEnemyArchetype.patchMite:
         for (final y in <double>[20, 27, 34]) {

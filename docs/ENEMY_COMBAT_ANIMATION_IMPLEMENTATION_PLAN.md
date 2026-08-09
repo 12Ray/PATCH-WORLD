@@ -4,6 +4,19 @@
 작성일: 2026-08-09  
 관련 명세: `PLATFORMER_ENEMY_ROSTER.md`, `ENEMY_SPRITE_INTEGRATION_PLAN.md`
 
+## 구현 진행 — 2026-08-09
+
+- M0 완료: 룸 회귀 테스트, 고유 projectile source ID, Damage Lab body
+  contact damage 제거.
+- M1 진행 중: `EnemyActionTimeline`, `EnemyCombatState`, active 전용
+  `EnemyDamageVolumeComponent`, 확장된 projectile 계약 구현. 적별 Brain/context
+  파일 분리는 남아 있다.
+- M2 진행 중: Patch Mite bite, Checksum Hopper leap/landing shockwave,
+  Pulse Turret bolt, Repair Leech channel, Overflow Warden guard/slam/summon
+  1차 구현. 조준선, 착지 호, hose와 세부 밸런스는 남아 있다.
+- 검증: `flutter analyze`, 전체 159개 테스트, `flutter build web` 통과.
+- 전체 계획 진행률: 약 25%.
+
 ## 1. 문제 정의
 
 현재 `PlatformerEnemyComponent` 하나가 15종의 이동, 공격, 체력, 렌더링을

@@ -49,5 +49,31 @@ void main() {
 
     expect(game.world.player.position, room.playerSpawn);
     expect(game.world.player.integrity, game.world.player.maxIntegrity - 1);
+
+    game.world.player.position.setValues(220, 448);
+    for (var frame = 0; frame < 100; frame += 1) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    final actions = <PlatformerEnemyArchetype, String?>{
+      for (final enemy in room.children.whereType<PlatformerEnemyComponent>())
+        enemy.archetype: enemy.activeActionId,
+    };
+    expect(actions[PlatformerEnemyArchetype.patchMite], 'patchMite.bite');
+    expect(
+      actions[PlatformerEnemyArchetype.checksumHopper],
+      'checksumHopper.leap',
+    );
+    expect(
+      actions[PlatformerEnemyArchetype.pulseTurret],
+      'pulseTurret.lockedShot',
+    );
+    expect(
+      actions[PlatformerEnemyArchetype.repairLeech],
+      'repairLeech.channel',
+    );
+    expect(
+      actions[PlatformerEnemyArchetype.overflowWarden],
+      startsWith('warden.'),
+    );
   });
 }

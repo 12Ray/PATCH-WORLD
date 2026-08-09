@@ -1,3 +1,4 @@
+import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 
@@ -44,6 +45,29 @@ void main() {
           PlatformerEnemyArchetype.shardLobber,
         ]),
       );
+    },
+  );
+
+  test('campaign projectile identities are archetype-specific', () {
+    final identities = PlatformerEnemyArchetype.values
+        .map((item) => 'enemy.${item.name}.projectile')
+        .toSet();
+
+    expect(identities, hasLength(15));
+    expect(identities, isNot(contains('enemy.sentinel.projectile')));
+  });
+
+  test(
+    'Damage Lab enemies use telegraphed attacks instead of body contact',
+    () {
+      for (final archetype in PlatformerEnemyArchetype.values.take(5)) {
+        final enemy = PlatformerEnemyComponent(
+          archetype: archetype,
+          position: Vector2.zero(),
+          onDefeated: (_) {},
+        );
+        expect(enemy.dealsContactDamage, isFalse, reason: archetype.name);
+      }
     },
   );
 }

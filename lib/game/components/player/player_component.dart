@@ -436,7 +436,7 @@ final class PlayerComponent extends RectangleComponent
   ) {
     if (other is CrawlerComponent) {
       takeDamage(1, causeId: 'enemy.crawler.contact');
-    } else if (other is PlatformerEnemyComponent) {
+    } else if (other is PlatformerEnemyComponent && other.dealsContactDamage) {
       takeDamage(1, causeId: 'enemy.${other.archetype.name}.contact');
     }
     super.onCollisionStart(intersectionPoints, other);

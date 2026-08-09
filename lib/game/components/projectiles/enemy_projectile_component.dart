@@ -10,16 +10,26 @@ import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 
 final class EnemyProjectileComponent extends CircleComponent
     with CollisionCallbacks, HasGameReference<PatchWorldGame> {
-  EnemyProjectileComponent({required super.position, required this.velocity})
-    : super(
-        radius: 7,
-        anchor: Anchor.center,
-        paint: Paint()..color = const Color(0x00000000),
-        priority: 25,
-      );
+  EnemyProjectileComponent({
+    required super.position,
+    required this.velocity,
+    this.sourceId = 'enemy.sentinel.projectile',
+    this.damage = 1,
+    this.lifetimeSeconds = 8,
+    this.projectileColor = const Color(0xFFFF4FD8),
+  }) : super(
+         radius: 7,
+         anchor: Anchor.center,
+         paint: Paint()..color = const Color(0x00000000),
+         priority: 25,
+       );
 
   final Vector2 velocity;
-  double _lifetime = 8;
+  final String sourceId;
+  final int damage;
+  final double lifetimeSeconds;
+  final Color projectileColor;
+  late double _lifetime = lifetimeSeconds;
 
   @override
   Future<void> onLoad() async {
@@ -61,7 +71,7 @@ final class EnemyProjectileComponent extends CircleComponent
         center.dy - perpendicular.dy * 5,
       )
       ..close();
-    canvas.drawPath(bolt, Paint()..color = const Color(0xFFFF4FD8));
+    canvas.drawPath(bolt, Paint()..color = projectileColor);
     canvas.drawCircle(center, 2.5, Paint()..color = const Color(0xFFFFFFFF));
     if (game.clock.isSimulationFrozen) {
       canvas.drawCircle(
@@ -101,7 +111,7 @@ final class EnemyProjectileComponent extends CircleComponent
     PositionComponent other,
   ) {
     if (other is PlayerComponent) {
-      other.takeDamage(1, causeId: 'enemy.sentinel.projectile');
+      other.takeDamage(damage, causeId: sourceId);
       removeFromParent();
     } else if (other is WallComponent ||
         (other is PhaseWallComponent && other.isSolid)) {
