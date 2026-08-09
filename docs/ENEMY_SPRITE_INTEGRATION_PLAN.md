@@ -3,6 +3,10 @@
 Status: planned, runtime sprite work not started  
 Date: 2026-08-09
 
+The detailed behavior, state-machine, attack, and test architecture is defined
+in `ENEMY_COMBAT_ANIMATION_IMPLEMENTATION_PLAN.md`. This document remains the
+asset-production and visual-integration checklist.
+
 ## Diagnosis
 
 The fifteen platformer archetypes are present in the campaign runtime. Each
