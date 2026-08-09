@@ -17,6 +17,20 @@
 - 검증: `flutter analyze`, 전체 159개 테스트, `flutter build web` 통과.
 - 전체 계획 진행률: 약 25%.
 
+### 후속 구현 — 2026-08-09
+
+- ROOM 2: Tick Runner lunge, Echo Bat arc replay, Delay Sniper delayed shot,
+  Rewind Skater dash/rewind, Chrono Jailer clock sweep를 timeline에 연결.
+- ROOM 3: Vector Ram impact charge, Polarity Drone pull/push impulse, Phase
+  Mimic below snap, Shard Lobber gravity/2-bounce shard, Kernel Chimera
+  recombination shockwave를 timeline에 연결.
+- 15종 모두 body contact damage를 제거하고 active attack volume 또는 전용
+  projectile/force만 플레이어에게 영향을 주도록 변경.
+- 공격별 조준선, 점프 호, 연결선, 극성 범위, 반사점, 보스 sweep을 코드 기반
+  telegraph로 표시.
+- 전체 계획 진행률: 약 55%. 적별 Brain 파일 분리, motion-history 정밀 재생,
+  최종 RGBA animation strip 연결과 실플레이 밸런스는 남아 있다.
+
 ## 1. 문제 정의
 
 현재 `PlatformerEnemyComponent` 하나가 15종의 이동, 공격, 체력, 렌더링을

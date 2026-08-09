@@ -115,7 +115,6 @@ final class PlatformerEnemyComponent extends PositionComponent
   double _jumpCooldown = 0;
   double _actionClock = 0;
   double _nextAttackAt = 1.4;
-  double _nextSupportAt = 2.2;
   double _overflowTimer = 0;
   bool _grounded = false;
   bool _resolved = false;
@@ -126,6 +125,8 @@ final class PlatformerEnemyComponent extends PositionComponent
   bool _wardenSummonedAtHighThreshold = false;
   bool _wardenSummonedAtLowThreshold = false;
   int _wardenPatternIndex = 0;
+  bool _rewindReturning = false;
+  bool _polarityPushes = false;
 
   @override
   String get entityId => 'platformer.${archetype.name}';
@@ -134,7 +135,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   bool get isOverflowing => _overflowTimer > 0;
   EnemyCombatState get combatState => _combatState;
   String? get activeActionId => _action?.id;
-  bool get dealsContactDamage => archetype.index >= 5;
+  bool get dealsContactDamage => false;
 
   @override
   Future<void> onLoad() async {
@@ -238,8 +239,10 @@ final class PlatformerEnemyComponent extends PositionComponent
 
     if (archetype.index < 5) {
       _scheduleDamageLabAction();
-      _advanceAction(enemyDt);
+    } else {
+      _scheduleAdvancedRoomAction();
     }
+    _advanceAction(enemyDt);
 
     switch (archetype.mobility) {
       case PlatformerEnemyMobility.flying:
@@ -251,7 +254,6 @@ final class PlatformerEnemyComponent extends PositionComponent
           PlatformerEnemyMobility.boss:
         _updateGrounded(enemyDt, room.solidBounds);
     }
-    _updateConceptAction();
     if (_action == null && _combatState != EnemyCombatState.hurt) {
       _combatState = _velocity.length2 > 1
           ? EnemyCombatState.moving
@@ -341,6 +343,76 @@ final class PlatformerEnemyComponent extends PositionComponent
     }
   }
 
+  void _scheduleAdvancedRoomAction() {
+    if (_action != null || _actionClock < _nextAttackAt) return;
+    final request = switch (archetype) {
+      PlatformerEnemyArchetype.tickRunner => (
+        'tickRunner.threeStepLunge',
+        0.36,
+        0.28,
+        0.48,
+      ),
+      PlatformerEnemyArchetype.echoBat => (
+        'echoBat.arcReplay',
+        0.52,
+        0.34,
+        0.62,
+      ),
+      PlatformerEnemyArchetype.delaySniper => (
+        'delaySniper.lockedShot',
+        0.90,
+        0.08,
+        0.72,
+      ),
+      PlatformerEnemyArchetype.rewindSkater =>
+        _rewindReturning
+            ? ('rewindSkater.rewind', 0.34, 0.42, 0.52)
+            : ('rewindSkater.dash', 0.28, 0.42, 0.40),
+      PlatformerEnemyArchetype.chronoJailer => (
+        'chronoJailer.clockSweep',
+        0.70,
+        0.20,
+        0.78,
+      ),
+      PlatformerEnemyArchetype.vectorRam => (
+        'vectorRam.impactCharge',
+        0.48,
+        0.36,
+        0.68,
+      ),
+      PlatformerEnemyArchetype.polarityDrone =>
+        _polarityPushes
+            ? ('polarityDrone.pushField', 0.42, 0.18, 0.78)
+            : ('polarityDrone.pullField', 0.42, 0.18, 0.78),
+      PlatformerEnemyArchetype.phaseMimic => (
+        'phaseMimic.belowSnap',
+        0.72,
+        0.16,
+        0.85,
+      ),
+      PlatformerEnemyArchetype.shardLobber => (
+        'shardLobber.ricochet',
+        0.65,
+        0.08,
+        0.82,
+      ),
+      PlatformerEnemyArchetype.kernelChimera => (
+        'kernelChimera.polarityCollision',
+        0.82,
+        0.24,
+        0.90,
+      ),
+      _ => null,
+    };
+    if (request == null) return;
+    _beginAction(
+      id: request.$1,
+      telegraph: request.$2,
+      active: request.$3,
+      recovery: request.$4,
+    );
+  }
+
   void _beginAction({
     required String id,
     required double telegraph,
@@ -368,7 +440,7 @@ final class PlatformerEnemyComponent extends PositionComponent
       EnemyActionPhase.recovery => EnemyCombatState.recovering,
       EnemyActionPhase.completed => EnemyCombatState.idle,
     };
-    if (tick.enteredActive) _executeDamageLabAction(action.id);
+    if (tick.enteredActive) _executeAction(action.id);
     if (tick.completed) {
       _action = null;
       _nextAttackAt =
@@ -384,7 +456,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     }
   }
 
-  void _executeDamageLabAction(String id) {
+  void _executeAction(String id) {
     switch (id) {
       case 'patchMite.bite':
         unawaited(
@@ -433,7 +505,116 @@ final class PlatformerEnemyComponent extends PositionComponent
         unawaited(_summonWardenLeech());
       case 'warden.guard':
         break;
+      case 'tickRunner.threeStepLunge':
+        _spawnAttachedStrike('enemy.tickRunner.threeStepLunge', 52, 26, 0.28);
+      case 'echoBat.arcReplay':
+        _spawnAttachedStrike('enemy.echoBat.arcReplay', 66, 44, 0.34);
+      case 'delaySniper.lockedShot':
+        unawaited(
+          _fireAtPlayer(
+            sourceId: 'enemy.delaySniper.delayedShot',
+            speed: 168,
+            color: const Color(0xFF9D8CFF),
+          ),
+        );
+      case 'rewindSkater.dash':
+        _rewindReturning = true;
+        _spawnAttachedStrike('enemy.rewindSkater.dashTrail', 62, 22, 0.42);
+      case 'rewindSkater.rewind':
+        _rewindReturning = false;
+        _facing *= -1;
+        _spawnAttachedStrike('enemy.rewindSkater.rewindTrail', 76, 24, 0.42);
+      case 'chronoJailer.clockSweep':
+        _spawnWorldStrike(
+          'enemy.chronoJailer.clockHandSweep',
+          Vector2(176, 18),
+          0.20,
+        );
+        _spawnWorldStrike(
+          'enemy.chronoJailer.clockHandSweep',
+          Vector2(18, 150),
+          0.20,
+        );
+      case 'vectorRam.impactCharge':
+        _spawnAttachedStrike('enemy.vectorRam.impactCharge', 70, 30, 0.36);
+      case 'polarityDrone.pullField':
+        _polarityPushes = true;
+        final delta = position - game.world.player.position;
+        if (delta.length2 > 0) {
+          game.world.player.applyExternalImpulse(delta.normalized() * 155);
+        }
+      case 'polarityDrone.pushField':
+        _polarityPushes = false;
+        final delta = game.world.player.position - position;
+        if (delta.length2 > 0) {
+          game.world.player.applyExternalImpulse(delta.normalized() * 190);
+        }
+      case 'phaseMimic.belowSnap':
+        _spawnWorldStrike(
+          'enemy.phaseMimic.belowSnap',
+          Vector2(58, 70),
+          0.16,
+          offset: Vector2(0, -34),
+        );
+      case 'shardLobber.ricochet':
+        unawaited(
+          _fireAtPlayer(
+            sourceId: 'enemy.shardLobber.ricochetShard',
+            speed: 138,
+            color: const Color(0xFF36E1FF),
+            gravity: 260,
+            bounces: 2,
+          ),
+        );
+      case 'kernelChimera.polarityCollision':
+        _spawnWorldStrike(
+          'enemy.kernelChimera.recombineShockwave',
+          Vector2(230, 30),
+          0.24,
+        );
     }
+  }
+
+  void _spawnAttachedStrike(
+    String sourceId,
+    double width,
+    double height,
+    double seconds,
+  ) {
+    unawaited(
+      _addComponent(
+        this,
+        EnemyDamageVolumeComponent(
+          position: Vector2(size.x / 2 + _facing * width * 0.35, size.y / 2),
+          size: Vector2(width, height),
+          sourceId: sourceId,
+          activeSeconds: seconds,
+          volumeColor: archetype.accentColor.withAlpha(105),
+        ),
+      ),
+    );
+  }
+
+  void _spawnWorldStrike(
+    String sourceId,
+    Vector2 strikeSize,
+    double seconds, {
+    Vector2? offset,
+  }) {
+    final owner = parent;
+    if (owner == null) return;
+    unawaited(
+      _addComponent(
+        owner,
+        EnemyDamageVolumeComponent(
+          position: position + (offset ?? Vector2.zero()),
+          size: strikeSize,
+          sourceId: sourceId,
+          activeSeconds: seconds,
+          volumeColor: archetype.accentColor.withAlpha(105),
+        ),
+      ),
+    );
   }
 
   Future<void> _summonWardenLeech() async {
@@ -459,31 +640,12 @@ final class PlatformerEnemyComponent extends PositionComponent
     await owner.add(child);
   }
 
-  void _updateConceptAction() {
-    if (archetype.index < 5) return;
-    final firesProjectile = switch (archetype) {
-      PlatformerEnemyArchetype.pulseTurret ||
-      PlatformerEnemyArchetype.delaySniper ||
-      PlatformerEnemyArchetype.shardLobber ||
-      PlatformerEnemyArchetype.polarityDrone ||
-      PlatformerEnemyArchetype.chronoJailer => true,
-      _ => false,
-    };
-    if (firesProjectile && _actionClock >= _nextAttackAt) {
-      _nextAttackAt = _actionClock + (archetype.isMidBoss ? 1.35 : 2.2);
-      unawaited(_fireAtPlayer(sourceId: 'enemy.${archetype.name}.projectile'));
-    }
-    if (archetype == PlatformerEnemyArchetype.repairLeech &&
-        _actionClock >= _nextSupportAt) {
-      _nextSupportAt = _actionClock + 2.8;
-      _repairNearestAlly();
-    }
-  }
-
   Future<void> _fireAtPlayer({
     String? sourceId,
     double? speed,
     Color color = const Color(0xFFFF4FD8),
+    double gravity = 0,
+    int bounces = 0,
   }) async {
     if (!game.world.canSpawnProjectile || isRemoving) return;
     final direction = game.world.player.position - position;
@@ -495,6 +657,8 @@ final class PlatformerEnemyComponent extends PositionComponent
         velocity: direction * (speed ?? (archetype.isMidBoss ? 145 : 120)),
         sourceId: sourceId ?? 'enemy.${archetype.name}.projectile',
         projectileColor: color,
+        gravity: gravity,
+        remainingBounces: bounces,
       ),
     );
   }
@@ -561,6 +725,16 @@ final class PlatformerEnemyComponent extends PositionComponent
     if (archetype == PlatformerEnemyArchetype.rewindSkater ||
         archetype == PlatformerEnemyArchetype.vectorRam) {
       speed *= 1 + (math.sin(_actionClock * 2.2) > 0.55 ? 1.5 : 0);
+    }
+    if (_action?.phase == EnemyActionPhase.active) {
+      speed = switch (_action?.id) {
+        'tickRunner.threeStepLunge' => 230,
+        'rewindSkater.dash' => 245,
+        'rewindSkater.rewind' => 265,
+        'vectorRam.impactCharge' => 280,
+        'kernelChimera.polarityCollision' => 185,
+        _ => speed,
+      };
     }
     _velocity.x = direction * speed;
     final shouldJump =
@@ -702,6 +876,7 @@ final class PlatformerEnemyComponent extends PositionComponent
           ..style = PaintingStyle.stroke
           ..strokeWidth = archetype.isMidBoss ? 4 : 3,
       );
+      _renderActionTelegraph(canvas, center);
     } else if (_combatState == EnemyCombatState.attacking) {
       canvas.drawCircle(
         center,
@@ -850,6 +1025,73 @@ final class PlatformerEnemyComponent extends PositionComponent
         ),
         Paint()..color = const Color(0xFFFF4FD8),
       );
+    }
+  }
+
+  void _renderActionTelegraph(Canvas canvas, Offset center) {
+    final actionId = _action?.id ?? '';
+    final tell = Paint()
+      ..color = const Color(0xCCFFB34D)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    if (actionId.contains('lockedShot')) {
+      canvas.drawLine(center, center + Offset(_facing * 230, 0), tell);
+    } else if (actionId == 'checksumHopper.leap') {
+      final arc = Path()
+        ..moveTo(center.dx, center.dy)
+        ..quadraticBezierTo(
+          center.dx + _facing * 50,
+          center.dy - 78,
+          center.dx + _facing * 108,
+          center.dy + 12,
+        );
+      canvas.drawPath(arc, tell);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: center + Offset(_facing * 108, 16),
+          width: 72,
+          height: 12,
+        ),
+        tell,
+      );
+    } else if (actionId == 'repairLeech.channel') {
+      canvas.drawLine(
+        center,
+        center + Offset(_facing * 94, -20),
+        tell..strokeWidth = 4,
+      );
+    } else if (actionId.contains('polarityDrone')) {
+      canvas.drawCircle(center, 62, tell..strokeWidth = 3);
+      canvas.drawCircle(center, 44, tell);
+    } else if (actionId.contains('ricochet')) {
+      for (var index = 1; index <= 5; index += 1) {
+        canvas.drawCircle(
+          center + Offset(_facing * index * 24, -index * 8 + index * index * 2),
+          3,
+          tell..style = PaintingStyle.fill,
+        );
+      }
+    } else if (actionId.contains('belowSnap')) {
+      canvas.drawLine(
+        Offset(4, size.y - 3),
+        Offset(size.x - 4, size.y - 3),
+        tell..strokeWidth = 4,
+      );
+    } else if (actionId.contains('clockSweep') ||
+        actionId.contains('polarityCollision')) {
+      canvas.drawCircle(center, archetype.isMidBoss ? 72 : 52, tell);
+      canvas.drawLine(
+        center + const Offset(-70, 0),
+        center + const Offset(70, 0),
+        tell,
+      );
+      canvas.drawLine(
+        center + const Offset(0, -60),
+        center + const Offset(0, 60),
+        tell,
+      );
+    } else {
+      canvas.drawLine(center, center + Offset(_facing * 70, 0), tell);
     }
   }
 }

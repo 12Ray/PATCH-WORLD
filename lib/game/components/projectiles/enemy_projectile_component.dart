@@ -17,6 +17,8 @@ final class EnemyProjectileComponent extends CircleComponent
     this.damage = 1,
     this.lifetimeSeconds = 8,
     this.projectileColor = const Color(0xFFFF4FD8),
+    this.gravity = 0,
+    this.remainingBounces = 0,
   }) : super(
          radius: 7,
          anchor: Anchor.center,
@@ -29,6 +31,8 @@ final class EnemyProjectileComponent extends CircleComponent
   final int damage;
   final double lifetimeSeconds;
   final Color projectileColor;
+  final double gravity;
+  int remainingBounces;
   late double _lifetime = lifetimeSeconds;
 
   @override
@@ -90,13 +94,21 @@ final class EnemyProjectileComponent extends CircleComponent
   void update(double dt) {
     final enemyDt = game.clock.enemyDt;
     if (enemyDt > 0) {
+      velocity.y += gravity * enemyDt;
       position += velocity * enemyDt;
       final activeRoom = game.world.activeRoom;
       if (activeRoom is PlatformerRoomGeometry) {
         final geometry = activeRoom as PlatformerRoomGeometry;
         final point = Offset(position.x, position.y);
         if (geometry.solidBounds.any((solid) => solid.contains(point))) {
-          removeFromParent();
+          if (remainingBounces > 0) {
+            position -= velocity * enemyDt;
+            velocity.y = -velocity.y.abs() * 0.82;
+            velocity.x *= 0.92;
+            remainingBounces -= 1;
+          } else {
+            removeFromParent();
+          }
         }
       }
       _lifetime -= enemyDt;

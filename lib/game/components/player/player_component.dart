@@ -134,6 +134,19 @@ final class PlayerComponent extends RectangleComponent
     _jumpHeld = false;
   }
 
+  void applyExternalImpulse(Vector2 impulse) {
+    if (!_usesPlatformerMovement || impulse.length2 == 0) return;
+    _platformerMotion.velocity.add(impulse);
+    _platformerMotion.velocity.x = _platformerMotion.velocity.x.clamp(
+      -360,
+      360,
+    );
+    _platformerMotion.velocity.y = _platformerMotion.velocity.y.clamp(
+      -520,
+      650,
+    );
+  }
+
   bool get _usesPlatformerMovement =>
       isMounted &&
       game.mode == PatchWorldMode.campaign &&
