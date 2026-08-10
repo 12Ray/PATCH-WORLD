@@ -19,6 +19,8 @@ import 'package:patch_world/game/components/effects/survival_score_popup_compone
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
+import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/components/projectiles/enemy_projectile_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -39,6 +41,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   bool _isReady = false;
   final List<SurvivalScorePopupComponent> _scorePopups =
       <SurvivalScorePopupComponent>[];
+  TextComponent? _controlsHint;
 
   bool get isReady => _isReady;
   Component? get activeRoom => _activeRoom;
@@ -90,29 +93,37 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     await _addGrid();
     player =
         PlayerComponent(
-            position: Vector2(160, 270),
-            spawnPosition: Vector2(160, 270),
-          )
-          ..maxIntegrity = game.settings.value.assistMode ? 6 : 5
-          ..integrity = game.settings.value.assistMode ? 6 : 5;
+          position: Vector2(160, 270),
+          spawnPosition: Vector2(160, 270),
+        )..configureLoadout(
+          PlayerWeapon.sword,
+          assistMode: game.settings.value.assistMode,
+        );
     await add(player);
     await loadRoom(game.currentRoom);
     await add(TimeFreezeOverlayComponent());
-    await add(
-      TextComponent(
-        text:
-            'MOVE A/D   JUMP W/UP   ATTACK SPACE/J   PARRY K/SHIFT   WEAPON 1/2/3',
-        position: Vector2(48, 66),
-        textRenderer: TextPaint(
-          style: const TextStyle(
-            color: Color(0xFF9CB0C9),
-            fontSize: 14,
-            letterSpacing: 1.1,
-          ),
+    _controlsHint = TextComponent(
+      text: game.localization.text('game.controlsHint'),
+      position: Vector2(48, 66),
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Color(0xFF9CB0C9),
+          fontSize: 14,
+          letterSpacing: 1.1,
         ),
-        priority: 40,
       ),
+      priority: 40,
     );
+    await add(_controlsHint!);
+  }
+
+  void refreshLocalizedText() {
+    _controlsHint?.text = game.localization.text('game.controlsHint');
+    final room = _activeRoom;
+    if (room == null) return;
+    for (final enemy in room.children.whereType<PlatformerEnemyComponent>()) {
+      enemy.refreshLocalizedText();
+    }
   }
 
   Future<void> loadRoom(RoomId roomId) async {
@@ -278,7 +289,11 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
 
   void spawnPerfectDodgeBurst(Vector2 worldPosition, {required int score}) {
     add(
-      PerfectDodgeBurstComponent(position: worldPosition.clone(), score: score),
+      PerfectDodgeBurstComponent(
+        position: worldPosition.clone(),
+        score: score,
+        label: game.localization.text('effect.perfectDodge'),
+      ),
     );
   }
 
@@ -287,6 +302,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       HoundBreakBurstComponent(
         position: worldPosition.clone() + Vector2(0, -18),
         score: score,
+        label: game.localization.text('effect.houndBreak'),
       ),
     );
   }
@@ -296,6 +312,8 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       PhaseExecutionBurstComponent(
         position: worldPosition.clone() + Vector2(0, -20),
         score: score,
+        label: game.localization.text('effect.phaseExecution'),
+        dataLabel: game.localization.text('hud.data'),
       ),
     );
   }

@@ -5,8 +5,10 @@ import 'package:flame/components.dart';
 /// Deterministic side-view movement state kept separate from Flame collision
 /// components so the feel can be tuned and tested without mounting a game.
 final class PlatformerMotion {
+  static const double runSpeed = 190;
+
   PlatformerMotion({
-    this.maxRunSpeed = 190,
+    this.maxRunSpeed = runSpeed,
     this.runAcceleration = 1200,
     this.runDeceleration = 1600,
     this.gravity = 1100,
@@ -33,6 +35,8 @@ final class PlatformerMotion {
   double _jumpBufferRemaining = 0;
   bool _jumpCutApplied = false;
 
+  bool get canGroundJump => grounded || _coyoteRemaining > 0;
+
   void queueJump() {
     _jumpBufferRemaining = jumpBufferSeconds;
   }
@@ -41,9 +45,10 @@ final class PlatformerMotion {
     double dt, {
     required double horizontal,
     required bool jumpHeld,
+    double runSpeedMultiplier = 1,
   }) {
     final clampedHorizontal = horizontal.clamp(-1.0, 1.0);
-    final targetX = clampedHorizontal * maxRunSpeed;
+    final targetX = clampedHorizontal * maxRunSpeed * runSpeedMultiplier;
     final acceleration = clampedHorizontal.abs() > 0.01
         ? runAcceleration
         : runDeceleration;
@@ -68,6 +73,15 @@ final class PlatformerMotion {
       _jumpCutApplied = true;
     }
     velocity.y = math.min(maxFallSpeed, velocity.y + gravity * dt);
+  }
+
+  bool tryAirJump({double speedMultiplier = 0.82}) {
+    if (grounded || speedMultiplier <= 0) return false;
+    velocity.y = -jumpSpeed * speedMultiplier;
+    _coyoteRemaining = 0;
+    _jumpBufferRemaining = 0;
+    _jumpCutApplied = false;
+    return true;
   }
 
   void beginVerticalResolution() {

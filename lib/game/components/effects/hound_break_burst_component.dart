@@ -3,24 +3,28 @@ import 'package:flame/text.dart';
 import 'package:flutter/painting.dart';
 
 final class HoundBreakBurstComponent extends TextComponent {
-  HoundBreakBurstComponent({required super.position, required this.score})
-    : super(
-        text: 'BREAK CONFIRMED  +$score',
-        anchor: Anchor.center,
-        priority: 74,
-        textRenderer: TextPaint(
-          style: const TextStyle(
-            color: Color(0xFF45F3A6),
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.1,
-          ),
-        ),
-      );
+  HoundBreakBurstComponent({
+    required super.position,
+    required this.score,
+    this.label = 'BREAK CONFIRMED',
+  }) : super(
+         text: '$label  +$score',
+         anchor: Anchor.center,
+         priority: 74,
+         textRenderer: TextPaint(
+           style: const TextStyle(
+             color: Color(0xFF45F3A6),
+             fontSize: 18,
+             fontWeight: FontWeight.w900,
+             letterSpacing: 1.1,
+           ),
+         ),
+       );
 
   static const double lifetimeSeconds = 0.9;
 
   final int score;
+  final String label;
   double _age = 0;
 
   double get age => _age;

@@ -8,8 +8,12 @@ final class InputController {
   bool _parryQueued = false;
   bool _interactQueued = false;
   bool _jumpQueued = false;
-  int? _weaponSelectionQueued;
+  double? _dashDirectionQueued;
+  double _doubleTapRemaining = 0;
+  double _lastTapDirection = 0;
   Vector2 _virtualMovement = Vector2.zero();
+
+  static const double doubleTapWindowSeconds = 0.22;
 
   void syncPressedKeys(Set<LogicalKeyboardKey> keysPressed) {
     _pressedKeys
@@ -17,7 +21,7 @@ final class InputController {
       ..addAll(keysPressed);
   }
 
-  void handleKeyDown(LogicalKeyboardKey key) {
+  void handleKeyDown(LogicalKeyboardKey key, {bool isRepeat = false}) {
     if (key == LogicalKeyboardKey.space || key == LogicalKeyboardKey.keyJ) {
       _attackQueued = true;
     }
@@ -26,10 +30,19 @@ final class InputController {
         key == LogicalKeyboardKey.shiftRight) {
       _parryQueued = true;
     }
-    if (key == LogicalKeyboardKey.digit1) _weaponSelectionQueued = 0;
-    if (key == LogicalKeyboardKey.digit2) _weaponSelectionQueued = 1;
-    if (key == LogicalKeyboardKey.digit3) _weaponSelectionQueued = 2;
-
+    if (!isRepeat &&
+        (key == LogicalKeyboardKey.keyA ||
+            key == LogicalKeyboardKey.arrowLeft)) {
+      _recordHorizontalTap(-1);
+    }
+    if (!isRepeat &&
+        (key == LogicalKeyboardKey.keyD ||
+            key == LogicalKeyboardKey.arrowRight)) {
+      _recordHorizontalTap(1);
+    }
+    if (!isRepeat && key == LogicalKeyboardKey.keyQ) {
+      queueDash(movementAxis.x);
+    }
     if (key == LogicalKeyboardKey.keyE || key == LogicalKeyboardKey.enter) {
       _interactQueued = true;
     }
@@ -42,12 +55,17 @@ final class InputController {
 
   void queueParry() => _parryQueued = true;
 
-  void queueWeaponSelection(int index) => _weaponSelectionQueued = index;
+  void queueDash([double direction = 0]) {
+    _dashDirectionQueued = direction.sign.toDouble();
+  }
 
   void queueInteract() => _interactQueued = true;
 
   void setVirtualMovement(double x, double y) {
     if (y < -0.5 && _virtualMovement.y >= -0.5) _jumpQueued = true;
+    if (x.abs() > 0.5 && _virtualMovement.x.abs() <= 0.5) {
+      _recordHorizontalTap(x.sign.toDouble());
+    }
     _virtualMovement = Vector2(x, y);
     if (_virtualMovement.length2 > 1) _virtualMovement.normalize();
   }
@@ -84,7 +102,7 @@ final class InputController {
       _parryQueued ||
       _interactQueued ||
       _jumpQueued ||
-      _weaponSelectionQueued != null;
+      _dashDirectionQueued != null;
 
   bool get jumpHeld =>
       _isPressed(LogicalKeyboardKey.keyW, LogicalKeyboardKey.arrowUp) ||
@@ -108,10 +126,18 @@ final class InputController {
     return value;
   }
 
-  int? consumeWeaponSelection() {
-    final value = _weaponSelectionQueued;
-    _weaponSelectionQueued = null;
+  double? consumeDashDirection() {
+    final value = _dashDirectionQueued;
+    _dashDirectionQueued = null;
     return value;
+  }
+
+  void advance(double dt) {
+    if (dt <= 0) return;
+    _doubleTapRemaining = (_doubleTapRemaining - dt)
+        .clamp(0, double.infinity)
+        .toDouble();
+    if (_doubleTapRemaining == 0) _lastTapDirection = 0;
   }
 
   bool consumeInteract() {
@@ -125,16 +151,29 @@ final class InputController {
     _parryQueued = false;
     _interactQueued = false;
     _jumpQueued = false;
-    _weaponSelectionQueued = null;
+    _dashDirectionQueued = null;
   }
 
   void clearAll() {
     _pressedKeys.clear();
+    _doubleTapRemaining = 0;
+    _lastTapDirection = 0;
     clearVirtualMovement();
     clearTransientActions();
   }
 
   bool _isPressed(LogicalKeyboardKey primary, LogicalKeyboardKey alternative) {
     return _pressedKeys.contains(primary) || _pressedKeys.contains(alternative);
+  }
+
+  void _recordHorizontalTap(double direction) {
+    if (_doubleTapRemaining > 0 && _lastTapDirection == direction) {
+      _dashDirectionQueued = direction;
+      _doubleTapRemaining = 0;
+      _lastTapDirection = 0;
+      return;
+    }
+    _lastTapDirection = direction;
+    _doubleTapRemaining = doubleTapWindowSeconds;
   }
 }

@@ -66,5 +66,29 @@ void main() {
 
       expect(peak, greaterThan(90));
     });
+
+    test('gauntlet air jump uses eighty-two percent jump force', () {
+      final motion = PlatformerMotion();
+
+      expect(motion.tryAirJump(), isTrue);
+      expect(motion.velocity.y, closeTo(-motion.jumpSpeed * 0.82, 0.001));
+      expect(motion.grounded, isFalse);
+    });
+
+    test('run speed multiplier supports gauntlet movement penalty', () {
+      final normal = PlatformerMotion();
+      final gauntlet = PlatformerMotion();
+
+      normal.advance(1, horizontal: 1, jumpHeld: false);
+      gauntlet.advance(
+        1,
+        horizontal: 1,
+        jumpHeld: false,
+        runSpeedMultiplier: 0.95,
+      );
+
+      expect(normal.velocity.x, normal.maxRunSpeed);
+      expect(gauntlet.velocity.x, gauntlet.maxRunSpeed * 0.95);
+    });
   });
 }

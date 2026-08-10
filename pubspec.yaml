@@ -63,6 +63,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/ui/
+    - assets/images/rooms/
     - assets/images/sprites/
     - assets/images/sprites/animations/
     - assets/images/sprites/platformer/

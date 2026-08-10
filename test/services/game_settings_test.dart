@@ -9,11 +9,15 @@ void main() {
       flash: FlashSetting.reduced,
       screenShake: ScreenShakeSetting.off,
       textScale: 1.25,
+      languageCode: 'ja',
+      languageSetupComplete: true,
     );
     expect(updated.assistMode, isTrue);
     expect(updated.flash, FlashSetting.reduced);
     expect(updated.screenShake, ScreenShakeSetting.off);
     expect(updated.textScale, 1.25);
     expect(updated.bgmVolume, original.bgmVolume);
+    expect(updated.languageCode, 'ja');
+    expect(updated.languageSetupComplete, isTrue);
   });
 }

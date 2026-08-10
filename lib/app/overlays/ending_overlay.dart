@@ -35,9 +35,12 @@ final class _EndingChoice extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        const Text(
-          'ACTIVE HUMAN PLAYERS: 1',
-          style: TextStyle(
+        Text(
+          game.localization.text(
+            'ending.activePlayers',
+            parameters: const <String, Object>{'count': 1},
+          ),
+          style: const TextStyle(
             color: Color(0xFF36E1FF),
             fontSize: 17,
             fontWeight: FontWeight.w800,

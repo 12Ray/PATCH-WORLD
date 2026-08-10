@@ -12,7 +12,7 @@ void main() {
     await expectPlatformerRoomBoot(
       tester,
       roomId: RoomId.collisionArchive,
-      expectedSpawn: Vector2(70, 448),
+      expectedSpawn: Vector2(70, 988),
       expectedArchetypes: const <PlatformerEnemyArchetype>[
         PlatformerEnemyArchetype.vectorRam,
         PlatformerEnemyArchetype.polarityDrone,

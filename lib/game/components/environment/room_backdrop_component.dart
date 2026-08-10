@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flutter/services.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 
 enum RoomBackdropStyle { damage, temporal, collision, optimizer, survival }
@@ -19,6 +21,37 @@ final class RoomBackdropComponent extends PositionComponent
 
   final RoomBackdropStyle style;
   double _time = 0;
+  Image? _environmentImage;
+
+  String? get _environmentAsset => switch (style) {
+    RoomBackdropStyle.damage =>
+      'assets/images/rooms/damage-lab-environment-v2.png',
+    RoomBackdropStyle.temporal =>
+      'assets/images/rooms/temporal-hall-environment-v2.png',
+    RoomBackdropStyle.collision =>
+      'assets/images/rooms/collision-archive-environment-v2.png',
+    RoomBackdropStyle.optimizer || RoomBackdropStyle.survival => null,
+  };
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    unawaited(_loadEnvironmentImage());
+  }
+
+  Future<void> _loadEnvironmentImage() async {
+    final asset = _environmentAsset;
+    if (asset == null) return;
+    try {
+      final data = await rootBundle.load(asset);
+      final codec = await instantiateImageCodec(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+      );
+      _environmentImage = (await codec.getNextFrame()).image;
+    } catch (_) {
+      _environmentImage = null;
+    }
+  }
 
   @override
   void update(double dt) {
@@ -29,6 +62,34 @@ final class RoomBackdropComponent extends PositionComponent
   @override
   void render(Canvas canvas) {
     canvas.drawRect(size.toRect(), Paint()..color = const Color(0xFF090F1D));
+    final environmentImage = _environmentImage;
+    if (environmentImage != null) {
+      final viewCenter = game.camera.viewfinder.position;
+      final visibleRect = Rect.fromLTWH(
+        (viewCenter.x - PatchWorldGame.logicalWidth / 2)
+            .clamp(0, size.x - PatchWorldGame.logicalWidth)
+            .toDouble(),
+        (viewCenter.y - PatchWorldGame.logicalHeight / 2)
+            .clamp(0, size.y - PatchWorldGame.logicalHeight)
+            .toDouble(),
+        PatchWorldGame.logicalWidth,
+        PatchWorldGame.logicalHeight,
+      );
+      final sourceRect = Rect.fromLTWH(
+        visibleRect.left / size.x * environmentImage.width,
+        visibleRect.top / size.y * environmentImage.height,
+        visibleRect.width / size.x * environmentImage.width,
+        visibleRect.height / size.y * environmentImage.height,
+      );
+      canvas.drawImageRect(
+        environmentImage,
+        sourceRect,
+        visibleRect,
+        Paint()..filterQuality = FilterQuality.none,
+      );
+      canvas.drawRect(visibleRect, Paint()..color = const Color(0x33020912));
+      return;
+    }
     _drawPanels(canvas);
     final sectionCount = (size.x / PatchWorldGame.logicalWidth).ceil();
     for (var section = 0; section < sectionCount; section += 1) {

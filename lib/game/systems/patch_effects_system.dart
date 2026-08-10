@@ -82,6 +82,12 @@ final class PatchEffectsSystem {
     return true;
   }
 
+  void onPlayerDashed() {
+    if (!hasMotionTax) return;
+    final result = motionTax.addHeat(12);
+    if (result.didOverheat) damagePlayer(1, RuleIds.motionTax);
+  }
+
   void onPatchPulseEmitted(
     Vector2 worldPosition, {
     int retaliationEchoTier = 0,

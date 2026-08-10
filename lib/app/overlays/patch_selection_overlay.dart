@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/core/run_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rules/rule_ids.dart';
 
 final class PatchSelectionOverlay extends StatefulWidget {
   const PatchSelectionOverlay({required this.game, super.key});
@@ -101,6 +103,10 @@ final class _PatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final grade = _synergyGrade(
+      game.selectedRunWeapon ?? PlayerWeapon.sword,
+      patch.id,
+    );
     return Material(
       color: const Color(0xFF111827),
       borderRadius: BorderRadius.circular(14),
@@ -122,13 +128,42 @@ final class _PatchCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(
-                _localized('risk', patch.riskLabel),
-                style: const TextStyle(
-                  color: Color(0xFFFFC857),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Flexible(
+                    child: Text(
+                      _localized('risk', patch.riskLabel),
+                      style: const TextStyle(
+                        color: Color(0xFFFFC857),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _synergyColor(grade).withValues(alpha: 0.15),
+                      border: Border.all(color: _synergyColor(grade)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      game.localization.text(
+                        'patchSelection.synergy',
+                        parameters: <String, Object>{'grade': grade},
+                      ),
+                      style: TextStyle(
+                        color: _synergyColor(grade),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Text(
@@ -177,6 +212,43 @@ final class _PatchCard extends StatelessWidget {
       ),
     );
   }
+
+  String _synergyGrade(PlayerWeapon weapon, String patchId) {
+    final matrix = switch (weapon) {
+      PlayerWeapon.sword => <String, String>{
+        RuleIds.motionTax: 'A',
+        RuleIds.retaliationEcho: 'A',
+        RuleIds.hostileTurbo: 'S',
+        RuleIds.frameBurst: 'A',
+        RuleIds.phaseLeak: 'S',
+        RuleIds.duplicateFault: 'B',
+      },
+      PlayerWeapon.gauntlet => <String, String>{
+        RuleIds.motionTax: 'B',
+        RuleIds.retaliationEcho: 'S',
+        RuleIds.hostileTurbo: 'A',
+        RuleIds.frameBurst: 'S',
+        RuleIds.phaseLeak: 'A',
+        RuleIds.duplicateFault: 'S',
+      },
+      PlayerWeapon.gun => <String, String>{
+        RuleIds.motionTax: 'S',
+        RuleIds.retaliationEcho: 'A',
+        RuleIds.hostileTurbo: 'C',
+        RuleIds.frameBurst: 'A',
+        RuleIds.phaseLeak: 'A',
+        RuleIds.duplicateFault: 'A',
+      },
+    };
+    return matrix[patchId] ?? 'B';
+  }
+
+  Color _synergyColor(String grade) => switch (grade) {
+    'S' => const Color(0xFFFF4FD8),
+    'A' => const Color(0xFF36E1FF),
+    'B' => const Color(0xFF45F3A6),
+    _ => const Color(0xFFA9B4C8),
+  };
 
   String _localized(String field, String fallback) {
     final value = game.localization.text('${patch.id}.$field');

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/services/game_settings.dart';
+import 'package:patch_world/services/localization_service.dart';
 
 final class SettingsOverlay extends StatelessWidget {
   const SettingsOverlay({required this.game, super.key});
@@ -58,10 +59,14 @@ final class SettingsOverlay extends StatelessWidget {
                     decoration: InputDecoration(
                       labelText: game.localization.text('settings.language'),
                     ),
-                    items: const <DropdownMenuItem<String>>[
-                      DropdownMenuItem(value: 'ko', child: Text('한국어')),
-                      DropdownMenuItem(value: 'en', child: Text('English')),
-                    ],
+                    items: LocalizationService.supportedLanguages
+                        .map(
+                          (language) => DropdownMenuItem<String>(
+                            value: language.code,
+                            child: Text(language.nativeName),
+                          ),
+                        )
+                        .toList(growable: false),
                     onChanged: (value) {
                       if (value != null) {
                         game.updateSettings(
@@ -100,7 +105,11 @@ final class SettingsOverlay extends StatelessWidget {
                         .map(
                           (value) => DropdownMenuItem(
                             value: value,
-                            child: Text(value.name.toUpperCase()),
+                            child: Text(
+                              game.localization.text(
+                                'settings.screenShake.${value.name}',
+                              ),
+                            ),
                           ),
                         )
                         .toList(growable: false),

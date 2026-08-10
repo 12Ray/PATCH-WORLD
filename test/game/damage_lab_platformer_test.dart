@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
+import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/room_one_controller.dart';
@@ -25,6 +26,8 @@ void main() {
     await tester.runAsync(() => game.world.loaded);
 
     final room = game.world.activeRoom! as RoomOneController;
+    final bossGate = room.children.whereType<BossSealGateComponent>().single;
+    expect(bossGate.isUnlocked, isFalse);
     expect(
       room.children.whereType<PlatformSurfaceComponent>(),
       hasLength(greaterThanOrEqualTo(20)),
@@ -48,13 +51,13 @@ void main() {
 
     game.resumeEngine();
     await tester.pump(const Duration(milliseconds: 16));
-    game.world.player.position.y = PatchWorldGame.logicalHeight + 60;
+    game.world.player.position.y = room.killPlaneY + 10;
     await tester.pump(const Duration(milliseconds: 16));
 
     expect(game.world.player.position, room.playerSpawn);
     expect(game.world.player.integrity, game.world.player.maxIntegrity - 1);
 
-    game.world.player.position.setValues(220, 448);
+    game.world.player.position.setValues(220, 988);
     for (var frame = 0; frame < 100; frame += 1) {
       await tester.pump(const Duration(milliseconds: 16));
     }
@@ -83,5 +86,6 @@ void main() {
     await tester.pump();
     expect(room.defeatedCount, 4);
     expect(warden.isDormant, isFalse);
+    expect(bossGate.isUnlocked, isTrue);
   });
 }

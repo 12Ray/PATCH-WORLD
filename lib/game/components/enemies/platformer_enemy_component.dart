@@ -142,6 +142,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   double _hurtTimer = 0;
   double _defeatTimer = 0;
   SpriteComponent? _spriteVisual;
+  TextComponent? _nameLabel;
   List<Sprite>? _spriteFrames;
   final List<Vector2> _motionHistory = <Vector2>[];
 
@@ -159,6 +160,13 @@ final class PlatformerEnemyComponent extends PositionComponent
     return room is PlatformerRoomGeometry
         ? (room as PlatformerRoomGeometry).worldSize.x
         : PatchWorldGame.logicalWidth;
+  }
+
+  double get _activeWorldHeight {
+    final room = game.world.activeRoom;
+    return room is PlatformerRoomGeometry
+        ? (room as PlatformerRoomGeometry).worldSize.y
+        : PatchWorldGame.logicalHeight;
   }
 
   void activateEncounter() {
@@ -181,21 +189,24 @@ final class PlatformerEnemyComponent extends PositionComponent
         anchor: Anchor.center,
       ),
     );
-    await add(
-      TextComponent(
-        text: archetype.displayName,
-        position: Vector2(size.x / 2, -10),
-        anchor: Anchor.bottomCenter,
-        textRenderer: TextPaint(
-          style: TextStyle(
-            color: archetype.accentColor,
-            fontSize: archetype.isMidBoss ? 9 : 7,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
-          ),
+    _nameLabel = TextComponent(
+      text: game.localization.text('enemy.${archetype.name}.name'),
+      position: Vector2(size.x / 2, -10),
+      anchor: Anchor.bottomCenter,
+      textRenderer: TextPaint(
+        style: TextStyle(
+          color: archetype.accentColor,
+          fontSize: archetype.isMidBoss ? 9 : 7,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
         ),
       ),
     );
+    await add(_nameLabel!);
+  }
+
+  void refreshLocalizedText() {
+    _nameLabel?.text = game.localization.text('enemy.${archetype.name}.name');
   }
 
   Future<void> _loadSpriteVisual() async {
@@ -933,7 +944,10 @@ final class PlatformerEnemyComponent extends PositionComponent
       case PlatformerEnemyArchetype.phaseMimic:
         position.setValues(
           game.world.player.position.x.clamp(70, _activeWorldWidth - 70),
-          (game.world.player.position.y - 130).clamp(110, 360),
+          (game.world.player.position.y - 130).clamp(
+            80,
+            _activeWorldHeight - 80,
+          ),
         );
         _spawnWorldStrike(
           'enemy.phaseMimic.ceilingDrop',
@@ -1020,7 +1034,7 @@ final class PlatformerEnemyComponent extends PositionComponent
       position += delta * speed * dt;
     }
     position.x = position.x.clamp(36, _activeWorldWidth - 36);
-    position.y = position.y.clamp(100, 440);
+    position.y = position.y.clamp(70, _activeWorldHeight - 70);
   }
 
   void _updateTurret(double dt, Iterable<Rect> solids) {
@@ -1119,7 +1133,11 @@ final class PlatformerEnemyComponent extends PositionComponent
         );
       }
     }
-    if (position.y > PatchWorldGame.logicalHeight + 80) {
+    final activeRoom = game.world.activeRoom;
+    final killPlane = activeRoom is PlatformerRoomGeometry
+        ? (activeRoom as PlatformerRoomGeometry).killPlaneY
+        : PatchWorldGame.logicalHeight + 80;
+    if (position.y > killPlane) {
       position.setFrom(_homePosition);
       _velocity.setZero();
       _grounded = false;

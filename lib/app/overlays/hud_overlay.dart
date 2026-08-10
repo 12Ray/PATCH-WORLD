@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/core/ui_snapshot.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
@@ -46,39 +47,83 @@ final class _IntegrityView extends StatelessWidget {
   final UiSnapshot snapshot;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    mainAxisSize: MainAxisSize.min,
-    children: <Widget>[
-      Text(
-        game.localization.text('hud.integrity'),
-        style: const TextStyle(
-          color: Color(0xFFA9B4C8),
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-        ),
+  Widget build(BuildContext context) {
+    final weapon = snapshot.selectedWeapon;
+    final abilityStatus = switch (weapon) {
+      PlayerWeapon.sword when snapshot.dashCooldownRemaining <= 0 =>
+        game.localization.text('hud.dashReady'),
+      PlayerWeapon.sword => game.localization.text(
+        'hud.dashCooldown',
+        parameters: <String, Object>{
+          'seconds': snapshot.dashCooldownRemaining.toStringAsFixed(1),
+        },
       ),
-      const SizedBox(height: 4),
-      Row(
-        children: List<Widget>.generate(snapshot.maxIntegrity, (index) {
-          final active = index < snapshot.integrity;
-          return Container(
-            width: 16,
-            height: 10,
-            margin: const EdgeInsets.only(right: 3),
-            decoration: BoxDecoration(
-              color: active ? const Color(0xFF36E1FF) : const Color(0xFF25304A),
-              border: Border.all(
-                color: active
-                    ? const Color(0xFF8AEEFF)
-                    : const Color(0xFF43506A),
+      PlayerWeapon.gauntlet when snapshot.airJumpsRemaining > 0 =>
+        game.localization.text('hud.doubleJumpReady'),
+      PlayerWeapon.gauntlet => game.localization.text('hud.doubleJumpSpent'),
+      PlayerWeapon.gun => game.localization.text('hud.rangedPassive'),
+      null => '',
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Text(
+              game.localization.text('hud.integrity'),
+              style: const TextStyle(
+                color: Color(0xFFA9B4C8),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          );
-        }),
-      ),
-    ],
-  );
+            if (weapon != null) ...<Widget>[
+              const SizedBox(width: 7),
+              Text(
+                game.localization.text('${weapon.localizationKey}.name'),
+                style: const TextStyle(
+                  color: Color(0xFFFFC857),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 2),
+        Row(
+          children: List<Widget>.generate(snapshot.maxIntegrity, (index) {
+            final active = index < snapshot.integrity;
+            return Container(
+              width: 16,
+              height: 10,
+              margin: const EdgeInsets.only(right: 3),
+              decoration: BoxDecoration(
+                color: active
+                    ? const Color(0xFF36E1FF)
+                    : const Color(0xFF25304A),
+                border: Border.all(
+                  color: active
+                      ? const Color(0xFF8AEEFF)
+                      : const Color(0xFF43506A),
+                ),
+              ),
+            );
+          }),
+        ),
+        if (abilityStatus.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 2),
+          Text(
+            abilityStatus,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Color(0xFF8AEEFF), fontSize: 8),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 final class _RuleView extends StatelessWidget {
@@ -177,8 +222,25 @@ final class _RuleView extends StatelessWidget {
               if (snapshot.bossPhase case final String phase)
                 Text(
                   snapshot.bossStability == null
-                      ? '${game.localization.text('hud.boss')} ${phase.toUpperCase()}  HP ${snapshot.bossHealth}/${snapshot.bossMaxHealth}'
-                      : '${game.localization.text('hud.perfect')}  ${game.localization.text('hud.stability')} ${snapshot.bossStability}/150',
+                      ? game.localization.text(
+                          'hud.bossHealth',
+                          parameters: <String, Object>{
+                            'boss': game.localization.text('hud.boss'),
+                            'phase': _localizedBossPhase(game, phase),
+                            'current': snapshot.bossHealth ?? 0,
+                            'max': snapshot.bossMaxHealth ?? 0,
+                          },
+                        )
+                      : game.localization.text(
+                          'hud.bossStability',
+                          parameters: <String, Object>{
+                            'perfect': game.localization.text('hud.perfect'),
+                            'stability': game.localization.text(
+                              'hud.stability',
+                            ),
+                            'value': snapshot.bossStability ?? 0,
+                          },
+                        ),
                   style: const TextStyle(
                     color: Color(0xFFFFC857),
                     fontSize: 10,
@@ -187,7 +249,10 @@ final class _RuleView extends StatelessWidget {
                 ),
               if (snapshot.survivalLevel case final int level) ...<Widget>[
                 Text(
-                  'LV $level',
+                  game.localization.text(
+                    'hud.level',
+                    parameters: <String, Object>{'level': level},
+                  ),
                   style: const TextStyle(
                     color: Color(0xFF36E1FF),
                     fontSize: 10,
@@ -211,7 +276,12 @@ final class _RuleView extends StatelessWidget {
                 if ((snapshot.survivalCombo ?? 0) >= 2) ...<Widget>[
                   const SizedBox(width: 8),
                   Text(
-                    'COMBO x${snapshot.survivalCombo}',
+                    game.localization.text(
+                      'hud.combo',
+                      parameters: <String, Object>{
+                        'count': snapshot.survivalCombo ?? 0,
+                      },
+                    ),
                     style: const TextStyle(
                       color: Color(0xFFFFC857),
                       fontSize: 10,
@@ -236,7 +306,14 @@ final class _RuleView extends StatelessWidget {
                 if ((snapshot.survivalCombo ?? 0) >= 5) ...<Widget>[
                   const SizedBox(width: 8),
                   Text(
-                    'FLOW x${SurvivalRunState.flowMultiplierForCombo(snapshot.survivalCombo ?? 0)}',
+                    game.localization.text(
+                      'hud.flow',
+                      parameters: <String, Object>{
+                        'multiplier': SurvivalRunState.flowMultiplierForCombo(
+                          snapshot.survivalCombo ?? 0,
+                        ),
+                      },
+                    ),
                     style: const TextStyle(
                       color: Color(0xFF45F3A6),
                       fontSize: 10,
@@ -247,7 +324,13 @@ final class _RuleView extends StatelessWidget {
                 if (snapshot.survivalCriticalFlowRemaining > 0) ...<Widget>[
                   const SizedBox(width: 8),
                   Text(
-                    'CRITICAL ${snapshot.survivalCriticalFlowRemaining.toStringAsFixed(1)}s',
+                    game.localization.text(
+                      'hud.critical',
+                      parameters: <String, Object>{
+                        'seconds': snapshot.survivalCriticalFlowRemaining
+                            .toStringAsFixed(1),
+                      },
+                    ),
                     style: const TextStyle(
                       color: Color(0xFFFFC857),
                       fontSize: 10,
@@ -257,7 +340,13 @@ final class _RuleView extends StatelessWidget {
                 ],
                 const SizedBox(width: 8),
                 Text(
-                  'RISK x${game.survivalRun.riskMultiplier.toStringAsFixed(2)}',
+                  game.localization.text(
+                    'hud.risk',
+                    parameters: <String, Object>{
+                      'multiplier': game.survivalRun.riskMultiplier
+                          .toStringAsFixed(2),
+                    },
+                  ),
                   style: const TextStyle(
                     color: Color(0xFFFF4FD8),
                     fontSize: 10,
@@ -281,7 +370,12 @@ final class _RuleView extends StatelessWidget {
                 if (snapshot.survivalFusionCount > 0) ...<Widget>[
                   const SizedBox(width: 8),
                   Text(
-                    'FUSION x${snapshot.survivalFusionCount}',
+                    game.localization.text(
+                      'hud.fusion',
+                      parameters: <String, Object>{
+                        'count': snapshot.survivalFusionCount,
+                      },
+                    ),
                     style: const TextStyle(
                       color: Color(0xFFFFC857),
                       fontSize: 10,
@@ -291,9 +385,9 @@ final class _RuleView extends StatelessWidget {
                 ],
                 if (snapshot.motionVentReady) ...<Widget>[
                   const SizedBox(width: 8),
-                  const Text(
-                    'VENT READY',
-                    style: TextStyle(
+                  Text(
+                    game.localization.text('hud.ventReady'),
+                    style: const TextStyle(
                       color: Color(0xFF36E1FF),
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -302,9 +396,9 @@ final class _RuleView extends StatelessWidget {
                 ],
                 if (snapshot.survivalOverclock) ...<Widget>[
                   const SizedBox(width: 8),
-                  const Text(
-                    'OVERCLOCK',
-                    style: TextStyle(
+                  Text(
+                    game.localization.text('hud.overclock'),
+                    style: const TextStyle(
                       color: Color(0xFFFFC857),
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -318,6 +412,12 @@ final class _RuleView extends StatelessWidget {
       ),
     ],
   );
+}
+
+String _localizedBossPhase(PatchWorldGame game, String phase) {
+  final key = phase.toLowerCase().replaceAll(' ', '_');
+  final localized = game.localization.text('bossPhase.$key');
+  return localized.startsWith('[') ? phase.toUpperCase() : localized;
 }
 
 final class _PatchStack extends StatelessWidget {
@@ -355,7 +455,12 @@ final class _PatchStack extends StatelessWidget {
                 ),
                 if (game.survivalRun.patchTier(patchId) > 0)
                   Text(
-                    'T${game.survivalRun.patchTier(patchId)}',
+                    game.localization.text(
+                      'hud.tier',
+                      parameters: <String, Object>{
+                        'tier': game.survivalRun.patchTier(patchId),
+                      },
+                    ),
                     style: const TextStyle(
                       color: Color(0xFFFFC857),
                       fontSize: 8,

@@ -149,6 +149,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   double _screenShakePhase = 0;
   String _settingsReturnOverlay = OverlayIds.pause;
   String _creditsReturnOverlay = OverlayIds.title;
+  PlayerWeapon? _selectedRunWeapon;
+
+  PlayerWeapon? get selectedRunWeapon => _selectedRunWeapon;
 
   RuleContext get ruleContext => RuleContext(
     roomId: currentRoom,
@@ -163,6 +166,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     var loadedSettings = const GameSettings();
     try {
       loadedSettings = await settingsService.load();
+      if (!LocalizationService.supports(loadedSettings.languageCode)) {
+        loadedSettings = loadedSettings.copyWith(
+          languageCode: LocalizationService.fallbackLanguageCode,
+        );
+      }
       bestScore = await settingsService.loadBestScore();
       bestSurvivalScore = await settingsService.loadBestSurvivalScore();
       bestSurvivalTime = await settingsService.loadBestSurvivalTime();
@@ -246,11 +254,37 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     return KeyEventResult.handled;
   }
 
-  void startRun() => unawaited(_startCampaignRun());
+  void openWeaponSelection() {
+    input.clearAll();
+    overlays.remove(OverlayIds.title);
+    overlays.add(OverlayIds.weaponSelection);
+    pauseEngine();
+  }
 
-  Future<void> _startCampaignRun() async {
+  void cancelWeaponSelection() {
+    overlays.remove(OverlayIds.weaponSelection);
+    overlays.add(OverlayIds.title);
+  }
+
+  Future<void> selectStartingWeapon(PlayerWeapon weapon) async {
+    _selectedRunWeapon = weapon;
+    overlays.remove(OverlayIds.weaponSelection);
+    await _startCampaignRun(weapon);
+  }
+
+  void startRun() {
+    final weapon = _selectedRunWeapon ?? PlayerWeapon.sword;
+    _selectedRunWeapon = weapon;
+    unawaited(_startCampaignRun(weapon));
+  }
+
+  Future<void> _startCampaignRun(PlayerWeapon weapon) async {
     await ready();
     mode = PatchWorldMode.campaign;
+    world.player.configureLoadout(
+      weapon,
+      assistMode: settings.value.assistMode,
+    );
     unawaited(audio.unlockFromUserGesture());
     runMetrics.reset();
     completedRun.value = null;
@@ -269,6 +303,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     await ready();
     unawaited(audio.unlockFromUserGesture());
     mode = PatchWorldMode.survival;
+    _selectedRunWeapon = null;
+    world.player.configureLoadout(
+      PlayerWeapon.sword,
+      assistMode: settings.value.assistMode,
+    );
     runState.reset();
     survivalRun.reset();
     if (survivalQaStartCombo > 0) {
@@ -488,7 +527,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         survivalRun.recordMaxedBuildLevel();
         final activeRoom = world.activeRoom;
         if (activeRoom is SurvivalArenaController) {
-          activeRoom.showPatchPowerDemo('BUILD MAXED // +250');
+          activeRoom.showPatchPowerDemo(
+            localization.text(
+              'survivalAlert.buildMaxed',
+              parameters: const <String, Object>{'score': 250},
+            ),
+          );
         }
         continue;
       }
@@ -598,14 +642,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
   }
 
-  void queueTouchWeaponCycle() {
+  void queueTouchDash() {
     if (!paused &&
         !_roomTransitionInProgress &&
         pendingPatchSelection == null &&
         world.isReady) {
-      final next =
-          (world.player.selectedWeapon.index + 1) % PlayerWeapon.values.length;
-      input.queueWeaponSelection(next);
+      input.queueDash(world.player.facingDirection);
     }
   }
 
@@ -647,7 +689,14 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
               )
               .toDouble()
         : logicalWidth / 2;
-    const centerY = logicalHeight / 2;
+    final centerY = platformRoom != null
+        ? world.player.position.y
+              .clamp(
+                logicalHeight / 2,
+                platformRoom.worldSize.y - logicalHeight / 2,
+              )
+              .toDouble()
+        : logicalHeight / 2;
     if (_screenShakeRemaining <= 0) {
       camera.viewfinder.position = Vector2(centerX, centerY);
       return;
@@ -674,6 +723,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       super.update(dt);
       return;
     }
+    input.advance(dt);
     final movement = input.movementAxis;
     final hasGameplayIntent = input.hasGameplayIntent;
     final activeRoom = world.activeRoom;
@@ -703,6 +753,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     world.player.setMovementInput(movement);
     world.player.setJumpHeld(input.jumpHeld);
     if (input.consumeJump()) world.player.queueJump();
+    if (input.consumeDashDirection() case final double direction) {
+      world.player.tryDash(direction);
+    }
     patternTracker.update(clock.realDt);
     if (movement.length2 > 0) {
       patternTracker.recordMovement(movement.x, movement.y);
@@ -725,12 +778,6 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       world.player.tryAttack();
     }
     if (input.consumeParry()) world.player.tryParry();
-    final weaponSelection = input.consumeWeaponSelection();
-    if (weaponSelection != null &&
-        weaponSelection >= 0 &&
-        weaponSelection < PlayerWeapon.values.length) {
-      world.player.selectWeapon(PlayerWeapon.values[weaponSelection]);
-    }
     if (input.consumeInteract()) world.player.tryInteract();
     _uiPublishAccumulator += clock.realDt;
     if (_uiPublishAccumulator >= 0.10) {
@@ -854,6 +901,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     final summary = runMetrics.finish(
       integrity: world.player.integrity,
       selectedPatchIds: runState.selectedPatchIds,
+      selectedWeapon: mode == PatchWorldMode.campaign
+          ? world.player.selectedWeapon
+          : null,
+      dashCooldownRemaining: world.player.dashCooldownRemaining,
+      airJumpsRemaining: world.player.airJumpsRemaining,
       endingId: endingId,
     );
     completedRun.value = summary;
@@ -880,6 +932,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     ruleEngine.setRules(const <GameRule>[DamageSignInvertedRule()]);
     currentRoom = RoomId.damageLab;
     mode = PatchWorldMode.campaign;
+    final weapon = _selectedRunWeapon ?? PlayerWeapon.sword;
+    _selectedRunWeapon = weapon;
+    world.player.configureLoadout(
+      weapon,
+      assistMode: settings.value.assistMode,
+    );
     // Ending pauses Flame. Resume before awaiting component removal/addition,
     // otherwise the previous room can never finish its removal lifecycle.
     resumeEngine();
@@ -909,6 +967,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     ruleEngine.setRules(const <GameRule>[DamageSignInvertedRule()]);
     currentRoom = RoomId.damageLab;
     mode = PatchWorldMode.campaign;
+    _selectedRunWeapon = null;
     resumeEngine();
     await world.loadRoom(currentRoom);
     unawaited(audio.startArchiveBgm(restart: true));
@@ -979,6 +1038,19 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     _applySettings(next);
   }
 
+  Future<void> completeInitialLanguageSelection(String languageCode) async {
+    final safeCode = LocalizationService.supports(languageCode)
+        ? languageCode
+        : LocalizationService.fallbackLanguageCode;
+    await localization.load(safeCode);
+    final next = settings.value.copyWith(
+      languageCode: safeCode,
+      languageSetupComplete: true,
+    );
+    await settingsService.save(next);
+    _applySettings(next, persist: false);
+  }
+
   Future<void> _changeLanguageAndApplySettings(GameSettings next) async {
     try {
       await localization.load(next.languageCode);
@@ -988,19 +1060,20 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     _applySettings(next);
   }
 
-  void _applySettings(GameSettings next) {
+  void _applySettings(GameSettings next, {bool persist = true}) {
     settings.value = next;
     audio
       ..setBgmVolume(next.bgmVolume)
       ..setSfxVolume(next.sfxVolume);
     if (world.isReady) {
-      world.player.maxIntegrity = next.assistMode ? 6 : 5;
-      world.player.integrity = world.player.integrity.clamp(
-        0,
-        world.player.maxIntegrity,
+      world.refreshLocalizedText();
+      world.player.configureLoadout(
+        world.player.selectedWeapon,
+        assistMode: next.assistMode,
+        restoreIntegrity: false,
       );
     }
-    unawaited(settingsService.save(next));
+    if (persist) unawaited(settingsService.save(next));
     publishUiSnapshot(force: true);
   }
 

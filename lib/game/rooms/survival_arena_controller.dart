@@ -169,7 +169,13 @@ final class SurvivalArenaController extends Component
     }
     final cachePosition = _nextCachePosition();
     game.survivalRun.recordHotCacheSpawned();
-    _showAlert('VOLATILE CACHE // 12s', const Color(0xFFFFC857));
+    _showAlert(
+      game.localization.text(
+        'survivalAlert.volatileCache',
+        parameters: const <String, Object>{'seconds': 12},
+      ),
+      const Color(0xFFFFC857),
+    );
     await add(
       VolatileCacheComponent(
         position: cachePosition,
@@ -214,7 +220,13 @@ final class SurvivalArenaController extends Component
       count: 3,
       alternatingCorruption: false,
     );
-    _showAlert('CACHE CLAIMED // +$reward // DATA +3', const Color(0xFF45F3A6));
+    _showAlert(
+      game.localization.text(
+        'survivalAlert.cacheClaimed',
+        parameters: <String, Object>{'reward': reward, 'data': 3},
+      ),
+      const Color(0xFF45F3A6),
+    );
     game.triggerImpactFeedback();
     game.publishUiSnapshot(force: true);
   }
@@ -222,7 +234,10 @@ final class SurvivalArenaController extends Component
   void _expireVolatileCache(Vector2 position) {
     if (isRemoving || game.mode != PatchWorldMode.survival) return;
     game.survivalRun.recordHotCacheExpired();
-    _showAlert('CACHE LOST // AMBUSH', const Color(0xFFFF6464));
+    _showAlert(
+      game.localization.text('survivalAlert.cacheLost'),
+      const Color(0xFFFF6464),
+    );
     unawaited(_spawnCacheAmbush(position));
     game.publishUiSnapshot(force: true);
   }
@@ -254,9 +269,14 @@ final class SurvivalArenaController extends Component
     if (minute >= 10) {
       game.recordSurvivalMilestone(SurvivalMeaningfulEvent.endlessTier);
     }
-    final label = minute >= 10
-        ? 'ENDLESS T${minute - 9} // ${minute * 60}s // RISK x${game.survivalRun.riskMultiplier.toStringAsFixed(2)}'
-        : '${minute * 60}s SURVIVED // RISK x${game.survivalRun.riskMultiplier.toStringAsFixed(2)}';
+    final label = game.localization.text(
+      minute >= 10 ? 'survivalAlert.endless' : 'survivalAlert.survived',
+      parameters: <String, Object>{
+        'tier': minute - 9,
+        'seconds': minute * 60,
+        'risk': game.survivalRun.riskMultiplier.toStringAsFixed(2),
+      },
+    );
     _showAlert(label, const Color(0xFF45F3A6));
   }
 
@@ -267,24 +287,43 @@ final class SurvivalArenaController extends Component
   }) {
     if (combo != 5 && combo != 10 && combo % 20 != 0) return;
     _showAlert(
-      'COMBO x$combo // FLOW x$flowMultiplier // DATA +$dataReward',
+      game.localization.text(
+        'survivalAlert.combo',
+        parameters: <String, Object>{
+          'combo': combo,
+          'flow': flowMultiplier,
+          'data': dataReward,
+        },
+      ),
       combo >= 20 ? const Color(0xFFFFC857) : const Color(0xFF36E1FF),
     );
   }
 
   void showPatchPowerDemo(String patchTitle) {
-    _showAlert('POWER ONLINE // $patchTitle', const Color(0xFF45F3A6));
+    _showAlert(
+      game.localization.text(
+        'survivalAlert.powerOnline',
+        parameters: <String, Object>{'patch': patchTitle},
+      ),
+      const Color(0xFF45F3A6),
+    );
   }
 
   void showCriticalFlow() {
     _showAlert(
-      'CRITICAL FLOW // PULSE +1 // SPEED +25%',
+      game.localization.text('survivalAlert.criticalFlow'),
       const Color(0xFFFFC857),
     );
   }
 
   void showFusionOnline(String fusionTitle) {
-    _showAlert('FUSION ONLINE // $fusionTitle', const Color(0xFFFFC857));
+    _showAlert(
+      game.localization.text(
+        'survivalAlert.fusionOnline',
+        parameters: <String, Object>{'fusion': fusionTitle},
+      ),
+      const Color(0xFFFFC857),
+    );
   }
 
   void _updatePhaseLeak(double dt) {
@@ -318,7 +357,13 @@ final class SurvivalArenaController extends Component
     );
     if (milestones.activateTemporalStorm) {
       game.recordSurvivalMilestone(SurvivalMeaningfulEvent.temporalStorm);
-      _showAlert('TEMPORAL STORM // 300s', const Color(0xFF36E1FF));
+      _showAlert(
+        game.localization.text(
+          'survivalAlert.temporalStorm',
+          parameters: const <String, Object>{'seconds': 300},
+        ),
+        const Color(0xFF36E1FF),
+      );
     }
     if (milestones.spawnOptimizerFragment) {
       game.recordSurvivalMilestone(SurvivalMeaningfulEvent.optimizerFragment);
@@ -394,7 +439,10 @@ final class SurvivalArenaController extends Component
   Future<void> _spawnPhaseHound() async {
     if (!_phaseHoundTutorialShown) {
       _phaseHoundTutorialShown = true;
-      _showAlert('PHASE HOUND // DODGE > BREAK +1', const Color(0xFF36E1FF));
+      _showAlert(
+        game.localization.text('survivalAlert.phaseHound'),
+        const Color(0xFF36E1FF),
+      );
     }
     late final PhaseHoundComponent hound;
     hound = PhaseHoundComponent(
@@ -413,7 +461,12 @@ final class SurvivalArenaController extends Component
 
   Future<void> _spawnEliteSentinel() async {
     _showAlert(
-      'ELITE ERROR // ${game.survivalRun.elapsedSeconds.floor()}s',
+      game.localization.text(
+        'survivalAlert.eliteError',
+        parameters: <String, Object>{
+          'seconds': game.survivalRun.elapsedSeconds.floor(),
+        },
+      ),
       const Color(0xFFFFC857),
     );
     late final SentinelComponent sentinel;
@@ -433,7 +486,12 @@ final class SurvivalArenaController extends Component
 
   Future<void> _spawnComposite() async {
     _showAlert(
-      'COMPOSITE BREACH // ${game.survivalRun.elapsedSeconds.floor()}s',
+      game.localization.text(
+        'survivalAlert.compositeBreach',
+        parameters: <String, Object>{
+          'seconds': game.survivalRun.elapsedSeconds.floor(),
+        },
+      ),
       const Color(0xFFFF4FD8),
     );
     late final CompositeComponent composite;
@@ -448,7 +506,13 @@ final class SurvivalArenaController extends Component
   }
 
   Future<void> _spawnOptimizerFragment() async {
-    _showAlert('OPTIMIZER FRAGMENT // 450s', const Color(0xFFFFC857));
+    _showAlert(
+      game.localization.text(
+        'survivalAlert.optimizerFragment',
+        parameters: const <String, Object>{'seconds': 450},
+      ),
+      const Color(0xFFFFC857),
+    );
     late final OptimizerFragmentComponent fragment;
     fragment = OptimizerFragmentComponent(
       entityId: 'survival-optimizer-fragment-${_spawnId++}',

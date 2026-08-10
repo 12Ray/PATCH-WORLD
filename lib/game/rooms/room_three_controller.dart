@@ -17,24 +17,27 @@ final class RoomThreeController extends Component
   final List<PlatformSurfaceComponent> _surfaces = <PlatformSurfaceComponent>[];
   int _defeatedCount = 0;
   bool _completed = false;
+  Vector2 _respawnPoint = Vector2(70, 988);
+  late final BossSealGateComponent _bossGate;
 
   @override
-  final Vector2 playerSpawn = Vector2(70, 448);
+  final Vector2 playerSpawn = Vector2(70, 988);
 
   @override
-  final Vector2 worldSize = Vector2(2880, PatchWorldGame.logicalHeight);
+  final Vector2 worldSize = Vector2(2880, 1080);
+
+  @override
+  double get killPlaneY => 1160;
 
   int get defeatedCount => _defeatedCount;
 
   @override
-  Iterable<Rect> get solidBounds => _surfaces.map((surface) => surface.bounds);
+  Iterable<Rect> get solidBounds => _surfaces
+      .where((surface) => surface.isSolid)
+      .map((surface) => surface.bounds);
 
   @override
-  Vector2 respawnPointFor(Vector2 playerPosition) {
-    if (playerPosition.x >= 1920) return Vector2(2050, 448);
-    if (playerPosition.x >= 960) return Vector2(1030, 448);
-    return playerSpawn.clone();
-  }
+  Vector2 respawnPointFor(Vector2 playerPosition) => _respawnPoint.clone();
 
   @override
   Future<void> onLoad() async {
@@ -42,81 +45,140 @@ final class RoomThreeController extends Component
     await add(
       RoomBackdropComponent(RoomBackdropStyle.collision, worldSize: worldSize),
     );
+    _bossGate = BossSealGateComponent(
+      position: Vector2(2480, 560),
+      size: Vector2(28, 464),
+      style: PlatformSurfaceStyle.collision,
+    );
     _surfaces.addAll(<PlatformSurfaceComponent>[
-      _surface(0, 0, 24, 540, boundary: true),
-      _surface(2856, 0, 24, 540, boundary: true),
-      _surface(0, 484, 390, 56),
-      _surface(480, 484, 430, 56),
-      _surface(1000, 484, 430, 56),
-      _surface(1520, 484, 400, 56),
-      _surface(2010, 484, 870, 56),
-      _surface(130, 390, 150, 22),
-      _surface(300, 315, 150, 22),
-      _surface(500, 400, 150, 22),
-      _surface(660, 330, 150, 22),
-      _surface(820, 250, 150, 22),
-      _surface(920, 410, 130, 20),
-      _surface(1080, 350, 150, 22),
-      _surface(1240, 275, 150, 22),
-      _surface(1400, 395, 150, 22),
-      _surface(1580, 310, 150, 22),
-      _surface(1740, 230, 150, 22),
-      _surface(1910, 410, 140, 20),
-      _surface(2080, 350, 150, 22),
-      _surface(2260, 270, 150, 22),
-      _surface(2415, 380, 145, 22),
-      _surface(2540, 425, 316, 59),
-      _surface(560, 430, 58, 54),
-      _surface(1160, 430, 60, 54),
-      _surface(1810, 430, 58, 54),
-      _surface(2320, 430, 60, 54),
+      _surface(0, 0, 24, 1080, boundary: true),
+      _surface(2856, 0, 24, 1080, boundary: true),
+      _surface(0, 1024, 370, 56),
+      _surface(460, 1024, 420, 56),
+      _surface(970, 1024, 420, 56),
+      _surface(1480, 1024, 400, 56),
+      _surface(1970, 1024, 910, 56),
+      _surface(100, 930, 190, 22),
+      _surface(280, 840, 180, 22),
+      _surface(470, 750, 180, 22),
+      _surface(650, 660, 190, 22),
+      _surface(830, 570, 180, 22),
+      _surface(1010, 480, 190, 22),
+      _surface(1190, 390, 190, 22),
+      _surface(1370, 480, 190, 22),
+      _surface(1540, 570, 190, 22),
+      _surface(1720, 660, 190, 22),
+      _surface(1900, 750, 190, 22),
+      _surface(2080, 660, 180, 22),
+      _surface(2250, 570, 180, 22),
+      _surface(2380, 750, 130, 22),
+      _surface(2520, 944, 336, 80),
+      MovingPlatformComponent(
+        start: Vector2(530, 900),
+        end: Vector2(530, 650),
+        size: Vector2(120, 22),
+        periodSeconds: 3.5,
+        style: PlatformSurfaceStyle.collision,
+      ),
+      MovingPlatformComponent(
+        start: Vector2(920, 780),
+        end: Vector2(1090, 690),
+        size: Vector2(120, 22),
+        periodSeconds: 3.0,
+        style: PlatformSurfaceStyle.collision,
+      ),
+      MovingPlatformComponent(
+        start: Vector2(1780, 480),
+        end: Vector2(1780, 720),
+        size: Vector2(120, 22),
+        periodSeconds: 3.8,
+        style: PlatformSurfaceStyle.collision,
+      ),
+      BreakablePlatformComponent(
+        position: Vector2(1260, 760),
+        size: Vector2(150, 22),
+        style: PlatformSurfaceStyle.collision,
+        breakDelay: .55,
+      ),
+      BreakablePlatformComponent(
+        position: Vector2(2160, 840),
+        size: Vector2(140, 22),
+        style: PlatformSurfaceStyle.collision,
+        breakDelay: .65,
+      ),
+      _bossGate,
     ]);
     await addAll(_surfaces);
     await addAll(<Component>[
       for (final pit in <(double, double)>[
-        (390, 90),
-        (910, 90),
-        (1430, 90),
-        (1920, 90),
+        (370, 90),
+        (880, 90),
+        (1390, 90),
+        (1880, 90),
       ])
         DamagePitComponent(
-          position: Vector2(pit.$1, 484),
+          position: Vector2(pit.$1, 1024),
           size: Vector2(pit.$2, 56),
           style: PlatformSurfaceStyle.collision,
         ),
       RoomHazardComponent(
-        position: Vector2(710, 318),
-        size: Vector2(64, 12),
+        position: Vector2(700, 648),
+        size: Vector2(100, 12),
         style: RoomHazardStyle.spikes,
         sourceId: 'hazard.collision-archive.compression-teeth',
       ),
       RoomHazardComponent(
-        position: Vector2(1300, 297),
-        size: Vector2(14, 133),
-        style: RoomHazardStyle.laser,
+        position: Vector2(1735, 648),
+        size: Vector2(100, 12),
+        style: RoomHazardStyle.spikes,
+        sourceId: 'hazard.collision-archive.polarity-teeth',
+      ),
+      PulsingLaserComponent(
+        position: Vector2(1120, 502),
+        size: Vector2(14, 342),
         sourceId: 'hazard.collision-archive.vector-slice',
       ),
-      RoomHazardComponent(
-        position: Vector2(2180, 362),
-        size: Vector2(14, 68),
-        style: RoomHazardStyle.laser,
+      PulsingLaserComponent(
+        position: Vector2(2050, 680),
+        size: Vector2(14, 344),
         sourceId: 'hazard.collision-archive.merge-beam',
+        phaseOffset: 1.2,
       ),
-      JumpPadComponent(position: Vector2(505, 472)),
-      JumpPadComponent(position: Vector2(1535, 472)),
-      JumpPadComponent(position: Vector2(2040, 472)),
-      CheckpointBeaconComponent(position: Vector2(1030, 484), index: 1),
-      CheckpointBeaconComponent(position: Vector2(2050, 484), index: 2),
+      CrusherHazardComponent(
+        start: Vector2(1460, 440),
+        end: Vector2(1460, 720),
+        size: Vector2(100, 70),
+        sourceId: 'hazard.collision-archive.magnetic-crusher',
+      ),
+      CrusherHazardComponent(
+        start: Vector2(2290, 400),
+        end: Vector2(2290, 680),
+        size: Vector2(90, 60),
+        sourceId: 'hazard.collision-archive.polarity-crusher',
+        periodSeconds: 3.4,
+      ),
+      JumpPadComponent(position: Vector2(990, 1012)),
+      JumpPadComponent(position: Vector2(1990, 1012)),
+      CheckpointBeaconComponent(
+        position: Vector2(1030, 1024),
+        index: 1,
+        onActivated: _activateCheckpoint,
+      ),
+      CheckpointBeaconComponent(
+        position: Vector2(2050, 1024),
+        index: 2,
+        onActivated: _activateCheckpoint,
+      ),
     ]);
     await addAll(<PlatformerEnemyComponent>[
-      _enemy(PlatformerEnemyArchetype.vectorRam, 220, 372),
-      _enemy(PlatformerEnemyArchetype.polarityDrone, 780, 230),
-      _enemy(PlatformerEnemyArchetype.phaseMimic, 1300, 257),
-      _enemy(PlatformerEnemyArchetype.shardLobber, 2120, 332),
+      _enemy(PlatformerEnemyArchetype.vectorRam, 330, 822),
+      _enemy(PlatformerEnemyArchetype.polarityDrone, 880, 535),
+      _enemy(PlatformerEnemyArchetype.phaseMimic, 1280, 372),
+      _enemy(PlatformerEnemyArchetype.shardLobber, 2110, 642),
       _enemy(
         PlatformerEnemyArchetype.kernelChimera,
         2690,
-        394,
+        900,
         startsDormant: true,
       ),
     ]);
@@ -147,12 +209,17 @@ final class RoomThreeController extends Component
     startsDormant: startsDormant,
   );
 
+  void _activateCheckpoint(int index, Vector2 respawnPoint) {
+    _respawnPoint = respawnPoint;
+  }
+
   void _onEnemyDefeated(PlatformerEnemyComponent enemy) {
     if (_completed) return;
     _defeatedCount += 1;
     game.runMetrics.recordOverflow();
     game.publishUiSnapshot(force: true);
     if (_defeatedCount == 4) {
+      _bossGate.unlock();
       for (final candidate in children.whereType<PlatformerEnemyComponent>()) {
         if (candidate.archetype.isMidBoss) candidate.activateEncounter();
       }

@@ -25,7 +25,7 @@ void main() {
     await tester.runAsync(() => game.world.loaded);
 
     final room = game.world.activeRoom! as PlatformerRoomGeometry;
-    expect(room.worldSize, Vector2(2880, 540));
+    expect(room.worldSize, Vector2(2880, 1080));
     expect(
       game.world.activeRoom!.children.whereType<RoomHazardComponent>(),
       hasLength(greaterThanOrEqualTo(2)),
@@ -39,9 +39,28 @@ void main() {
       hasLength(2),
     );
 
+    final firstCheckpoint = game.world.activeRoom!.children
+        .whereType<CheckpointBeaconComponent>()
+        .first;
+    game.resumeEngine();
+    game.world.player.position.setValues(
+      firstCheckpoint.position.x,
+      firstCheckpoint.position.y - 28,
+    );
+    game.update(.016);
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(firstCheckpoint.isActive, isTrue);
+    expect(
+      room.respawnPointFor(Vector2(2500, room.killPlaneY)).x,
+      closeTo(firstCheckpoint.position.x, 1),
+    );
+
     game.world.player.position.x = 1500;
+    game.world.player.position.y = 540;
     game.update(.016);
     expect(game.camera.viewfinder.position.x, closeTo(1500, .01));
-    expect(room.respawnPointFor(Vector2(1500, 600)).x, greaterThan(960));
+    expect(game.camera.viewfinder.position.y, closeTo(540, 1));
+    expect(room.killPlaneY, greaterThan(room.worldSize.y));
   });
 }

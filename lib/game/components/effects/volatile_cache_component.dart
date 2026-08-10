@@ -83,7 +83,12 @@ final class VolatileCacheComponent extends PositionComponent
     );
     final painter = TextPainter(
       text: TextSpan(
-        text: '${remainingSeconds.ceil()}s',
+        text: isMounted
+            ? game.localization.text(
+                'unit.secondsShort',
+                parameters: <String, Object>{'value': remainingSeconds.ceil()},
+              )
+            : '${remainingSeconds.ceil()}s',
         style: const TextStyle(
           color: Color(0xFFF4F7FF),
           fontSize: 10,
