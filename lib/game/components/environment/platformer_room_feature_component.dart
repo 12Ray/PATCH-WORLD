@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -16,10 +17,12 @@ final class RoomHazardComponent extends PositionComponent
     required super.size,
     required this.style,
     required this.sourceId,
+    this.surfaceStyle = PlatformSurfaceStyle.damage,
   }) : super(priority: 8);
 
   final RoomHazardStyle style;
   final String sourceId;
+  final PlatformSurfaceStyle surfaceStyle;
   double _phase = 0;
 
   @override
@@ -64,7 +67,7 @@ final class RoomHazardComponent extends PositionComponent
         }
         canvas.drawPath(
           path,
-          Paint()..color = Color.fromRGBO(255, 79, 216, glow),
+          Paint()..color = surfaceStyle.secondaryAccent.withValues(alpha: glow),
         );
       case RoomHazardStyle.laser:
         canvas.drawRect(
@@ -74,13 +77,13 @@ final class RoomHazardComponent extends PositionComponent
             height: size.y,
           ),
           Paint()
-            ..color = Color.fromRGBO(255, 79, 216, glow)
+            ..color = surfaceStyle.secondaryAccent.withValues(alpha: glow)
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
         );
         for (final y in <double>[0, size.y - 8]) {
           canvas.drawRect(
             Rect.fromLTWH(0, y, size.x, 8),
-            Paint()..color = const Color(0xFF6F315F),
+            Paint()..color = surfaceStyle.bodyHighlight,
           );
         }
     }
@@ -88,9 +91,14 @@ final class RoomHazardComponent extends PositionComponent
   }
 }
 
-final class JumpPadComponent extends PositionComponent with CollisionCallbacks {
-  JumpPadComponent({required super.position})
-    : super(size: Vector2(54, 12), priority: 7);
+final class JumpPadComponent extends PositionComponent
+    with CollisionCallbacks, HasGameReference<PatchWorldGame> {
+  JumpPadComponent({
+    required super.position,
+    this.style = PlatformSurfaceStyle.damage,
+  }) : super(size: Vector2(54, 12), priority: 7);
+
+  final PlatformSurfaceStyle style;
 
   @override
   Future<void> onLoad() async {
@@ -105,6 +113,7 @@ final class JumpPadComponent extends PositionComponent with CollisionCallbacks {
   ) {
     if (other is PlayerComponent) {
       other.applyExternalImpulse(Vector2(0, -520));
+      unawaited(game.audio.playJumpPad());
     }
     super.onCollisionStart(intersectionPoints, other);
   }
@@ -113,7 +122,13 @@ final class JumpPadComponent extends PositionComponent with CollisionCallbacks {
   void render(Canvas canvas) {
     canvas.drawRRect(
       RRect.fromRectAndRadius(size.toRect(), const Radius.circular(4)),
-      Paint()..color = const Color(0xFF145E72),
+      Paint()
+        ..shader = Gradient.linear(
+          Offset.zero,
+          Offset(size.x, 0),
+          <Color>[style.bodyColor, style.bodyHighlight, style.bodyColor],
+          <double>[0, .5, 1],
+        ),
     );
     for (final x in <double>[14, 27, 40]) {
       final arrow = Path()
@@ -125,7 +140,7 @@ final class JumpPadComponent extends PositionComponent with CollisionCallbacks {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2
-          ..color = const Color(0xFF36E1FF),
+          ..color = style.accentColor,
       );
     }
     super.render(canvas);
@@ -138,10 +153,12 @@ final class CheckpointBeaconComponent extends PositionComponent
     required super.position,
     required this.index,
     this.onActivated,
+    this.style = PlatformSurfaceStyle.damage,
   }) : super(size: Vector2(34, 58), anchor: Anchor.bottomCenter, priority: 6);
 
   final int index;
   final void Function(int index, Vector2 respawnPoint)? onActivated;
+  final PlatformSurfaceStyle style;
   double _phase = 0;
   bool _active = false;
 
@@ -182,6 +199,7 @@ final class CheckpointBeaconComponent extends PositionComponent
     if (_active) return;
     _active = true;
     onActivated?.call(index, Vector2(position.x, position.y - 28));
+    unawaited(game.audio.playCheckpoint());
   }
 
   @override
@@ -198,11 +216,11 @@ final class CheckpointBeaconComponent extends PositionComponent
     );
     canvas.drawRect(
       Rect.fromLTWH(size.x / 2 - 4, 27, 8, 25),
-      Paint()..color = const Color(0xFF496178),
+      Paint()..color = style.bodyHighlight,
     );
     canvas.drawRect(
       Rect.fromLTWH(4, 50, size.x - 8, 8),
-      Paint()..color = const Color(0xFF25304A),
+      Paint()..color = style.bodyColor,
     );
     canvas.drawCircle(
       center,
@@ -259,7 +277,7 @@ final class BossSealGateComponent extends PlatformSurfaceComponent {
 }
 
 final class PulsingLaserComponent extends PositionComponent
-    with CollisionCallbacks {
+    with CollisionCallbacks, HasGameReference<PatchWorldGame> {
   PulsingLaserComponent({
     required super.position,
     required super.size,
@@ -267,13 +285,16 @@ final class PulsingLaserComponent extends PositionComponent
     this.activeSeconds = 1.4,
     this.inactiveSeconds = 1.0,
     this.phaseOffset = 0,
+    this.style = PlatformSurfaceStyle.damage,
   }) : super(priority: 8);
 
   final String sourceId;
   final double activeSeconds;
   final double inactiveSeconds;
   final double phaseOffset;
+  final PlatformSurfaceStyle style;
   double _elapsed = 0;
+  bool _wasActive = false;
 
   bool get isActive =>
       ((_elapsed + phaseOffset) % (activeSeconds + inactiveSeconds)) <
@@ -282,12 +303,16 @@ final class PulsingLaserComponent extends PositionComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    _wasActive = isActive;
     await add(RectangleHitbox(size: size));
   }
 
   @override
   void update(double dt) {
     _elapsed += dt;
+    final active = isActive;
+    if (active && !_wasActive) unawaited(game.audio.playLaserFire());
+    _wasActive = active;
     super.update(dt);
   }
 
@@ -304,7 +329,9 @@ final class PulsingLaserComponent extends PositionComponent
 
   @override
   void render(Canvas canvas) {
-    final color = isActive ? const Color(0xFFFF4FD8) : const Color(0x334A7891);
+    final color = isActive
+        ? style.secondaryAccent
+        : style.bodyHighlight.withAlpha(55);
     canvas.drawRect(
       Rect.fromCenter(
         center: Offset(size.x / 2, size.y / 2),
@@ -321,13 +348,14 @@ final class PulsingLaserComponent extends PositionComponent
 }
 
 final class CrusherHazardComponent extends PositionComponent
-    with CollisionCallbacks {
+    with CollisionCallbacks, HasGameReference<PatchWorldGame> {
   CrusherHazardComponent({
     required Vector2 start,
     required this.end,
     required super.size,
     required this.sourceId,
     this.periodSeconds = 2.8,
+    this.style = PlatformSurfaceStyle.damage,
   }) : _start = start.clone(),
        super(position: start, priority: 9);
 
@@ -335,7 +363,9 @@ final class CrusherHazardComponent extends PositionComponent
   final Vector2 end;
   final String sourceId;
   final double periodSeconds;
+  final PlatformSurfaceStyle style;
   double _elapsed = 0;
+  bool _impactArmed = true;
 
   @override
   Future<void> onLoad() async {
@@ -349,6 +379,11 @@ final class CrusherHazardComponent extends PositionComponent
     final phase = (_elapsed / periodSeconds) * math.pi * 2;
     final t = (math.sin(phase) + 1) / 2;
     position.setFrom(_start + (end - _start) * t);
+    if (t < .78) _impactArmed = true;
+    if (_impactArmed && t > .97) {
+      _impactArmed = false;
+      unawaited(game.audio.playCrusherImpact());
+    }
     super.update(dt);
   }
 
@@ -365,14 +400,21 @@ final class CrusherHazardComponent extends PositionComponent
 
   @override
   void render(Canvas canvas) {
-    canvas.drawRect(size.toRect(), Paint()..color = const Color(0xFF40233F));
+    canvas.drawRect(
+      size.toRect(),
+      Paint()
+        ..shader = Gradient.linear(Offset.zero, Offset(0, size.y), <Color>[
+          style.bodyHighlight,
+          style.bodyColor,
+        ]),
+    );
     for (double x = 0; x < size.x; x += 16) {
       final tooth = Path()
         ..moveTo(x, size.y)
         ..lineTo(x + 8, size.y + 10)
         ..lineTo(x + 16, size.y)
         ..close();
-      canvas.drawPath(tooth, Paint()..color = const Color(0xFFFF4FD8));
+      canvas.drawPath(tooth, Paint()..color = style.secondaryAccent);
     }
   }
 }

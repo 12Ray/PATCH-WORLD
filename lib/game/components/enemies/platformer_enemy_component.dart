@@ -565,6 +565,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   }
 
   void _executeAction(String id) {
+    unawaited(game.audio.playEnemyAttack(id));
     if (id.contains('.normal.')) {
       unawaited(_fireTierPattern(AttackTier.normal));
       return;

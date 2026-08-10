@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -6,22 +7,43 @@ import 'package:patch_world/game/patch_world_game.dart';
 
 enum PlatformSurfaceStyle { damage, temporal, collision, optimizer }
 
+extension PlatformSurfaceTheme on PlatformSurfaceStyle {
+  Color get bodyColor => switch (this) {
+    PlatformSurfaceStyle.damage => const Color(0xFF131C2D),
+    PlatformSurfaceStyle.temporal => const Color(0xFF1B1932),
+    PlatformSurfaceStyle.collision => const Color(0xFF102A35),
+    PlatformSurfaceStyle.optimizer => const Color(0xFF242338),
+  };
+
+  Color get bodyHighlight => switch (this) {
+    PlatformSurfaceStyle.damage => const Color(0xFF34445D),
+    PlatformSurfaceStyle.temporal => const Color(0xFF454064),
+    PlatformSurfaceStyle.collision => const Color(0xFF24536A),
+    PlatformSurfaceStyle.optimizer => const Color(0xFF55516C),
+  };
+
+  Color get accentColor => switch (this) {
+    PlatformSurfaceStyle.damage => const Color(0xFF36E1FF),
+    PlatformSurfaceStyle.temporal => const Color(0xFF9D8CFF),
+    PlatformSurfaceStyle.collision => const Color(0xFF2CF2C8),
+    PlatformSurfaceStyle.optimizer => const Color(0xFFF4F7FF),
+  };
+
+  Color get secondaryAccent => switch (this) {
+    PlatformSurfaceStyle.damage => const Color(0xFFFF4FD8),
+    PlatformSurfaceStyle.temporal => const Color(0xFFFF4FD8),
+    PlatformSurfaceStyle.collision => const Color(0xFFFF4FD8),
+    PlatformSurfaceStyle.optimizer => const Color(0xFF36E1FF),
+  };
+}
+
 class PlatformSurfaceComponent extends RectangleComponent {
   PlatformSurfaceComponent({
     required super.position,
     required super.size,
     this.isBoundary = false,
     this.style = PlatformSurfaceStyle.damage,
-  }) : super(
-         paint: Paint()
-           ..color = switch (style) {
-             PlatformSurfaceStyle.damage => const Color(0xFF25304A),
-             PlatformSurfaceStyle.temporal => const Color(0xFF29284C),
-             PlatformSurfaceStyle.collision => const Color(0xFF183E47),
-             PlatformSurfaceStyle.optimizer => const Color(0xFF242338),
-           },
-         priority: 2,
-       );
+  }) : super(paint: Paint()..color = style.bodyColor, priority: 2);
 
   final bool isBoundary;
   final PlatformSurfaceStyle style;
@@ -32,62 +54,105 @@ class PlatformSurfaceComponent extends RectangleComponent {
 
   @override
   void render(Canvas canvas) {
-    super.render(canvas);
     if (isBoundary) return;
+    final bounds = size.toRect();
+    canvas.drawRect(
+      bounds,
+      Paint()
+        ..shader = Gradient.linear(Offset.zero, Offset(0, size.y), <Color>[
+          style.bodyHighlight,
+          style.bodyColor,
+        ]),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, math.max(0, size.y - 4), size.x, math.min(4, size.y)),
+      Paint()..color = style.secondaryAccent.withAlpha(60),
+    );
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.x, 4),
-      Paint()..color = _accentColor,
+      Paint()
+        ..color = style.accentColor
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
     );
-    for (double x = 10; x < size.x; x += 24) {
-      canvas.drawRect(
-        Rect.fromLTWH(x, 9, 10, mathMin(3, size.y - 9)),
-        Paint()..color = _accentColor.withAlpha(85),
-      );
-    }
-    if (style == PlatformSurfaceStyle.temporal) {
-      for (double x = 20; x < size.x; x += 42) {
-        canvas.drawCircle(
-          Offset(x, mathMin(14, size.y - 3)),
-          4,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.5
-            ..color = const Color(0x889D8CFF),
-        );
-      }
-    } else if (style == PlatformSurfaceStyle.collision) {
-      for (double x = 16; x < size.x; x += 38) {
-        canvas.drawLine(
-          Offset(x, 8),
-          Offset(mathMin(x + 12, size.x), mathMin(18, size.y - 2)),
-          Paint()
-            ..strokeWidth = 2
-            ..color = const Color(0x88FF4FD8),
-        );
-      }
-    } else if (style == PlatformSurfaceStyle.optimizer) {
-      for (double x = 14; x < size.x; x += 32) {
-        canvas.drawRect(
-          Rect.fromLTWH(x, 9, 14, mathMin(4, size.y - 9)),
-          Paint()..color = const Color(0x88FF4FD8),
-        );
-        canvas.drawCircle(
-          Offset(x + 7, mathMin(18, size.y - 3)),
-          2.5,
-          Paint()..color = const Color(0xAA36E1FF),
-        );
-      }
+    canvas.drawLine(
+      Offset(0, math.min(7, size.y - 1)),
+      Offset(size.x, math.min(7, size.y - 1)),
+      Paint()
+        ..strokeWidth = 1
+        ..color = const Color(0xAA07101C),
+    );
+    for (double x = 8; x < size.x; x += 32) {
+      _drawSurfaceModule(canvas, x);
     }
   }
 
-  Color get _accentColor => switch (style) {
-    PlatformSurfaceStyle.damage => const Color(0xFF36E1FF),
-    PlatformSurfaceStyle.temporal => const Color(0xFF9D8CFF),
-    PlatformSurfaceStyle.collision => const Color(0xFF2CF2C8),
-    PlatformSurfaceStyle.optimizer => const Color(0xFFF4F7FF),
-  };
-
-  double mathMin(double a, double b) => a < b ? a : b;
+  void _drawSurfaceModule(Canvas canvas, double x) {
+    final moduleHeight = math.max(0.0, math.min(size.y - 10, 14.0));
+    if (moduleHeight <= 0) return;
+    switch (style) {
+      case PlatformSurfaceStyle.damage:
+        canvas.drawRect(
+          Rect.fromLTWH(x, 10, math.min(18.0, size.x - x), moduleHeight),
+          Paint()..color = const Color(0x5536E1FF),
+        );
+        canvas.drawCircle(
+          Offset(math.min(size.x - 2, x + 4), 13),
+          1.8,
+          Paint()..color = const Color(0xFFFFB34D),
+        );
+      case PlatformSurfaceStyle.temporal:
+        final runeCenter = Offset(
+          math.min(size.x - 5, x + 8),
+          math.min(size.y - 4, 15),
+        );
+        canvas.drawCircle(
+          runeCenter,
+          5,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2
+            ..color = style.accentColor.withAlpha(150),
+        );
+        canvas.drawLine(
+          runeCenter + const Offset(0, -4),
+          runeCenter + const Offset(0, 4),
+          Paint()..color = const Color(0xAAFFD35A),
+        );
+      case PlatformSurfaceStyle.collision:
+        final right = math.min(size.x, x + 22.0);
+        final bottom = math.min(size.y - 2, 22.0);
+        final cell = Path()
+          ..moveTo(x, 10)
+          ..lineTo(right, 10)
+          ..lineTo(math.max(x, right - 8), bottom)
+          ..lineTo(math.min(right, x + 8), bottom)
+          ..close();
+        canvas.drawPath(
+          cell,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.4
+            ..color = (x ~/ 32).isEven
+                ? style.accentColor.withAlpha(150)
+                : style.secondaryAccent.withAlpha(140),
+        );
+      case PlatformSurfaceStyle.optimizer:
+        canvas.drawRect(
+          Rect.fromLTWH(
+            x,
+            10,
+            math.min(16.0, size.x - x),
+            math.min(4.0, moduleHeight),
+          ),
+          Paint()..color = style.secondaryAccent.withAlpha(150),
+        );
+        canvas.drawCircle(
+          Offset(math.min(size.x - 3, x + 8), math.min(20, size.y - 3)),
+          2.5,
+          Paint()..color = const Color(0xAAFF4FD8),
+        );
+    }
+  }
 }
 
 final class MovingPlatformComponent extends PlatformSurfaceComponent {
@@ -117,11 +182,21 @@ final class MovingPlatformComponent extends PlatformSurfaceComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    canvas.drawCircle(
-      Offset(size.x / 2, size.y / 2),
-      5,
-      Paint()..color = const Color(0xFFFFD35A),
+    final center = Offset(size.x / 2, size.y / 2);
+    canvas.drawRect(
+      Rect.fromCenter(center: center, width: 30, height: math.min(12, size.y)),
+      Paint()..color = style.bodyHighlight,
     );
+    canvas.drawCircle(center, 5, Paint()..color = style.secondaryAccent);
+    for (final direction in <double>[-1, 1]) {
+      canvas.drawLine(
+        center,
+        center + Offset(direction * 18, 0),
+        Paint()
+          ..strokeWidth = 2
+          ..color = style.accentColor,
+      );
+    }
   }
 }
 
@@ -202,6 +277,7 @@ final class BreakablePlatformComponent extends PlatformSurfaceComponent
       if (_standingTime >= breakDelay) {
         _broken = true;
         _standingTime = 0;
+        unawaited(game.audio.playPlatformBreak());
       }
     }
     super.update(dt);
@@ -212,13 +288,33 @@ final class BreakablePlatformComponent extends PlatformSurfaceComponent
     if (_broken) return;
     super.render(canvas);
     final crack = (_standingTime / breakDelay).clamp(0.0, 1.0);
+    final crackPaint = Paint()
+      ..strokeWidth = 1.5 + crack
+      ..color = Color.lerp(
+        const Color(0xFFFFD35A),
+        style.secondaryAccent,
+        crack,
+      )!;
+    final center = size.x * .48;
     canvas.drawLine(
-      Offset(size.x * .35, 4),
-      Offset(size.x * (.45 + .25 * crack), size.y - 3),
-      Paint()
-        ..strokeWidth = 2
-        ..color = const Color(0xFFFFD35A),
+      Offset(center, 4),
+      Offset(center - 12, size.y - 3),
+      crackPaint,
     );
+    if (crack > .35) {
+      canvas.drawLine(
+        Offset(center - 4, size.y * .48),
+        Offset(center + 15 * crack, size.y - 3),
+        crackPaint,
+      );
+    }
+    if (crack > .68) {
+      canvas.drawLine(
+        Offset(center + 2, 7),
+        Offset(center + 22 * crack, size.y * .55),
+        crackPaint,
+      );
+    }
   }
 }
 
@@ -227,29 +323,21 @@ final class DamagePitComponent extends RectangleComponent {
     required super.position,
     required super.size,
     this.style = PlatformSurfaceStyle.damage,
-  }) : super(
-         paint: Paint()
-           ..color = switch (style) {
-             PlatformSurfaceStyle.damage => const Color(0xFF260B2E),
-             PlatformSurfaceStyle.temporal => const Color(0xFF15143A),
-             PlatformSurfaceStyle.collision => const Color(0xFF092F37),
-             PlatformSurfaceStyle.optimizer => const Color(0xFF220C28),
-           },
-         priority: 1,
-       );
+  }) : super(paint: Paint()..color = style.bodyColor, priority: 1);
 
   final PlatformSurfaceStyle style;
 
   @override
   void render(Canvas canvas) {
-    super.render(canvas);
-    final stripe = Paint()
-      ..color = switch (style) {
-        PlatformSurfaceStyle.damage => const Color(0xFFEB4BD8),
-        PlatformSurfaceStyle.temporal => const Color(0xFF9D8CFF),
-        PlatformSurfaceStyle.collision => const Color(0xFF2CF2C8),
-        PlatformSurfaceStyle.optimizer => const Color(0xFFFF4FD8),
-      };
+    canvas.drawRect(
+      size.toRect(),
+      Paint()
+        ..shader = Gradient.linear(Offset.zero, Offset(0, size.y), <Color>[
+          style.secondaryAccent.withAlpha(100),
+          style.bodyColor,
+        ]),
+    );
+    final stripe = Paint()..color = style.secondaryAccent;
     for (double x = -20; x < size.x + 20; x += 20) {
       canvas.drawLine(
         Offset(x, 4),

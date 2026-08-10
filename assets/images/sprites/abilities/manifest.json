@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "sequences": {
+    "gauntletDoubleJumpSpin": {
+      "asset": "gauntlet-double-jump-spin.png",
+      "frames": 6,
+      "fps": 16.5,
+      "trigger": "second airborne jump with gauntlet"
+    },
+    "swordDash": {
+      "asset": "sword-dash.png",
+      "frames": 6,
+      "fps": 20,
+      "trigger": "successful horizontal sword dash"
+    },
+    "gunChargedRail": {
+      "asset": "gun-charged-rail.png",
+      "frames": 6,
+      "fps": 14,
+      "trigger": "gun charged-rail combo motion"
+    }
+  }
+}

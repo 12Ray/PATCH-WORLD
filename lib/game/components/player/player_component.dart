@@ -59,6 +59,9 @@ final class PlayerComponent extends RectangleComponent
   List<Sprite>? _hurtFrames;
   final Map<PlayerWeapon, List<Sprite>> _weaponFrames =
       <PlayerWeapon, List<Sprite>>{};
+  List<Sprite>? _gauntletDoubleJumpFrames;
+  List<Sprite>? _swordDashFrames;
+  List<Sprite>? _gunRailFrames;
   bool _usingMoveAnimation = false;
   PlayerWeapon selectedWeapon = PlayerWeapon.sword;
   int _weaponComboStep = 0;
@@ -147,6 +150,19 @@ final class PlayerComponent extends RectangleComponent
       );
       _weaponFrames[weapon] = _frames(image, 10);
     }
+    final gauntletSpin = await game.images.load(
+      'sprites/abilities/gauntlet-double-jump-spin.png',
+    );
+    final swordDash = await game.images.load(
+      'sprites/abilities/sword-dash.png',
+    );
+    final gunRail = await game.images.load(
+      'sprites/abilities/gun-charged-rail.png',
+    );
+    if (isRemoving) return;
+    _gauntletDoubleJumpFrames = _frames(gauntletSpin, 6);
+    _swordDashFrames = _frames(swordDash, 6);
+    _gunRailFrames = _frames(gunRail, 6);
     _syncMovementAnimation(force: true);
   }
 
@@ -172,9 +188,17 @@ final class PlayerComponent extends RectangleComponent
         _airJumpsRemaining > 0 &&
         _platformerMotion.tryAirJump()) {
       _airJumpsRemaining -= 1;
+      final spinFrames = _gauntletDoubleJumpFrames;
+      if (spinFrames != null) _visual?.playOnce(spinFrames, fps: 16.5);
       _visual?.squash(seconds: 0.12);
-      if (isMounted) game.publishUiSnapshot(force: true);
+      if (isMounted) {
+        unawaited(game.audio.playJump(doubleJump: true));
+        game.publishUiSnapshot(force: true);
+      }
       return;
+    }
+    if (_platformerMotion.canGroundJump && isMounted) {
+      unawaited(game.audio.playJump());
     }
     _platformerMotion.queueJump();
   }
@@ -191,6 +215,7 @@ final class PlayerComponent extends RectangleComponent
     _dashCooldown = 0;
     _dashContactImmunity = 0;
     _airJumpsRemaining = 1;
+    _visual?.resetPresentation();
   }
 
   void applyExternalImpulse(Vector2 impulse) {
@@ -258,8 +283,11 @@ final class PlayerComponent extends RectangleComponent
     if (!_platformerMotion.grounded) _airJumpsRemaining = 0;
     _visual?.flash(const Color(0xFF36E1FF), seconds: 0.10);
     _visual?.actionLunge(direction: direction, seconds: .15, travel: 20);
+    final dashFrames = _swordDashFrames;
+    if (dashFrames != null) _visual?.playOnce(dashFrames, fps: 20);
     if (isMounted) {
       game.patchEffects.onPlayerDashed();
+      unawaited(game.audio.playSwordDash());
       game.publishUiSnapshot(force: true);
     }
     return true;
@@ -354,7 +382,13 @@ final class PlayerComponent extends RectangleComponent
     _weaponComboReset = 0.85;
     _counterWindow = 0;
     _attackCooldown = counter ? 0.18 : selectedWeapon.baseCooldown;
-    _playWeaponMotion(motionIndex, fps: counter ? 16 : 13);
+    final isGunRail = selectedWeapon == PlayerWeapon.gun && motionIndex == 4;
+    final railFrames = _gunRailFrames;
+    if (isGunRail && railFrames != null) {
+      _visual?.playOnce(railFrames, fps: 14);
+    } else {
+      _playWeaponMotion(motionIndex, fps: counter ? 16 : 13);
+    }
     _visual?.actionLunge(
       direction: _facing,
       seconds: counter ? .28 : .22,
@@ -443,7 +477,12 @@ final class PlayerComponent extends RectangleComponent
         }
     }
     game.patchEffects.onPatchPulseEmitted(position.clone());
-    unawaited(game.audio.playPatchPulse());
+    unawaited(
+      game.audio.playWeaponAttack(
+        selectedWeapon,
+        heavy: counter || isGunRail || motionIndex == 6,
+      ),
+    );
   }
 
   void tryParry() {
@@ -597,6 +636,7 @@ final class PlayerComponent extends RectangleComponent
   }
 
   void _updatePlatformer(double dt, PlatformerRoomGeometry room) {
+    final wasGrounded = _platformerMotion.grounded;
     var remaining = math.min(dt, 0.10);
     while (remaining > 0) {
       final step = math.min(remaining, 1 / 120);
@@ -621,6 +661,10 @@ final class PlayerComponent extends RectangleComponent
       position.y += _platformerMotion.velocity.y * step;
       _resolvePlatformerVertical(room.solidBounds, oldY);
       remaining -= step;
+    }
+
+    if (!wasGrounded && _platformerMotion.grounded && isMounted) {
+      unawaited(game.audio.playLand());
     }
 
     if (position.y > room.killPlaneY) {

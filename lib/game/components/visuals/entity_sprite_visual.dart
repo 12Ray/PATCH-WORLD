@@ -73,6 +73,23 @@ final class EntitySpriteVisual extends SpriteComponent {
     _animationPlaying = value;
   }
 
+  /// Cancels a transient action without touching the gameplay component.
+  /// Room changes and respawns use this to prevent a rotated or lunging pose
+  /// from leaking into the next scene.
+  void resetPresentation() {
+    _flashRemaining = 0;
+    _squashRemaining = 0;
+    _actionRemaining = 0;
+    position.setFrom(_basePosition);
+    angle = 0;
+    scale.setValues(_facing, 1);
+    final defaults = _defaultFrames;
+    if (defaults != null) {
+      _startAnimation(defaults, fps: _defaultFps, loops: true);
+    }
+    _applyPaint();
+  }
+
   void _startAnimation(
     List<Sprite> frames, {
     required double fps,

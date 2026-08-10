@@ -126,27 +126,37 @@ final class BossRoomController extends Component
         position: Vector2(760, 1012),
         size: Vector2(96, 12),
         style: RoomHazardStyle.spikes,
+        surfaceStyle: PlatformSurfaceStyle.optimizer,
         sourceId: 'hazard.optimizer.perfect-teeth-left',
       ),
       RoomHazardComponent(
         position: Vector2(1064, 1012),
         size: Vector2(96, 12),
         style: RoomHazardStyle.spikes,
+        surfaceStyle: PlatformSurfaceStyle.optimizer,
         sourceId: 'hazard.optimizer.perfect-teeth-right',
       ),
       PulsingLaserComponent(
         position: Vector2(520, 600),
         size: Vector2(14, 220),
         sourceId: 'hazard.optimizer.analysis-column-left',
+        style: PlatformSurfaceStyle.optimizer,
       ),
       PulsingLaserComponent(
         position: Vector2(1386, 600),
         size: Vector2(14, 220),
         sourceId: 'hazard.optimizer.analysis-column-right',
+        style: PlatformSurfaceStyle.optimizer,
         phaseOffset: 1.2,
       ),
-      JumpPadComponent(position: Vector2(430, 1012)),
-      JumpPadComponent(position: Vector2(1460, 1012)),
+      JumpPadComponent(
+        position: Vector2(430, 1012),
+        style: PlatformSurfaceStyle.optimizer,
+      ),
+      JumpPadComponent(
+        position: Vector2(1460, 1012),
+        style: PlatformSurfaceStyle.optimizer,
+      ),
     ]);
 
     terminal = LegacyGlitchTerminal(
