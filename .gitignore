@@ -12,6 +12,21 @@
 .swiftpm/
 migrate_working_dir/
 
+# Environment files and local secrets
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Local scratch files
+tmp/
+
 # IntelliJ related
 *.iml
 *.ipr
