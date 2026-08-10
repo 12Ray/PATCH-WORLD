@@ -42,14 +42,23 @@ final class RoomTwoController extends Component
     ]);
     await addAll(_surfaces);
     await add(
-      DamagePitComponent(position: Vector2(350, 484), size: Vector2(88, 56)),
+      DamagePitComponent(
+        position: Vector2(350, 484),
+        size: Vector2(88, 56),
+        style: PlatformSurfaceStyle.temporal,
+      ),
     );
     await addAll(<PlatformerEnemyComponent>[
       _enemy(PlatformerEnemyArchetype.tickRunner, 145, 466),
       _enemy(PlatformerEnemyArchetype.echoBat, 270, 250),
       _enemy(PlatformerEnemyArchetype.delaySniper, 392, 312),
       _enemy(PlatformerEnemyArchetype.rewindSkater, 575, 368),
-      _enemy(PlatformerEnemyArchetype.chronoJailer, 770, 210),
+      _enemy(
+        PlatformerEnemyArchetype.chronoJailer,
+        770,
+        210,
+        startsDormant: true,
+      ),
     ]);
   }
 
@@ -63,16 +72,19 @@ final class RoomTwoController extends Component
     position: Vector2(x, y),
     size: Vector2(width, height),
     isBoundary: boundary,
+    style: PlatformSurfaceStyle.temporal,
   );
 
   PlatformerEnemyComponent _enemy(
     PlatformerEnemyArchetype archetype,
     double x,
-    double y,
-  ) => PlatformerEnemyComponent(
+    double y, {
+    bool startsDormant = false,
+  }) => PlatformerEnemyComponent(
     archetype: archetype,
     position: Vector2(x, y),
     onDefeated: _onEnemyDefeated,
+    startsDormant: startsDormant,
   );
 
   void _onEnemyDefeated(PlatformerEnemyComponent enemy) {
@@ -80,6 +92,12 @@ final class RoomTwoController extends Component
     _defeatedCount += 1;
     game.runMetrics.recordOverflow();
     game.publishUiSnapshot(force: true);
+    if (_defeatedCount == 4) {
+      for (final candidate in children.whereType<PlatformerEnemyComponent>()) {
+        if (candidate.archetype.isMidBoss) candidate.activateEncounter();
+      }
+      return;
+    }
     if (_defeatedCount < 5) return;
     _completed = true;
     Future<void>.delayed(

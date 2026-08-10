@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
+import 'package:patch_world/game/combat/attack_tier.dart';
 import 'package:patch_world/game/components/effects/enemy_damage_volume_component.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_action_timeline.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_combat_state.dart';
@@ -98,6 +99,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     required this.archetype,
     required super.position,
     required this.onDefeated,
+    this.startsDormant = false,
   }) : healthState = HealthState(
          max: archetype.isMidBoss ? 8 : 3,
          current: archetype.index < 5
@@ -111,6 +113,7 @@ final class PlatformerEnemyComponent extends PositionComponent
        );
 
   final PlatformerEnemyArchetype archetype;
+  final bool startsDormant;
   final HealthState healthState;
   final void Function(PlatformerEnemyComponent enemy) onDefeated;
   final Vector2 _velocity = Vector2.zero();
@@ -122,6 +125,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   double _overflowTimer = 0;
   bool _grounded = false;
   bool _resolved = false;
+  late bool _dormant = startsDormant;
   double _facing = 1;
   EnemyActionTimeline? _action;
   EnemyCombatState _combatState = EnemyCombatState.idle;
@@ -131,6 +135,9 @@ final class PlatformerEnemyComponent extends PositionComponent
   int _wardenPatternIndex = 0;
   bool _rewindReturning = false;
   bool _polarityPushes = false;
+  int _projectilePatternIndex = 0;
+  int _combatPatternIndex = 0;
+  int _activeMotionFrame = 3;
   SpriteComponent? _spriteVisual;
   List<Sprite>? _spriteFrames;
   final List<Vector2> _motionHistory = <Vector2>[];
@@ -143,6 +150,14 @@ final class PlatformerEnemyComponent extends PositionComponent
   EnemyCombatState get combatState => _combatState;
   String? get activeActionId => _action?.id;
   bool get dealsContactDamage => false;
+  bool get isDormant => _dormant;
+
+  void activateEncounter() {
+    if (!_dormant || _resolved) return;
+    _dormant = false;
+    _nextAttackAt = _actionClock + .8;
+    scale.setAll(1.08);
+  }
 
   @override
   Future<void> onLoad() async {
@@ -177,11 +192,11 @@ final class PlatformerEnemyComponent extends PositionComponent
   Future<void> _loadSpriteVisual() async {
     try {
       final image = await game.images.load(
-        'sprites/platformer/${archetype.assetSlug}.png',
+        'sprites/combat_v2/enemies/${archetype.assetSlug}.png',
       );
       if (isRemoving) return;
       final frames = List<Sprite>.generate(
-        4,
+        10,
         (index) => Sprite(
           image,
           srcPosition: Vector2(index * 256.0, 0),
@@ -205,7 +220,7 @@ final class PlatformerEnemyComponent extends PositionComponent
 
   @override
   void receiveDamage(int amount) {
-    if (_resolved || amount <= 0) return;
+    if (_resolved || _dormant || amount <= 0) return;
     final mutation = healthState.applyDamage(amount);
     if (mutation == HealthMutation.defeated) {
       _resolveDefeat();
@@ -216,7 +231,7 @@ final class PlatformerEnemyComponent extends PositionComponent
 
   @override
   void receiveHealing(int amount) {
-    if (_resolved || amount <= 0) return;
+    if (_resolved || _dormant || amount <= 0) return;
     if (_isWardenGuardBlockingPlayer) return;
     _applyHealing(amount);
   }
@@ -254,6 +269,13 @@ final class PlatformerEnemyComponent extends PositionComponent
       return;
     }
     if (!game.world.isReady || _resolved) {
+      super.update(dt);
+      return;
+    }
+    if (_dormant) {
+      _combatState = EnemyCombatState.idle;
+      _syncSpriteVisual();
+      scale.setAll(.92 + math.sin(_actionClock * 2) * .02);
       super.update(dt);
       return;
     }
@@ -328,13 +350,13 @@ final class PlatformerEnemyComponent extends PositionComponent
     final frameIndex = switch (_combatState) {
       EnemyCombatState.idle => 0,
       EnemyCombatState.moving => 1,
-      EnemyCombatState.telegraph ||
+      EnemyCombatState.telegraph => 2,
       EnemyCombatState.attacking ||
-      EnemyCombatState.recovering => 2,
+      EnemyCombatState.recovering => _activeMotionFrame,
       EnemyCombatState.hurt ||
       EnemyCombatState.staggered ||
-      EnemyCombatState.overflowing ||
-      EnemyCombatState.defeated => 3,
+      EnemyCombatState.overflowing => 8,
+      EnemyCombatState.defeated => 9,
     };
     visual.sprite = frames[frameIndex];
     visual.scale.x = _facing;
@@ -346,18 +368,18 @@ final class PlatformerEnemyComponent extends PositionComponent
     switch (archetype) {
       case PlatformerEnemyArchetype.patchMite:
         if (playerDistance <= 145) {
-          _beginBrainAction();
+          _beginPatternAction();
         }
       case PlatformerEnemyArchetype.checksumHopper:
         if (_grounded && playerDistance <= 310) {
-          _beginBrainAction();
+          _beginPatternAction();
         }
       case PlatformerEnemyArchetype.pulseTurret:
         if (playerDistance <= 520) {
-          _beginBrainAction();
+          _beginPatternAction();
         }
       case PlatformerEnemyArchetype.repairLeech:
-        _beginBrainAction();
+        _beginPatternAction();
       case PlatformerEnemyArchetype.overflowWarden:
         final shouldSummonHigh =
             healthState.current <= 5 && !_wardenSummonedAtHighThreshold;
@@ -372,7 +394,7 @@ final class PlatformerEnemyComponent extends PositionComponent
           _beginBrainAction(variant: 'summon');
         } else if (_wardenPatternIndex.isEven) {
           _wardenPatternIndex += 1;
-          _beginBrainAction();
+          _beginPatternAction();
         } else {
           _wardenPatternIndex += 1;
           _facing = (game.world.player.position.x - position.x).sign.toDouble();
@@ -392,7 +414,11 @@ final class PlatformerEnemyComponent extends PositionComponent
       PlatformerEnemyArchetype.polarityDrone => _polarityPushes ? 'push' : null,
       _ => null,
     };
-    _beginBrainAction(variant: variant);
+    if (variant == null) {
+      _beginPatternAction();
+    } else {
+      _beginBrainAction(variant: variant);
+    }
   }
 
   void _beginAction({
@@ -400,6 +426,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     required double telegraph,
     required double active,
     required double recovery,
+    int motionFrame = 3,
   }) {
     _action = EnemyActionTimeline(
       id: id,
@@ -408,6 +435,7 @@ final class PlatformerEnemyComponent extends PositionComponent
       recoverySeconds: recovery,
     );
     _combatState = EnemyCombatState.telegraph;
+    _activeMotionFrame = motionFrame.clamp(3, 7);
     final direction = game.world.player.position.x - position.x;
     if (direction.abs() > 0.01) _facing = direction.sign.toDouble();
   }
@@ -422,6 +450,21 @@ final class PlatformerEnemyComponent extends PositionComponent
       telegraph: decision.telegraph,
       active: decision.active,
       recovery: decision.recovery,
+      motionFrame: variant == null ? 3 : 7,
+    );
+  }
+
+  void _beginPatternAction() {
+    final pattern = PlatformerEnemyBrain.combatPattern(archetype.name);
+    final patternIndex = _combatPatternIndex % pattern.length;
+    _combatPatternIndex += 1;
+    final decision = pattern[patternIndex];
+    _beginAction(
+      id: decision.actionId,
+      telegraph: decision.telegraph,
+      active: decision.active,
+      recovery: decision.recovery,
+      motionFrame: 3 + patternIndex,
     );
   }
 
@@ -452,6 +495,22 @@ final class PlatformerEnemyComponent extends PositionComponent
   }
 
   void _executeAction(String id) {
+    if (id.contains('.normal.')) {
+      unawaited(_fireTierPattern(AttackTier.normal));
+      return;
+    }
+    if (id.contains('.enhanced.')) {
+      unawaited(_fireTierPattern(AttackTier.enhanced));
+      return;
+    }
+    if (id.contains('.parryable.')) {
+      unawaited(_fireTierPattern(AttackTier.parryable));
+      return;
+    }
+    if (id.contains('.special.')) {
+      _executeSecondarySpecial();
+      return;
+    }
     switch (id) {
       case 'patchMite.bite':
         unawaited(
@@ -472,11 +531,7 @@ final class PlatformerEnemyComponent extends PositionComponent
         _hopperLandingPending = true;
       case 'pulseTurret.lockedShot':
         unawaited(
-          _fireAtPlayer(
-            sourceId: 'enemy.pulseTurret.pulseBolt',
-            speed: 92,
-            color: const Color(0xFFFF4FD8),
-          ),
+          _fireAtPlayer(sourceId: 'enemy.pulseTurret.pulseBolt', speed: 92),
         );
       case 'repairLeech.channel':
         _repairNearestAlly();
@@ -521,11 +576,7 @@ final class PlatformerEnemyComponent extends PositionComponent
         }
       case 'delaySniper.lockedShot':
         unawaited(
-          _fireAtPlayer(
-            sourceId: 'enemy.delaySniper.delayedShot',
-            speed: 168,
-            color: const Color(0xFF9D8CFF),
-          ),
+          _fireAtPlayer(sourceId: 'enemy.delaySniper.delayedShot', speed: 168),
         );
       case 'rewindSkater.dash':
         _rewindReturning = true;
@@ -571,7 +622,6 @@ final class PlatformerEnemyComponent extends PositionComponent
           _fireAtPlayer(
             sourceId: 'enemy.shardLobber.ricochetShard',
             speed: 138,
-            color: const Color(0xFF36E1FF),
             gravity: 260,
             bounces: 2,
           ),
@@ -687,24 +737,197 @@ final class PlatformerEnemyComponent extends PositionComponent
   Future<void> _fireAtPlayer({
     String? sourceId,
     double? speed,
-    Color color = const Color(0xFFFF4FD8),
+    AttackTier? tier,
     double gravity = 0,
     int bounces = 0,
+    double angleOffset = 0,
   }) async {
     if (!game.world.canSpawnProjectile || isRemoving) return;
+    final resolvedTier = tier ?? _nextProjectileTier();
     final direction = game.world.player.position - position;
     if (direction.length2 == 0) direction.x = 1;
     direction.normalize();
+    if (angleOffset != 0) direction.rotate(angleOffset);
+    final speedMultiplier = switch (resolvedTier) {
+      AttackTier.normal => 1.0,
+      AttackTier.enhanced => 1.12,
+      AttackTier.parryable => 0.72,
+    };
     await parent?.add(
       EnemyProjectileComponent(
         position: position.clone(),
-        velocity: direction * (speed ?? (archetype.isMidBoss ? 145 : 120)),
-        sourceId: sourceId ?? 'enemy.${archetype.name}.projectile',
-        projectileColor: color,
+        velocity:
+            direction *
+            (speed ?? (archetype.isMidBoss ? 145 : 120)) *
+            speedMultiplier,
+        sourceId:
+            '${sourceId ?? 'enemy.${archetype.name}.projectile'}.${resolvedTier.name}',
+        attackTier: resolvedTier,
+        assetSlug: archetype.assetSlug,
+        damage: resolvedTier == AttackTier.enhanced ? 2 : 1,
+        projectileRadius: resolvedTier == AttackTier.enhanced ? 10 : 7,
         gravity: gravity,
         remainingBounces: bounces,
       ),
     );
+  }
+
+  AttackTier _nextProjectileTier() {
+    final tier = AttackTier.values[_projectilePatternIndex % 3];
+    _projectilePatternIndex += 1;
+    return tier;
+  }
+
+  Future<void> _fireTierPattern(AttackTier tier) async {
+    final sourceId = 'enemy.${archetype.name}.${tier.name}Pattern';
+    switch (tier) {
+      case AttackTier.normal:
+        await _fireAtPlayer(
+          sourceId: sourceId,
+          tier: tier,
+          speed: archetype.isMidBoss ? 170 : 132,
+        );
+      case AttackTier.enhanced:
+        final shotCount = archetype.isMidBoss ? 5 : 3;
+        final center = (shotCount - 1) / 2;
+        await Future.wait(<Future<void>>[
+          for (var index = 0; index < shotCount; index += 1)
+            _fireAtPlayer(
+              sourceId: '$sourceId.$index',
+              tier: tier,
+              speed: archetype.isMidBoss ? 162 : 124,
+              angleOffset: (index - center) * .14,
+            ),
+        ]);
+      case AttackTier.parryable:
+        await _fireAtPlayer(
+          sourceId: sourceId,
+          tier: tier,
+          speed: archetype.isMidBoss ? 150 : 112,
+        );
+    }
+  }
+
+  void _executeSecondarySpecial() {
+    switch (archetype) {
+      case PlatformerEnemyArchetype.patchMite:
+        _receiveSupportHealing(1);
+        unawaited(
+          _fireAtPlayer(
+            sourceId: 'enemy.patchMite.repairChipThrow',
+            tier: AttackTier.parryable,
+            speed: 106,
+          ),
+        );
+      case PlatformerEnemyArchetype.checksumHopper:
+        _velocity.y = -470;
+        _velocity.x = _facing * 135;
+        _grounded = false;
+        _hopperLandingPending = true;
+      case PlatformerEnemyArchetype.pulseTurret:
+        unawaited(_fireRadialBurst(AttackTier.normal, 8));
+      case PlatformerEnemyArchetype.repairLeech:
+        _receiveSupportHealing(1);
+        unawaited(_fireRadialBurst(AttackTier.parryable, 4));
+      case PlatformerEnemyArchetype.overflowWarden:
+        _spawnWorldStrike(
+          'enemy.overflowWarden.memoryQuake',
+          Vector2(300, 28),
+          .28,
+        );
+        unawaited(_fireRadialBurst(AttackTier.parryable, 6));
+      case PlatformerEnemyArchetype.tickRunner:
+        _velocity.x = _facing * 310;
+        _spawnAttachedStrike('enemy.tickRunner.rollbackCombo', 96, 28, .34);
+      case PlatformerEnemyArchetype.echoBat:
+        for (final point in _motionHistory.reversed.take(5)) {
+          _spawnStrikeAt('enemy.echoBat.echoMine', point, Vector2.all(38), .30);
+        }
+      case PlatformerEnemyArchetype.delaySniper:
+        position.x = (PatchWorldGame.logicalWidth - position.x).clamp(72, 888);
+        unawaited(
+          _fireAtPlayer(
+            sourceId: 'enemy.delaySniper.phaseRelocate',
+            tier: AttackTier.normal,
+            speed: 210,
+          ),
+        );
+      case PlatformerEnemyArchetype.rewindSkater:
+        if (_motionHistory.isNotEmpty) position.setFrom(_motionHistory.first);
+        _spawnWorldStrike('enemy.rewindSkater.timeScar', Vector2(156, 24), .34);
+      case PlatformerEnemyArchetype.chronoJailer:
+        _spawnWorldStrike(
+          'enemy.chronoJailer.twelveOClock',
+          Vector2(22, 240),
+          .26,
+        );
+        unawaited(_fireRadialBurst(AttackTier.normal, 12));
+      case PlatformerEnemyArchetype.vectorRam:
+        _velocity.x = _facing * 360;
+        _spawnAttachedStrike('enemy.vectorRam.axisBreak', 124, 42, .36);
+      case PlatformerEnemyArchetype.polarityDrone:
+        final delta = game.world.player.position - position;
+        if (delta.length2 > 0) {
+          game.world.player.applyExternalImpulse(delta.normalized() * 270);
+        }
+        unawaited(_fireRadialBurst(AttackTier.parryable, 4));
+      case PlatformerEnemyArchetype.phaseMimic:
+        position.setValues(
+          game.world.player.position.x.clamp(70, 890),
+          (game.world.player.position.y - 130).clamp(110, 360),
+        );
+        _spawnWorldStrike(
+          'enemy.phaseMimic.ceilingDrop',
+          Vector2(48, 150),
+          .24,
+          offset: Vector2(0, 72),
+        );
+      case PlatformerEnemyArchetype.shardLobber:
+        final away = (position.x - game.world.player.position.x).sign;
+        position.x = (position.x + away * 86).clamp(62, 898);
+        unawaited(
+          _fireAtPlayer(
+            sourceId: 'enemy.shardLobber.shieldRetreat',
+            tier: AttackTier.parryable,
+            speed: 118,
+            gravity: 220,
+            bounces: 1,
+          ),
+        );
+      case PlatformerEnemyArchetype.kernelChimera:
+        _spawnWorldStrike(
+          'enemy.kernelChimera.kernelCollapse',
+          Vector2(330, 36),
+          .30,
+        );
+        unawaited(_fireRadialBurst(AttackTier.enhanced, 10));
+    }
+  }
+
+  Future<void> _fireRadialBurst(AttackTier tier, int count) async {
+    if (!game.world.canSpawnProjectile || isRemoving) return;
+    final speed = tier == AttackTier.parryable ? 92.0 : 128.0;
+    await Future.wait(<Future<void>>[
+      for (var index = 0; index < count; index += 1)
+        Future<void>.sync(
+          () => parent!.add(
+            EnemyProjectileComponent(
+              position: position.clone(),
+              velocity:
+                  Vector2(
+                    math.cos(math.pi * 2 * index / count),
+                    math.sin(math.pi * 2 * index / count),
+                  ) *
+                  speed,
+              sourceId: 'enemy.${archetype.name}.radial.${tier.name}.$index',
+              attackTier: tier,
+              assetSlug: archetype.assetSlug,
+              damage: tier == AttackTier.enhanced ? 2 : 1,
+              projectileRadius: tier == AttackTier.enhanced ? 10 : 7,
+            ),
+          ),
+        ),
+    ]);
   }
 
   void _repairNearestAlly() {
@@ -1087,6 +1310,23 @@ final class PlatformerEnemyComponent extends PositionComponent
           ..strokeWidth = 3,
       );
       _renderActionTelegraph(canvas, center);
+    }
+    if (_dormant) {
+      canvas.drawCircle(
+        center,
+        math.max(size.x, size.y) * .58,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..color = const Color(0x99FFD35A),
+      );
+      canvas.drawLine(
+        center + const Offset(-12, -12),
+        center + const Offset(12, 12),
+        Paint()
+          ..strokeWidth = 3
+          ..color = const Color(0x99FFD35A),
+      );
     }
     final maxRatio = healthState.max / healthState.overflowThreshold;
     final currentRatio = healthState.normalizedForOverflowBar;

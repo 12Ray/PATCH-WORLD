@@ -4,11 +4,15 @@ import 'dart:ui';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:patch_world/game/combat/attack_tier.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
+import 'package:patch_world/game/components/effects/player_strike_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/player/platformer_motion.dart';
+import 'package:patch_world/game/components/projectiles/player_projectile_component.dart';
 import 'package:patch_world/game/components/visuals/entity_sprite_visual.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
@@ -29,6 +33,8 @@ final class PlayerComponent extends RectangleComponent
   static const double moveSpeed = 160;
   static const double attackCooldownSeconds = 0.45;
   static const double hitInvulnerabilitySeconds = 0.70;
+  static const double parryWindowSeconds = 0.20;
+  static const double parryRecoverySeconds = 0.48;
 
   final Vector2 spawnPosition;
   final Vector2 _movementInput = Vector2.zero();
@@ -47,10 +53,22 @@ final class PlayerComponent extends RectangleComponent
   List<Sprite>? _moveFrames;
   List<Sprite>? _pulseFrames;
   List<Sprite>? _hurtFrames;
+  final Map<PlayerWeapon, List<Sprite>> _weaponFrames =
+      <PlayerWeapon, List<Sprite>>{};
   bool _usingMoveAnimation = false;
+  PlayerWeapon selectedWeapon = PlayerWeapon.sword;
+  int _weaponComboStep = 0;
+  double _weaponComboReset = 0;
+  double _parryWindow = 0;
+  double _parryRecovery = 0;
+  double _counterWindow = 0;
+  double _facing = 1;
   String? lastDamageCauseId;
 
   bool get canAttack => _attackCooldown <= 0 && !isRemoving;
+  bool get canParry => _parryRecovery <= 0 && !isRemoving;
+  bool get isParrying => _parryWindow > 0;
+  bool get hasParryCounter => _counterWindow > 0;
   bool get isInvulnerable => _hitInvulnerability > 0;
   bool get isMoving => _usesPlatformerMovement
       ? _platformerMotion.velocity.length2 > 0.01
@@ -107,6 +125,12 @@ final class PlayerComponent extends RectangleComponent
     _moveFrames = _frames(moveImage, 6);
     _pulseFrames = _frames(pulseImage, 4);
     _hurtFrames = _frames(hurtImage, 3);
+    for (final weapon in PlayerWeapon.values) {
+      final image = await game.images.load(
+        'sprites/combat_v2/hero/${weapon.assetName}.png',
+      );
+      _weaponFrames[weapon] = _frames(image, 10);
+    }
     _syncMovementAnimation(force: true);
   }
 
@@ -132,6 +156,11 @@ final class PlayerComponent extends RectangleComponent
   void resetMotionForRoomTransition() {
     _platformerMotion.reset();
     _jumpHeld = false;
+    _parryWindow = 0;
+    _parryRecovery = 0;
+    _counterWindow = 0;
+    _weaponComboStep = 0;
+    _weaponComboReset = 0;
   }
 
   void applyExternalImpulse(Vector2 impulse) {
@@ -152,11 +181,29 @@ final class PlayerComponent extends RectangleComponent
       game.mode == PatchWorldMode.campaign &&
       game.world.activeRoom is PlatformerRoomGeometry;
 
+  void selectWeapon(PlayerWeapon weapon) {
+    if (selectedWeapon == weapon) return;
+    selectedWeapon = weapon;
+    _weaponComboStep = 0;
+    _weaponComboReset = 0;
+    final frames = _weaponFrames[weapon];
+    if (frames != null) _visual?.playOnce(<Sprite>[frames.first], fps: 8);
+    if (isMounted) game.publishUiSnapshot(force: true);
+  }
+
   void tryAttack() {
     if (!canAttack) {
       return;
     }
 
+    if (_usesPlatformerMovement) {
+      _tryWeaponAttack();
+      return;
+    }
+    _tryPulseAttack();
+  }
+
+  void _tryPulseAttack() {
     final survivalModifiers = game.mode == PatchWorldMode.survival
         ? game.survivalModifiers
         : null;
@@ -224,6 +271,129 @@ final class PlayerComponent extends RectangleComponent
       retaliationEchoTier: survivalModifiers?.retaliationEchoTier ?? 0,
     );
     unawaited(game.audio.playPatchPulse());
+  }
+
+  void _tryWeaponAttack() {
+    final counter = _counterWindow > 0;
+    final motionIndex = counter ? 9 : 1 + _weaponComboStep;
+    _weaponComboStep = counter ? 0 : (_weaponComboStep + 1) % 6;
+    _weaponComboReset = 0.85;
+    _counterWindow = 0;
+    _attackCooldown = counter ? 0.18 : selectedWeapon.baseCooldown;
+    _playWeaponMotion(motionIndex, fps: counter ? 16 : 13);
+    _visual?.flash(
+      counter ? const Color(0xFFFFD35A) : const Color(0xFF8CF5FF),
+      seconds: counter ? 0.16 : 0.08,
+    );
+
+    final damage = counter
+        ? 3
+        : switch (selectedWeapon) {
+            PlayerWeapon.sword => motionIndex == 4 || motionIndex == 6 ? 2 : 1,
+            PlayerWeapon.gauntlet => motionIndex >= 3 ? 2 : 1,
+            PlayerWeapon.gun => motionIndex == 4 ? 2 : 1,
+          };
+    switch (selectedWeapon) {
+      case PlayerWeapon.sword:
+        game.world.add(
+          PlayerStrikeComponent(
+            position: position + Vector2(_facing * 38, -2),
+            size: Vector2(counter ? 112 : 72, counter ? 58 : 42),
+            sourceId: counter
+                ? 'player.sword.parryCounter'
+                : 'player.sword.combo.$motionIndex',
+            damage: damage,
+            activeSeconds: counter ? 0.18 : 0.12,
+            strikeColor: counter
+                ? const Color(0xAAFFD35A)
+                : const Color(0x8836E1FF),
+          ),
+        );
+      case PlayerWeapon.gauntlet:
+        if (motionIndex == 6 || counter) {
+          game.world.add(
+            PlayerStrikeComponent(
+              position: position + Vector2(_facing * 24, 12),
+              size: Vector2(counter ? 104 : 82, counter ? 72 : 54),
+              sourceId: counter
+                  ? 'player.gauntlet.parryCounter'
+                  : 'player.gauntlet.groundSlam',
+              damage: damage,
+              activeSeconds: counter ? 0.20 : 0.16,
+              strikeColor: counter
+                  ? const Color(0xAAFFD35A)
+                  : const Color(0x99FF4FD8),
+            ),
+          );
+        } else {
+          game.world.add(
+            PlayerStrikeComponent(
+              position: position + Vector2(_facing * 29, 0),
+              size: Vector2(52, 38),
+              sourceId: 'player.gauntlet.combo.$motionIndex',
+              damage: damage,
+              activeSeconds: 0.11,
+              strikeColor: const Color(0x99FF4FD8),
+            ),
+          );
+        }
+      case PlayerWeapon.gun:
+        final shots = counter ? 3 : (motionIndex == 3 ? 3 : 1);
+        for (var index = 0; index < shots; index += 1) {
+          final spread = (index - (shots - 1) / 2) * 0.12;
+          game.world.add(
+            PlayerProjectileComponent(
+              position: position + Vector2(_facing * 26, -3),
+              velocity: Vector2(_facing * (counter ? 460 : 360), spread * 360),
+              sourceId: counter
+                  ? 'player.gun.parryCounter'
+                  : 'player.gun.combo.$motionIndex',
+              damage: damage,
+              projectileColor: counter
+                  ? const Color(0xFFFFD35A)
+                  : motionIndex == 4
+                  ? const Color(0xFFFF4FD8)
+                  : const Color(0xFF36E1FF),
+              radius: counter ? 8 : 6,
+            ),
+          );
+        }
+    }
+    unawaited(game.audio.playPatchPulse());
+  }
+
+  void tryParry() {
+    if (!canParry || !_usesPlatformerMovement) return;
+    _parryWindow = parryWindowSeconds;
+    _parryRecovery = parryRecoverySeconds;
+    _playWeaponMotion(7, fps: 12);
+    _visual?.flash(const Color(0xFFFFE39A), seconds: 0.12);
+  }
+
+  bool resolveIncomingAttack(ReflectableAttack attack) {
+    if (!isParrying || !attack.attackTier.canBeParried || attack.isReflected) {
+      return false;
+    }
+    if (!attack.reflectFrom(position)) return false;
+    _parryWindow = 0;
+    _parryRecovery = 0.18;
+    _counterWindow = 1.2;
+    _hitInvulnerability = math.max(_hitInvulnerability, 0.20);
+    _playWeaponMotion(8, fps: 18);
+    _visual?.flash(const Color(0xFFFFD35A), seconds: 0.22);
+    _visual?.squash(seconds: 0.16);
+    if (isMounted) {
+      game.triggerImpactFeedback();
+      unawaited(game.audio.playHeal());
+      game.publishUiSnapshot(force: true);
+    }
+    return true;
+  }
+
+  void _playWeaponMotion(int index, {required double fps}) {
+    final frames = _weaponFrames[selectedWeapon];
+    if (frames == null || index < 0 || index >= frames.length) return;
+    _visual?.playOnce(<Sprite>[frames[index]], fps: fps);
   }
 
   void tryInteract() {
@@ -301,6 +471,11 @@ final class PlayerComponent extends RectangleComponent
     final simulationDt = isMounted ? game.clock.simulationDt : dt;
     _attackCooldown = math.max(0, _attackCooldown - simulationDt);
     _hitInvulnerability = math.max(0, _hitInvulnerability - statusDt);
+    _parryWindow = math.max(0, _parryWindow - statusDt);
+    _parryRecovery = math.max(0, _parryRecovery - statusDt);
+    _counterWindow = math.max(0, _counterWindow - statusDt);
+    _weaponComboReset = math.max(0, _weaponComboReset - statusDt);
+    if (_weaponComboReset <= 0) _weaponComboStep = 0;
 
     _previousPosition.setFrom(position);
     final activeRoom = isMounted ? game.world.activeRoom : null;
@@ -320,6 +495,7 @@ final class PlayerComponent extends RectangleComponent
       position += _movementInput * (moveSpeed * phaseMoveMultiplier * statusDt);
       _clampToLogicalWorld();
     }
+    if (_movementInput.x.abs() > 0.05) _facing = _movementInput.x.sign;
     _visual?.faceMovement(_movementInput);
     _syncMovementAnimation();
     _updateDamageBlink();
@@ -458,6 +634,26 @@ final class PlayerComponent extends RectangleComponent
   @override
   void render(Canvas canvas) {
     super.render(canvas);
+    for (var index = 0; index < PlayerWeapon.values.length; index += 1) {
+      final selected = selectedWeapon.index == index;
+      canvas.drawRect(
+        Rect.fromLTWH(5 + index * 8, -14, 6, 4),
+        Paint()
+          ..color = selected
+              ? const Color(0xFFFFD35A)
+              : const Color(0x6636E1FF),
+      );
+    }
+    if (isParrying || hasParryCounter) {
+      canvas.drawCircle(
+        Offset(size.x / 2, size.y / 2),
+        size.x * (hasParryCounter ? 0.72 : 0.58),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = hasParryCounter ? 3 : 2
+          ..color = const Color(0xFFFFD35A),
+      );
+    }
     if (_dataShardCharge == 0) return;
     for (var index = 0; index < 6; index += 1) {
       final active = index < _dataShardCharge;

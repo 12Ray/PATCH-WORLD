@@ -23,9 +23,21 @@ final class CombatSystem {
   final PlayerDamageCommitted? onPlayerDamageCommitted;
 
   RuleResolution applyPlayerPulse(CombatTarget target, {int amount = 1}) {
+    return applyPlayerAttack(
+      target,
+      sourceId: 'player.qa-0.pulse',
+      amount: amount,
+    );
+  }
+
+  RuleResolution applyPlayerAttack(
+    CombatTarget target, {
+    required String sourceId,
+    int amount = 1,
+  }) {
     final resolution = ruleEngine.resolve(
       DamageEvent(
-        sourceId: 'player.qa-0',
+        sourceId: sourceId,
         targetId: target.entityId,
         sourceFaction: EventFaction.player,
         amount: amount,

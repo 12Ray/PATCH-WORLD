@@ -71,9 +71,23 @@ void main() {
       actions[PlatformerEnemyArchetype.repairLeech],
       'repairLeech.channel',
     );
-    expect(
-      actions[PlatformerEnemyArchetype.overflowWarden],
-      startsWith('warden.'),
-    );
+    final warden = room.children
+        .whereType<PlatformerEnemyComponent>()
+        .singleWhere(
+          (enemy) => enemy.archetype == PlatformerEnemyArchetype.overflowWarden,
+        );
+    expect(actions[PlatformerEnemyArchetype.overflowWarden], isNull);
+    expect(warden.isDormant, isTrue);
+
+    for (final enemy
+        in room.children
+            .whereType<PlatformerEnemyComponent>()
+            .where((enemy) => !enemy.archetype.isMidBoss)
+            .toList()) {
+      enemy.receiveDamage(99);
+    }
+    await tester.pump();
+    expect(room.defeatedCount, 4);
+    expect(warden.isDormant, isFalse);
   });
 }

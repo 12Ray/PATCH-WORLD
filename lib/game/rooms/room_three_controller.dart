@@ -43,14 +43,23 @@ final class RoomThreeController extends Component
     ]);
     await addAll(_surfaces);
     await add(
-      DamagePitComponent(position: Vector2(240, 484), size: Vector2(86, 56)),
+      DamagePitComponent(
+        position: Vector2(240, 484),
+        size: Vector2(86, 56),
+        style: PlatformSurfaceStyle.collision,
+      ),
     );
     await addAll(<PlatformerEnemyComponent>[
       _enemy(PlatformerEnemyArchetype.vectorRam, 150, 374),
       _enemy(PlatformerEnemyArchetype.polarityDrone, 355, 225),
       _enemy(PlatformerEnemyArchetype.phaseMimic, 520, 382),
       _enemy(PlatformerEnemyArchetype.shardLobber, 690, 308),
-      _enemy(PlatformerEnemyArchetype.kernelChimera, 855, 371),
+      _enemy(
+        PlatformerEnemyArchetype.kernelChimera,
+        855,
+        371,
+        startsDormant: true,
+      ),
     ]);
   }
 
@@ -64,16 +73,19 @@ final class RoomThreeController extends Component
     position: Vector2(x, y),
     size: Vector2(width, height),
     isBoundary: boundary,
+    style: PlatformSurfaceStyle.collision,
   );
 
   PlatformerEnemyComponent _enemy(
     PlatformerEnemyArchetype archetype,
     double x,
-    double y,
-  ) => PlatformerEnemyComponent(
+    double y, {
+    bool startsDormant = false,
+  }) => PlatformerEnemyComponent(
     archetype: archetype,
     position: Vector2(x, y),
     onDefeated: _onEnemyDefeated,
+    startsDormant: startsDormant,
   );
 
   void _onEnemyDefeated(PlatformerEnemyComponent enemy) {
@@ -81,6 +93,12 @@ final class RoomThreeController extends Component
     _defeatedCount += 1;
     game.runMetrics.recordOverflow();
     game.publishUiSnapshot(force: true);
+    if (_defeatedCount == 4) {
+      for (final candidate in children.whereType<PlatformerEnemyComponent>()) {
+        if (candidate.archetype.isMidBoss) candidate.activateEncounter();
+      }
+      return;
+    }
     if (_defeatedCount < 5) return;
     _completed = true;
     Future<void>.delayed(

@@ -9,6 +9,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:patch_world/app/overlay_ids.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/core/input_controller.dart';
 import 'package:patch_world/game/core/game_clock.dart';
 import 'package:patch_world/game/core/run_state.dart';
@@ -588,6 +589,25 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
 
   void queueTouchAttack() => queuePointerAttack();
 
+  void queueTouchParry() {
+    if (!paused &&
+        !_roomTransitionInProgress &&
+        pendingPatchSelection == null) {
+      input.queueParry();
+    }
+  }
+
+  void queueTouchWeaponCycle() {
+    if (!paused &&
+        !_roomTransitionInProgress &&
+        pendingPatchSelection == null &&
+        world.isReady) {
+      final next =
+          (world.player.selectedWeapon.index + 1) % PlayerWeapon.values.length;
+      input.queueWeaponSelection(next);
+    }
+  }
+
   void queueTouchInteract() {
     if (!paused &&
         !_roomTransitionInProgress &&
@@ -692,6 +712,13 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     if (input.consumeAttack()) {
       patternTracker.recordAttack();
       world.player.tryAttack();
+    }
+    if (input.consumeParry()) world.player.tryParry();
+    final weaponSelection = input.consumeWeaponSelection();
+    if (weaponSelection != null &&
+        weaponSelection >= 0 &&
+        weaponSelection < PlayerWeapon.values.length) {
+      world.player.selectWeapon(PlayerWeapon.values[weaponSelection]);
     }
     if (input.consumeInteract()) world.player.tryInteract();
     _uiPublishAccumulator += clock.realDt;

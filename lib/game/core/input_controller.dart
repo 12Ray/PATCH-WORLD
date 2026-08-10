@@ -5,8 +5,10 @@ final class InputController {
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
 
   bool _attackQueued = false;
+  bool _parryQueued = false;
   bool _interactQueued = false;
   bool _jumpQueued = false;
+  int? _weaponSelectionQueued;
   Vector2 _virtualMovement = Vector2.zero();
 
   void syncPressedKeys(Set<LogicalKeyboardKey> keysPressed) {
@@ -19,6 +21,14 @@ final class InputController {
     if (key == LogicalKeyboardKey.space || key == LogicalKeyboardKey.keyJ) {
       _attackQueued = true;
     }
+    if (key == LogicalKeyboardKey.keyK ||
+        key == LogicalKeyboardKey.shiftLeft ||
+        key == LogicalKeyboardKey.shiftRight) {
+      _parryQueued = true;
+    }
+    if (key == LogicalKeyboardKey.digit1) _weaponSelectionQueued = 0;
+    if (key == LogicalKeyboardKey.digit2) _weaponSelectionQueued = 1;
+    if (key == LogicalKeyboardKey.digit3) _weaponSelectionQueued = 2;
 
     if (key == LogicalKeyboardKey.keyE || key == LogicalKeyboardKey.enter) {
       _interactQueued = true;
@@ -29,6 +39,10 @@ final class InputController {
   }
 
   void queueAttack() => _attackQueued = true;
+
+  void queueParry() => _parryQueued = true;
+
+  void queueWeaponSelection(int index) => _weaponSelectionQueued = index;
 
   void queueInteract() => _interactQueued = true;
 
@@ -67,8 +81,10 @@ final class InputController {
   bool get hasGameplayIntent =>
       movementAxis.length2 > 0 ||
       _attackQueued ||
+      _parryQueued ||
       _interactQueued ||
-      _jumpQueued;
+      _jumpQueued ||
+      _weaponSelectionQueued != null;
 
   bool get jumpHeld =>
       _isPressed(LogicalKeyboardKey.keyW, LogicalKeyboardKey.arrowUp) ||
@@ -86,6 +102,18 @@ final class InputController {
     return value;
   }
 
+  bool consumeParry() {
+    final value = _parryQueued;
+    _parryQueued = false;
+    return value;
+  }
+
+  int? consumeWeaponSelection() {
+    final value = _weaponSelectionQueued;
+    _weaponSelectionQueued = null;
+    return value;
+  }
+
   bool consumeInteract() {
     final value = _interactQueued;
     _interactQueued = false;
@@ -94,8 +122,10 @@ final class InputController {
 
   void clearTransientActions() {
     _attackQueued = false;
+    _parryQueued = false;
     _interactQueued = false;
     _jumpQueued = false;
+    _weaponSelectionQueued = null;
   }
 
   void clearAll() {

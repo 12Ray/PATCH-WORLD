@@ -10,4 +10,20 @@ void main() {
     }
     expect(actions, hasLength(15));
   });
+
+  test('all fifteen enemies expose five combat motions and three tiers', () {
+    for (final archetype in PlatformerEnemyArchetype.values) {
+      final pattern = PlatformerEnemyBrain.combatPattern(archetype.name);
+      expect(pattern, hasLength(5), reason: archetype.name);
+      expect(
+        pattern.map((decision) => decision.actionId).toSet(),
+        hasLength(5),
+        reason: archetype.name,
+      );
+      expect(pattern[1].actionId, contains('.normal.'));
+      expect(pattern[2].actionId, contains('.enhanced.'));
+      expect(pattern[3].actionId, contains('.parryable.'));
+      expect(pattern[4].actionId, contains('.special.'));
+    }
+  });
 }

@@ -100,7 +100,8 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     await add(TimeFreezeOverlayComponent());
     await add(
       TextComponent(
-        text: 'MOVE  A/D / ARROWS     JUMP  W / UP     PULSE  SPACE / J',
+        text:
+            'MOVE A/D   JUMP W/UP   ATTACK SPACE/J   PARRY K/SHIFT   WEAPON 1/2/3',
         position: Vector2(48, 66),
         textRenderer: TextPaint(
           style: const TextStyle(

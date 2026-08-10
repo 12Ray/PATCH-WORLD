@@ -18,11 +18,29 @@ final class TouchControlsOverlay extends StatelessWidget {
           Positioned(
             right: 18,
             bottom: 24,
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: <Widget>[
                 _ActionButton(label: 'E', onPressed: game.queueTouchInteract),
-                const SizedBox(width: 12),
-                _ActionButton(label: 'PULSE', onPressed: game.queueTouchAttack),
+                const SizedBox(height: 6),
+                Row(
+                  children: <Widget>[
+                    _ActionButton(
+                      label: 'WPN',
+                      onPressed: game.queueTouchWeaponCycle,
+                    ),
+                    const SizedBox(width: 8),
+                    _ActionButton(
+                      label: 'PARRY',
+                      onPressed: game.queueTouchParry,
+                    ),
+                    const SizedBox(width: 8),
+                    _ActionButton(
+                      label: 'ATK',
+                      onPressed: game.queueTouchAttack,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -94,8 +112,8 @@ final class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 68,
-    height: 68,
+    width: 56,
+    height: 56,
     child: FilledButton(
       onPressed: onPressed,
       style: FilledButton.styleFrom(

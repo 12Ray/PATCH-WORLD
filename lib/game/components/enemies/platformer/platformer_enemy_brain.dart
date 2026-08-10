@@ -14,6 +14,114 @@ final class EnemyBrainDecision {
 /// Data-driven brain catalog. Bespoke runtime effects remain in the host, but
 /// selection and timing are owned by one immutable brain contract per enemy.
 abstract final class PlatformerEnemyBrain {
+  /// Five combat motions complete the ten-frame runtime contract:
+  /// idle, move, telegraph, five attacks, hurt, and defeat.
+  static List<EnemyBrainDecision> combatPattern(String name) {
+    final signature = forArchetype(name);
+    final motions = _additionalCombatMotions(name);
+    return <EnemyBrainDecision>[
+      signature,
+      EnemyBrainDecision('$name.normal.${motions[0]}', .28, .10, .42),
+      EnemyBrainDecision('$name.enhanced.${motions[1]}', .52, .16, .64),
+      EnemyBrainDecision('$name.parryable.${motions[2]}', .72, .12, .58),
+      EnemyBrainDecision('$name.special.${motions[3]}', .46, .22, .70),
+    ];
+  }
+
+  static List<String> _additionalCombatMotions(String name) => switch (name) {
+    'patchMite' => const <String>[
+      'pixelSpit',
+      'burrowDash',
+      'backplateGuard',
+      'repairChipThrow',
+    ],
+    'checksumHopper' => const <String>[
+      'landingShockwave',
+      'checksumOrb',
+      'wallRebound',
+      'doubleStomp',
+    ],
+    'pulseTurret' => const <String>[
+      'tripleBurst',
+      'ricochetPulse',
+      'mortarShot',
+      'vent',
+    ],
+    'repairLeech' => const <String>[
+      'siphonBite',
+      'repairCapsule',
+      'tetherPull',
+      'emergencyShield',
+    ],
+    'overflowWarden' => const <String>[
+      'summonLeech',
+      'overflowGrenade',
+      'shieldBash',
+      'tankBurst',
+    ],
+    'tickRunner' => const <String>[
+      'enhancedLunge',
+      'parryableClockDisc',
+      'timeMine',
+      'afterimageDash',
+    ],
+    'echoBat' => const <String>[
+      'enhancedSonicRing',
+      'parryableEchoCrystal',
+      'arcReplay',
+      'blinkClone',
+    ],
+    'delaySniper' => const <String>[
+      'enhancedRail',
+      'parryableHourglass',
+      'delayMine',
+      'phaseRelocate',
+    ],
+    'rewindSkater' => const <String>[
+      'enhancedChakram',
+      'parryableRewindOrb',
+      'rewind',
+      'spinSlash',
+    ],
+    'chronoJailer' => const <String>[
+      'enhancedSpearFan',
+      'parryableClockCore',
+      'timeCage',
+      'coreBurst',
+    ],
+    'vectorRam' => const <String>[
+      'enhancedCharge',
+      'parryableArrowCore',
+      'directionMine',
+      'reverseImpact',
+    ],
+    'polarityDrone' => const <String>[
+      'enhancedPushNova',
+      'parryableSplitOrb',
+      'magneticMine',
+      'polarityDash',
+    ],
+    'phaseMimic' => const <String>[
+      'enhancedBelowSnap',
+      'parryablePhaseKey',
+      'decoyPlatform',
+      'ceilingDrop',
+    ],
+    'shardLobber' => const <String>[
+      'enhancedCluster',
+      'parryableCrystal',
+      'gravityBomb',
+      'shieldRetreat',
+    ],
+    'kernelChimera' => const <String>[
+      'enhancedDualVolley',
+      'parryableKernelDisc',
+      'splitGrapple',
+      'recombineShockwave',
+    ],
+    _ => throw ArgumentError.value(name, 'name', 'Unknown enemy archetype'),
+  };
+
   static EnemyBrainDecision forArchetype(String name, {String? variant}) {
     return switch ((name, variant)) {
       ('patchMite', _) => const EnemyBrainDecision(

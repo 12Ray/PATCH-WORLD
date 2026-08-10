@@ -66,6 +66,10 @@ flutter:
     - assets/images/sprites/
     - assets/images/sprites/animations/
     - assets/images/sprites/platformer/
+    - assets/images/sprites/combat_v2/
+    - assets/images/sprites/combat_v2/enemies/
+    - assets/images/sprites/combat_v2/hero/
+    - assets/images/sprites/combat_v2/projectiles/
     - assets/tiles/
     - assets/tiles/maps/
     - assets/audio/

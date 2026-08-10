@@ -49,7 +49,12 @@ final class RoomOneController extends Component
       _enemy(PlatformerEnemyArchetype.checksumHopper, 230, 386),
       _enemy(PlatformerEnemyArchetype.pulseTurret, 390, 320),
       _enemy(PlatformerEnemyArchetype.repairLeech, 570, 387),
-      _enemy(PlatformerEnemyArchetype.overflowWarden, 858, 379),
+      _enemy(
+        PlatformerEnemyArchetype.overflowWarden,
+        858,
+        379,
+        startsDormant: true,
+      ),
     ]);
   }
 
@@ -68,11 +73,13 @@ final class RoomOneController extends Component
   PlatformerEnemyComponent _enemy(
     PlatformerEnemyArchetype archetype,
     double x,
-    double y,
-  ) => PlatformerEnemyComponent(
+    double y, {
+    bool startsDormant = false,
+  }) => PlatformerEnemyComponent(
     archetype: archetype,
     position: Vector2(x, y),
     onDefeated: _onEnemyDefeated,
+    startsDormant: startsDormant,
   );
 
   void _onEnemyDefeated(PlatformerEnemyComponent enemy) {
@@ -80,6 +87,12 @@ final class RoomOneController extends Component
     _defeatedCount += 1;
     game.runMetrics.recordOverflow();
     game.publishUiSnapshot(force: true);
+    if (_defeatedCount == 4) {
+      for (final candidate in children.whereType<PlatformerEnemyComponent>()) {
+        if (candidate.archetype.isMidBoss) candidate.activateEncounter();
+      }
+      return;
+    }
     if (_defeatedCount < 5) return;
     _completed = true;
     Future<void>.delayed(

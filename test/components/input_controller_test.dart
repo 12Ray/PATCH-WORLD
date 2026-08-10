@@ -32,6 +32,17 @@ void main() {
       expect(input.consumeInteract(), isFalse);
     });
 
+    test('parry keys and weapon slots are queued once', () {
+      final input = InputController();
+      input.handleKeyDown(LogicalKeyboardKey.shiftLeft);
+      input.handleKeyDown(LogicalKeyboardKey.digit3);
+
+      expect(input.consumeParry(), isTrue);
+      expect(input.consumeParry(), isFalse);
+      expect(input.consumeWeaponSelection(), 2);
+      expect(input.consumeWeaponSelection(), isNull);
+    });
+
     test('up queues a jump and exposes held state', () {
       final input = InputController();
       input.syncPressedKeys(<LogicalKeyboardKey>{LogicalKeyboardKey.keyW});
@@ -57,8 +68,12 @@ void main() {
       expect(input.jumpHeld, isTrue);
       expect(input.consumeJump(), isTrue);
       input.queueAttack();
+      input.queueParry();
+      input.queueWeaponSelection(1);
       input.queueInteract();
       expect(input.consumeAttack(), isTrue);
+      expect(input.consumeParry(), isTrue);
+      expect(input.consumeWeaponSelection(), 1);
       expect(input.consumeInteract(), isTrue);
 
       input.clearAll();
