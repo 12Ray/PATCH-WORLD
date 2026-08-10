@@ -206,7 +206,8 @@ final class _UpgradeCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                '${_localized('risk', patch.riskLabel)}  //  TIER $nextTier',
+                '${_localized('risk', patch.riskLabel)}  //  '
+                '${game.localization.text('survivalUpgrade.tier', parameters: <String, Object>{'tier': nextTier})}',
                 style: const TextStyle(
                   color: Color(0xFFFFC857),
                   fontSize: 12,

@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:patch_world/game/combat/player_weapon.dart';
+
 final class RunMetrics {
   double elapsedSeconds = 0;
   int deaths = 0;
@@ -18,6 +20,9 @@ final class RunMetrics {
     required int integrity,
     required List<String> selectedPatchIds,
     required String endingId,
+    PlayerWeapon? selectedWeapon,
+    double dashCooldownRemaining = 0,
+    int airJumpsRemaining = 0,
   }) {
     final timeBonus = math.max(0, 500 - elapsedSeconds.round() * 2);
     final noDeathBonus = deaths == 0 ? 450 : 0;
@@ -31,6 +36,9 @@ final class RunMetrics {
       score: score,
       selectedPatchIds: List<String>.unmodifiable(selectedPatchIds),
       endingId: endingId,
+      selectedWeapon: selectedWeapon,
+      dashCooldownRemaining: dashCooldownRemaining,
+      airJumpsRemaining: airJumpsRemaining,
     );
   }
 
@@ -51,6 +59,9 @@ final class RunSummary {
     required this.score,
     required this.selectedPatchIds,
     required this.endingId,
+    this.selectedWeapon,
+    this.dashCooldownRemaining = 0,
+    this.airJumpsRemaining = 0,
   });
 
   final double elapsedSeconds;
@@ -60,6 +71,9 @@ final class RunSummary {
   final int score;
   final List<String> selectedPatchIds;
   final String endingId;
+  final PlayerWeapon? selectedWeapon;
+  final double dashCooldownRemaining;
+  final int airJumpsRemaining;
 
   String get formattedTime {
     final total = elapsedSeconds.round();

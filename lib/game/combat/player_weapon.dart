@@ -11,7 +11,20 @@ extension PlayerWeaponSpec on PlayerWeapon {
 
   double get baseCooldown => switch (this) {
     PlayerWeapon.sword => 0.28,
-    PlayerWeapon.gauntlet => 0.34,
-    PlayerWeapon.gun => 0.24,
+    PlayerWeapon.gauntlet => 0.36,
+    PlayerWeapon.gun => 0.32,
   };
+
+  int get baseIntegrity => switch (this) {
+    PlayerWeapon.sword => 5,
+    PlayerWeapon.gauntlet => 7,
+    PlayerWeapon.gun => 3,
+  };
+
+  double get moveSpeedMultiplier => switch (this) {
+    PlayerWeapon.gauntlet => 0.95,
+    _ => 1,
+  };
+
+  String get localizationKey => 'weapon.$name';
 }

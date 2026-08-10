@@ -210,7 +210,10 @@ final class PhaseHoundComponent extends RectangleComponent
     state = PhaseHoundState.telegraph;
     stateTimer = telegraphSeconds;
     scale.setAll(1.08);
-    _setStateCue('LOCK', const Color(0xFF36E1FF));
+    _setStateCue(
+      _localizedCue('enemy.phaseHound.lock', 'LOCK'),
+      const Color(0xFF36E1FF),
+    );
   }
 
   void _enterDash() {
@@ -235,7 +238,16 @@ final class PhaseHoundComponent extends RectangleComponent
     state = PhaseHoundState.recovery;
     stateTimer = recoverySeconds;
     scale.setAll(1);
-    _setStateCue('BREAK +1', const Color(0xFF45F3A6));
+    _setStateCue(
+      _localizedCue('enemy.phaseHound.break', 'BREAK +1'),
+      const Color(0xFF45F3A6),
+    );
+  }
+
+  String _localizedCue(String key, String fallback) {
+    if (!isMounted) return fallback;
+    final localized = game.localization.text(key);
+    return localized.startsWith('[') ? fallback : localized;
   }
 
   void _setStateCue(String? text, Color color) {

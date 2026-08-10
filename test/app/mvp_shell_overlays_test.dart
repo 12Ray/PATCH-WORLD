@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlays/title_overlay.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/services/game_settings.dart';
 
 void main() {
   testWidgets('title exposes controls and required destinations', (
@@ -9,6 +10,10 @@ void main() {
   ) async {
     final game = PatchWorldGame();
     await game.localization.load('en');
+    game.settings.value = const GameSettings(
+      languageCode: 'en',
+      languageSetupComplete: true,
+    );
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData.dark(),

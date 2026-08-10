@@ -35,6 +35,10 @@ final class PlayerComponent extends RectangleComponent
   static const double hitInvulnerabilitySeconds = 0.70;
   static const double parryWindowSeconds = 0.20;
   static const double parryRecoverySeconds = 0.48;
+  static const double dashDistance = 92;
+  static const double dashDurationSeconds = 0.15;
+  static const double dashCooldownSeconds = 5;
+  static const double dashContactImmunitySeconds = 0.08;
 
   final Vector2 spawnPosition;
   final Vector2 _movementInput = Vector2.zero();
@@ -63,6 +67,11 @@ final class PlayerComponent extends RectangleComponent
   double _parryRecovery = 0;
   double _counterWindow = 0;
   double _facing = 1;
+  double _dashRemaining = 0;
+  double _dashCooldown = 0;
+  double _dashContactImmunity = 0;
+  double _dashDirection = 1;
+  int _airJumpsRemaining = 1;
   String? lastDamageCauseId;
 
   bool get canAttack => _attackCooldown <= 0 && !isRemoving;
@@ -74,6 +83,13 @@ final class PlayerComponent extends RectangleComponent
       ? _platformerMotion.velocity.length2 > 0.01
       : _movementInput.length2 > 0.01;
   int get dataShardCharge => _dataShardCharge;
+  double get facingDirection => _facing;
+  double get dashCooldownRemaining => _dashCooldown;
+  double get dashCooldownProgress =>
+      (_dashCooldown / dashCooldownSeconds).clamp(0, 1);
+  int get airJumpsRemaining =>
+      selectedWeapon == PlayerWeapon.gauntlet ? _airJumpsRemaining : 0;
+  bool get isDashing => _dashRemaining > 0;
 
   @override
   Future<void> onLoad() async {
@@ -150,7 +166,17 @@ final class PlayerComponent extends RectangleComponent
   void setJumpHeld(bool value) => _jumpHeld = value;
 
   void queueJump() {
-    if (_usesPlatformerMovement) _platformerMotion.queueJump();
+    if (!_usesPlatformerMovement) return;
+    if (selectedWeapon == PlayerWeapon.gauntlet &&
+        !_platformerMotion.canGroundJump &&
+        _airJumpsRemaining > 0 &&
+        _platformerMotion.tryAirJump()) {
+      _airJumpsRemaining -= 1;
+      _visual?.squash(seconds: 0.12);
+      if (isMounted) game.publishUiSnapshot(force: true);
+      return;
+    }
+    _platformerMotion.queueJump();
   }
 
   void resetMotionForRoomTransition() {
@@ -161,6 +187,10 @@ final class PlayerComponent extends RectangleComponent
     _counterWindow = 0;
     _weaponComboStep = 0;
     _weaponComboReset = 0;
+    _dashRemaining = 0;
+    _dashCooldown = 0;
+    _dashContactImmunity = 0;
+    _airJumpsRemaining = 1;
   }
 
   void applyExternalImpulse(Vector2 impulse) {
@@ -189,6 +219,50 @@ final class PlayerComponent extends RectangleComponent
     final frames = _weaponFrames[weapon];
     if (frames != null) _visual?.playOnce(<Sprite>[frames.first], fps: 8);
     if (isMounted) game.publishUiSnapshot(force: true);
+  }
+
+  void configureLoadout(
+    PlayerWeapon weapon, {
+    required bool assistMode,
+    bool restoreIntegrity = true,
+  }) {
+    selectWeapon(weapon);
+    final nextMaximum = weapon.baseIntegrity + (assistMode ? 1 : 0);
+    maxIntegrity = nextMaximum;
+    integrity = restoreIntegrity
+        ? nextMaximum
+        : integrity.clamp(0, nextMaximum);
+    _airJumpsRemaining = 1;
+    _dashRemaining = 0;
+    _dashCooldown = 0;
+    _dashContactImmunity = 0;
+    if (isMounted) game.publishUiSnapshot(force: true);
+  }
+
+  bool tryDash(double requestedDirection) {
+    if (selectedWeapon != PlayerWeapon.sword ||
+        !_usesPlatformerMovement ||
+        _dashCooldown > 0 ||
+        isDashing) {
+      return false;
+    }
+    if (!_platformerMotion.grounded && _airJumpsRemaining <= 0) return false;
+    final direction = requestedDirection.abs() > 0.05
+        ? requestedDirection.sign.toDouble()
+        : _facing;
+    _dashDirection = direction;
+    _facing = direction;
+    _dashRemaining = dashDurationSeconds;
+    _dashCooldown = dashCooldownSeconds;
+    _dashContactImmunity = dashContactImmunitySeconds;
+    if (!_platformerMotion.grounded) _airJumpsRemaining = 0;
+    _visual?.flash(const Color(0xFF36E1FF), seconds: 0.10);
+    _visual?.actionLunge(direction: direction, seconds: .15, travel: 20);
+    if (isMounted) {
+      game.patchEffects.onPlayerDashed();
+      game.publishUiSnapshot(force: true);
+    }
+    return true;
   }
 
   void tryAttack() {
@@ -368,6 +442,7 @@ final class PlayerComponent extends RectangleComponent
           );
         }
     }
+    game.patchEffects.onPatchPulseEmitted(position.clone());
     unawaited(game.audio.playPatchPulse());
   }
 
@@ -491,6 +566,9 @@ final class PlayerComponent extends RectangleComponent
     _parryRecovery = math.max(0, _parryRecovery - statusDt);
     _counterWindow = math.max(0, _counterWindow - statusDt);
     _weaponComboReset = math.max(0, _weaponComboReset - statusDt);
+    _dashRemaining = math.max(0, _dashRemaining - statusDt);
+    _dashCooldown = math.max(0, _dashCooldown - statusDt);
+    _dashContactImmunity = math.max(0, _dashContactImmunity - statusDt);
     if (_weaponComboReset <= 0) _weaponComboStep = 0;
 
     _previousPosition.setFrom(position);
@@ -526,7 +604,13 @@ final class PlayerComponent extends RectangleComponent
         step,
         horizontal: _movementInput.x,
         jumpHeld: _jumpHeld,
+        runSpeedMultiplier: selectedWeapon.moveSpeedMultiplier,
       );
+
+      if (_dashRemaining > 0) {
+        _platformerMotion.velocity.x =
+            _dashDirection * (dashDistance / dashDurationSeconds);
+      }
 
       final oldX = position.x;
       position.x += _platformerMotion.velocity.x * step;
@@ -539,8 +623,8 @@ final class PlayerComponent extends RectangleComponent
       remaining -= step;
     }
 
-    if (position.y > PatchWorldGame.logicalHeight + 48) {
-      takeDamage(1, causeId: 'hazard.damage-lab.data-pit');
+    if (position.y > room.killPlaneY) {
+      takeDamage(1, causeId: 'hazard.platformer.data-pit');
       if (integrity > 0) {
         position.setFrom(room.respawnPointFor(position));
         _platformerMotion.reset();
@@ -576,6 +660,7 @@ final class PlayerComponent extends RectangleComponent
       if (_platformerMotion.velocity.y >= 0 && oldBottom <= solid.top + 1) {
         position.y = solid.top - halfHeight;
         _platformerMotion.land();
+        _airJumpsRemaining = 1;
       } else if (_platformerMotion.velocity.y < 0 &&
           oldTop >= solid.bottom - 1) {
         position.y = solid.bottom + halfHeight;
@@ -639,6 +724,10 @@ final class PlayerComponent extends RectangleComponent
     Set<Vector2> intersectionPoints,
     PositionComponent other,
   ) {
+    if (_dashContactImmunity > 0) {
+      super.onCollisionStart(intersectionPoints, other);
+      return;
+    }
     if (other is CrawlerComponent) {
       takeDamage(1, causeId: 'enemy.crawler.contact');
     } else if (other is PlatformerEnemyComponent && other.dealsContactDamage) {

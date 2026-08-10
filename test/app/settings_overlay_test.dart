@@ -28,5 +28,9 @@ void main() {
     expect(find.text('Assist mode'), findsOneWidget);
     expect(find.text('Reduced flashes'), findsOneWidget);
     expect(find.text('Screen shake'), findsOneWidget);
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    expect(find.text('日本語'), findsOneWidget);
   });
 }

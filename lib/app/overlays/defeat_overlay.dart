@@ -12,7 +12,7 @@ final class DefeatOverlay extends StatelessWidget {
     valueListenable: game.defeatSnapshot,
     builder: (context, defeat, _) {
       if (defeat == null) return const SizedBox.shrink();
-      final localizedCause = game.localization.text('cause.${defeat.causeId}');
+      final localizedCause = game.localization.causeText(defeat.causeId);
       return ColoredBox(
         color: const Color(0xEB080B14),
         child: Center(
@@ -37,7 +37,7 @@ final class DefeatOverlay extends StatelessWidget {
                     const SizedBox(height: 10),
                     Text(
                       '${game.localization.text('defeat.cause')}: '
-                      '${localizedCause.startsWith('[') ? defeat.causeId : localizedCause}',
+                      '$localizedCause',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Color(0xFFA9B4C8)),
                     ),

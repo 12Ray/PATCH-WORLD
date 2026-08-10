@@ -27,6 +27,18 @@ final class MotionTaxController {
     _heat = (_heat - amount).clamp(0, maximumHeat);
   }
 
+  MotionTaxUpdate addHeat(double amount) {
+    if (amount <= 0) {
+      return MotionTaxUpdate(heat: _heat, didOverheat: false);
+    }
+    _heat = (_heat + amount).clamp(0, maximumHeat);
+    if (_heat < maximumHeat) {
+      return MotionTaxUpdate(heat: _heat, didOverheat: false);
+    }
+    _heat = heatAfterOverheat;
+    return MotionTaxUpdate(heat: _heat, didOverheat: true);
+  }
+
   MotionTaxUpdate update({required double dt, required bool isMoving}) {
     if (dt <= 0) {
       return MotionTaxUpdate(heat: _heat, didOverheat: false);

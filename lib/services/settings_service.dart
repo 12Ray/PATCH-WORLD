@@ -22,6 +22,8 @@ final class SettingsService {
     textScale: await _store.getDouble('textScale') ?? 1,
     assistMode: await _store.getBool('assistMode') ?? false,
     languageCode: await _store.getString('languageCode') ?? 'ko',
+    languageSetupComplete:
+        await _store.getBool('languageSetupComplete') ?? false,
   );
 
   Future<void> save(GameSettings settings) async {
@@ -33,6 +35,7 @@ final class SettingsService {
       _store.setDouble('textScale', settings.textScale),
       _store.setBool('assistMode', settings.assistMode),
       _store.setString('languageCode', settings.languageCode),
+      _store.setBool('languageSetupComplete', settings.languageSetupComplete),
     ]);
   }
 

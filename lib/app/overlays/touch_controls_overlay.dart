@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/services/game_settings.dart';
 
 final class TouchControlsOverlay extends StatelessWidget {
   const TouchControlsOverlay({required this.game, super.key});
@@ -11,49 +13,56 @@ final class TouchControlsOverlay extends StatelessWidget {
     if (MediaQuery.sizeOf(context).shortestSide >= 600) {
       return const SizedBox.shrink();
     }
-    return SafeArea(
-      child: Stack(
-        children: <Widget>[
-          Positioned(left: 18, bottom: 18, child: _DirectionPad(game: game)),
-          Positioned(
-            right: 18,
-            bottom: 24,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: <Widget>[
-                _ActionButton(label: 'E', onPressed: game.queueTouchInteract),
-                const SizedBox(height: 6),
-                Row(
-                  children: <Widget>[
-                    _ActionButton(
-                      label: 'WPN',
-                      onPressed: game.queueTouchWeaponCycle,
-                    ),
-                    const SizedBox(width: 8),
-                    _ActionButton(
-                      label: 'PARRY',
-                      onPressed: game.queueTouchParry,
-                    ),
-                    const SizedBox(width: 8),
-                    _ActionButton(
-                      label: 'ATK',
-                      onPressed: game.queueTouchAttack,
-                    ),
-                  ],
-                ),
-              ],
+    return ValueListenableBuilder<GameSettings>(
+      valueListenable: game.settings,
+      builder: (context, _, child) => SafeArea(
+        child: Stack(
+          children: <Widget>[
+            Positioned(left: 18, bottom: 18, child: _DirectionPad(game: game)),
+            Positioned(
+              right: 18,
+              bottom: 24,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  _ActionButton(label: 'E', onPressed: game.queueTouchInteract),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: <Widget>[
+                      if (game.world.isReady &&
+                          game.world.player.selectedWeapon ==
+                              PlayerWeapon.sword) ...<Widget>[
+                        _ActionButton(
+                          label: game.localization.text('touch.dash'),
+                          onPressed: game.queueTouchDash,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      _ActionButton(
+                        label: game.localization.text('touch.parry'),
+                        onPressed: game.queueTouchParry,
+                      ),
+                      const SizedBox(width: 8),
+                      _ActionButton(
+                        label: game.localization.text('touch.attack'),
+                        onPressed: game.queueTouchAttack,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          Positioned(
-            right: 12,
-            top: 66,
-            child: IconButton.filledTonal(
-              tooltip: 'Pause',
-              onPressed: game.openPauseMenu,
-              icon: const Icon(Icons.pause),
+            Positioned(
+              right: 12,
+              top: 66,
+              child: IconButton.filledTonal(
+                tooltip: game.localization.text('touch.pause'),
+                onPressed: game.openPauseMenu,
+                icon: const Icon(Icons.pause),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

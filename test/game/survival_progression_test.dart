@@ -48,6 +48,7 @@ void main() {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );
+    await game.localization.load('en');
 
     game.startSurvivalRun();
     await _waitForSurvival(tester, game);

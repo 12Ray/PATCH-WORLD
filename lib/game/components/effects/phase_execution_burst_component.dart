@@ -5,24 +5,30 @@ import 'package:flame/text.dart';
 import 'package:flutter/painting.dart';
 
 final class PhaseExecutionBurstComponent extends TextComponent {
-  PhaseExecutionBurstComponent({required super.position, required this.score})
-    : super(
-        text: 'PHASE EXECUTION  +$score  // DATA +1',
-        anchor: Anchor.center,
-        priority: 76,
-        textRenderer: TextPaint(
-          style: const TextStyle(
-            color: Color(0xFFFFC857),
-            fontSize: 19,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.2,
-          ),
-        ),
-      );
+  PhaseExecutionBurstComponent({
+    required super.position,
+    required this.score,
+    this.label = 'PHASE EXECUTION',
+    this.dataLabel = 'DATA',
+  }) : super(
+         text: '$label  +$score  // $dataLabel +1',
+         anchor: Anchor.center,
+         priority: 76,
+         textRenderer: TextPaint(
+           style: const TextStyle(
+             color: Color(0xFFFFC857),
+             fontSize: 19,
+             fontWeight: FontWeight.w900,
+             letterSpacing: 1.2,
+           ),
+         ),
+       );
 
   static const double lifetimeSeconds = 1.05;
 
   final int score;
+  final String label;
+  final String dataLabel;
   double _age = 0;
 
   double get age => _age;

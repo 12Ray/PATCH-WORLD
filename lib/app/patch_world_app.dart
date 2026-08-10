@@ -12,6 +12,7 @@ import 'package:patch_world/app/overlays/pause_overlay.dart';
 import 'package:patch_world/app/overlays/settings_overlay.dart';
 import 'package:patch_world/app/overlays/title_overlay.dart';
 import 'package:patch_world/app/overlays/touch_controls_overlay.dart';
+import 'package:patch_world/app/overlays/weapon_selection_overlay.dart';
 import 'package:patch_world/app/overlays/survival_upgrade_overlay.dart';
 import 'package:patch_world/app/overlays/survival_result_overlay.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -93,6 +94,8 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
                       <String, OverlayWidgetBuilder<PatchWorldGame>>{
                         OverlayIds.title: (context, game) =>
                             TitleOverlay(game: game),
+                        OverlayIds.weaponSelection: (context, game) =>
+                            WeaponSelectionOverlay(game: game),
                         OverlayIds.hud: (context, game) =>
                             HudOverlay(game: game),
                         OverlayIds.touchControls: (context, game) =>
@@ -153,7 +156,9 @@ final class _ErrorView extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: SelectableText(
-            '게임 초기화에 실패했습니다.\n\n$error',
+            'Game failed to initialize.\n'
+            '게임 초기화에 실패했습니다.\n'
+            'ゲームの初期化に失敗しました。\n\n$error',
             textAlign: TextAlign.center,
           ),
         ),

@@ -16,25 +16,28 @@ final class RoomTwoController extends Component
   final List<PlatformSurfaceComponent> _surfaces = <PlatformSurfaceComponent>[];
   int _defeatedCount = 0;
   bool _completed = false;
+  Vector2 _respawnPoint = Vector2(70, 988);
+  late final BossSealGateComponent _bossGate;
 
   @override
-  final Vector2 playerSpawn = Vector2(70, 448);
+  final Vector2 playerSpawn = Vector2(70, 988);
 
   @override
-  final Vector2 worldSize = Vector2(2880, PatchWorldGame.logicalHeight);
+  final Vector2 worldSize = Vector2(2880, 1080);
+
+  @override
+  double get killPlaneY => 1160;
 
   int get defeatedCount => _defeatedCount;
   int get activatedTerminalCount => _defeatedCount;
 
   @override
-  Iterable<Rect> get solidBounds => _surfaces.map((surface) => surface.bounds);
+  Iterable<Rect> get solidBounds => _surfaces
+      .where((surface) => surface.isSolid)
+      .map((surface) => surface.bounds);
 
   @override
-  Vector2 respawnPointFor(Vector2 playerPosition) {
-    if (playerPosition.x >= 1920) return Vector2(2040, 448);
-    if (playerPosition.x >= 960) return Vector2(1010, 448);
-    return playerSpawn.clone();
-  }
+  Vector2 respawnPointFor(Vector2 playerPosition) => _respawnPoint.clone();
 
   @override
   Future<void> onLoad() async {
@@ -42,78 +45,131 @@ final class RoomTwoController extends Component
     await add(
       RoomBackdropComponent(RoomBackdropStyle.temporal, worldSize: worldSize),
     );
+    _bossGate = BossSealGateComponent(
+      position: Vector2(2490, 610),
+      size: Vector2(28, 414),
+      style: PlatformSurfaceStyle.temporal,
+    );
     _surfaces.addAll(<PlatformSurfaceComponent>[
-      _surface(0, 0, 24, 540, boundary: true),
-      _surface(2856, 0, 24, 540, boundary: true),
-      _surface(0, 484, 360, 56),
-      _surface(450, 484, 400, 56),
-      _surface(940, 484, 450, 56),
-      _surface(1480, 484, 420, 56),
-      _surface(1990, 484, 890, 56),
-      _surface(150, 405, 170, 22),
-      _surface(340, 330, 150, 22),
-      _surface(520, 390, 150, 22),
-      _surface(700, 300, 160, 22),
-      _surface(850, 410, 130, 20),
-      _surface(1040, 350, 150, 22),
-      _surface(1210, 270, 160, 22),
-      _surface(1380, 405, 140, 20),
-      _surface(1540, 340, 160, 22),
-      _surface(1740, 260, 150, 22),
-      _surface(1890, 410, 140, 20),
-      _surface(2070, 360, 150, 22),
-      _surface(2240, 285, 160, 22),
-      _surface(2410, 390, 145, 22),
-      _surface(2540, 425, 316, 59),
-      _surface(610, 430, 48, 54),
-      _surface(1320, 430, 50, 54),
-      _surface(2300, 430, 54, 54),
+      _surface(0, 0, 24, 1080, boundary: true),
+      _surface(2856, 0, 24, 1080, boundary: true),
+      _surface(0, 1024, 330, 56),
+      _surface(420, 1024, 400, 56),
+      _surface(910, 1024, 420, 56),
+      _surface(1420, 1024, 420, 56),
+      _surface(1930, 1024, 950, 56),
+      _surface(120, 930, 180, 22),
+      _surface(300, 840, 170, 22),
+      _surface(480, 750, 180, 22),
+      _surface(650, 660, 180, 22),
+      _surface(820, 570, 180, 22),
+      _surface(990, 480, 180, 22),
+      _surface(1160, 390, 180, 22),
+      _surface(1330, 480, 180, 22),
+      _surface(1500, 570, 180, 22),
+      _surface(1670, 660, 180, 22),
+      _surface(1840, 750, 180, 22),
+      _surface(2010, 840, 180, 22),
+      _surface(2190, 750, 180, 22),
+      _surface(2340, 660, 170, 22),
+      _surface(2520, 944, 336, 80),
+      MovingPlatformComponent(
+        start: Vector2(560, 900),
+        end: Vector2(560, 690),
+        size: Vector2(120, 22),
+        periodSeconds: 4.0,
+        style: PlatformSurfaceStyle.temporal,
+      ),
+      MovingPlatformComponent(
+        start: Vector2(1050, 780),
+        end: Vector2(1240, 690),
+        size: Vector2(120, 22),
+        periodSeconds: 3.2,
+        style: PlatformSurfaceStyle.temporal,
+      ),
+      MovingPlatformComponent(
+        start: Vector2(1770, 500),
+        end: Vector2(1950, 410),
+        size: Vector2(120, 22),
+        periodSeconds: 3.6,
+        style: PlatformSurfaceStyle.temporal,
+      ),
+      BreakablePlatformComponent(
+        position: Vector2(1370, 760),
+        size: Vector2(150, 22),
+        style: PlatformSurfaceStyle.temporal,
+      ),
+      _bossGate,
     ]);
     await addAll(_surfaces);
     await addAll(<Component>[
       for (final pit in <(double, double)>[
-        (360, 90),
-        (850, 90),
-        (1390, 90),
-        (1900, 90),
+        (330, 90),
+        (820, 90),
+        (1330, 90),
+        (1840, 90),
       ])
         DamagePitComponent(
-          position: Vector2(pit.$1, 484),
+          position: Vector2(pit.$1, 1024),
           size: Vector2(pit.$2, 56),
           style: PlatformSurfaceStyle.temporal,
         ),
       RoomHazardComponent(
-        position: Vector2(1120, 338),
-        size: Vector2(56, 12),
+        position: Vector2(690, 648),
+        size: Vector2(100, 12),
         style: RoomHazardStyle.spikes,
         sourceId: 'hazard.temporal-hall.clock-teeth',
       ),
       RoomHazardComponent(
-        position: Vector2(1810, 282),
-        size: Vector2(14, 128),
-        style: RoomHazardStyle.laser,
+        position: Vector2(1515, 558),
+        size: Vector2(100, 12),
+        style: RoomHazardStyle.spikes,
+        sourceId: 'hazard.temporal-hall.rewind-teeth',
+      ),
+      PulsingLaserComponent(
+        position: Vector2(940, 592),
+        size: Vector2(14, 342),
         sourceId: 'hazard.temporal-hall.timeline-cut',
+        activeSeconds: 1.1,
+        inactiveSeconds: 1.3,
       ),
-      RoomHazardComponent(
-        position: Vector2(2320, 307),
-        size: Vector2(14, 123),
-        style: RoomHazardStyle.laser,
+      PulsingLaserComponent(
+        position: Vector2(1590, 592),
+        size: Vector2(14, 342),
         sourceId: 'hazard.temporal-hall.clock-hand',
+        activeSeconds: 1.3,
+        inactiveSeconds: 1.1,
+        phaseOffset: 1.2,
       ),
-      JumpPadComponent(position: Vector2(960, 472)),
-      JumpPadComponent(position: Vector2(2035, 472)),
-      CheckpointBeaconComponent(position: Vector2(1010, 484), index: 1),
-      CheckpointBeaconComponent(position: Vector2(2040, 484), index: 2),
+      CrusherHazardComponent(
+        start: Vector2(2130, 380),
+        end: Vector2(2130, 690),
+        size: Vector2(90, 60),
+        sourceId: 'hazard.temporal-hall.pendulum',
+        periodSeconds: 4.2,
+      ),
+      JumpPadComponent(position: Vector2(930, 1012)),
+      JumpPadComponent(position: Vector2(1960, 1012)),
+      CheckpointBeaconComponent(
+        position: Vector2(1010, 1024),
+        index: 1,
+        onActivated: _activateCheckpoint,
+      ),
+      CheckpointBeaconComponent(
+        position: Vector2(2040, 1024),
+        index: 2,
+        onActivated: _activateCheckpoint,
+      ),
     ]);
     await addAll(<PlatformerEnemyComponent>[
-      _enemy(PlatformerEnemyArchetype.tickRunner, 290, 466),
-      _enemy(PlatformerEnemyArchetype.echoBat, 760, 235),
-      _enemy(PlatformerEnemyArchetype.delaySniper, 1280, 252),
-      _enemy(PlatformerEnemyArchetype.rewindSkater, 1640, 322),
+      _enemy(PlatformerEnemyArchetype.tickRunner, 350, 822),
+      _enemy(PlatformerEnemyArchetype.echoBat, 880, 535),
+      _enemy(PlatformerEnemyArchetype.delaySniper, 1250, 372),
+      _enemy(PlatformerEnemyArchetype.rewindSkater, 1870, 732),
       _enemy(
         PlatformerEnemyArchetype.chronoJailer,
         2690,
-        360,
+        885,
         startsDormant: true,
       ),
     ]);
@@ -144,12 +200,17 @@ final class RoomTwoController extends Component
     startsDormant: startsDormant,
   );
 
+  void _activateCheckpoint(int index, Vector2 respawnPoint) {
+    _respawnPoint = respawnPoint;
+  }
+
   void _onEnemyDefeated(PlatformerEnemyComponent enemy) {
     if (_completed) return;
     _defeatedCount += 1;
     game.runMetrics.recordOverflow();
     game.publishUiSnapshot(force: true);
     if (_defeatedCount == 4) {
+      _bossGate.unlock();
       for (final candidate in children.whereType<PlatformerEnemyComponent>()) {
         if (candidate.archetype.isMidBoss) candidate.activateEncounter();
       }

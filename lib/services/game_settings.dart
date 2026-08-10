@@ -14,6 +14,7 @@ final class GameSettings {
     this.textScale = 1,
     this.assistMode = false,
     this.languageCode = 'ko',
+    this.languageSetupComplete = false,
   });
 
   final double bgmVolume;
@@ -23,6 +24,7 @@ final class GameSettings {
   final double textScale;
   final bool assistMode;
   final String languageCode;
+  final bool languageSetupComplete;
 
   GameSettings copyWith({
     double? bgmVolume,
@@ -32,6 +34,7 @@ final class GameSettings {
     double? textScale,
     bool? assistMode,
     String? languageCode,
+    bool? languageSetupComplete,
   }) => GameSettings(
     bgmVolume: bgmVolume ?? this.bgmVolume,
     sfxVolume: sfxVolume ?? this.sfxVolume,
@@ -40,5 +43,6 @@ final class GameSettings {
     textScale: textScale ?? this.textScale,
     assistMode: assistMode ?? this.assistMode,
     languageCode: languageCode ?? this.languageCode,
+    languageSetupComplete: languageSetupComplete ?? this.languageSetupComplete,
   );
 }
