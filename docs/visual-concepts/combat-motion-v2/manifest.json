@@ -1,0 +1,164 @@
+{
+  "version": 2,
+  "generatedWith": "built-in ImageGen plus local chroma-key removal",
+  "attackTiers": {
+    "normal": "cyan compact projectile",
+    "enhanced": "magenta layered projectile; not parryable",
+    "parryable": "warm-white/gold projectile with double-diamond ring"
+  },
+  "enemySheets": [
+    {
+      "id": "patchMite",
+      "room": 1,
+      "file": "enemies/patch-mite-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["idleTwitch", "scuttle", "biteTelegraph", "biteLunge", "pixelSpit", "burrowDash", "backplateGuard", "repairChipThrow", "hurt", "overflowDefeat"]
+    },
+    {
+      "id": "checksumHopper",
+      "room": 1,
+      "file": "enemies/checksum-hopper-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["idleCoil", "patrolHop", "leapTelegraph", "attackLeap", "landingShockwave", "checksumOrb", "wallRebound", "doubleStomp", "hurt", "overloadDefeat"]
+    },
+    {
+      "id": "pulseTurret",
+      "room": 1,
+      "file": "enemies/pulse-turret-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["idleScan", "track", "charge", "singleBolt", "tripleBurst", "ricochetPulse", "mortarShot", "vent", "hurt", "destroyed"]
+    },
+    {
+      "id": "repairLeech",
+      "room": 1,
+      "file": "enemies/repair-leech-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["idleSway", "crawl", "targetLock", "healChannel", "siphonBite", "repairCapsule", "tetherPull", "emergencyShield", "hurt", "overflowCollapse"]
+    },
+    {
+      "id": "overflowWarden",
+      "room": 1,
+      "file": "enemies/overflow-warden-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["idle", "march", "guard", "floorSlam", "summonLeech", "overflowGrenade", "shieldBash", "tankBurst", "stagger", "collapse"]
+    },
+    {
+      "id": "tickRunner",
+      "room": 2,
+      "file": "enemies/tick-runner-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["idle", "sprint", "beatTelegraph", "normalNeedle", "enhancedLunge", "parryableClockDisc", "timeMine", "afterimageDash", "hurt", "shatter"]
+    },
+    {
+      "id": "echoBat",
+      "room": 2,
+      "file": "enemies/echo-bat-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["hover", "flight", "recordTelegraph", "normalEchoOrb", "enhancedSonicRing", "parryableEchoCrystal", "arcReplay", "blinkClone", "hurt", "dissolve"]
+    },
+    {
+      "id": "delaySniper",
+      "room": 2,
+      "file": "enemies/delay-sniper-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["idle", "aimAdjust", "aimLock", "normalBolt", "enhancedRail", "parryableHourglass", "delayMine", "phaseRelocate", "hurt", "collapse"]
+    },
+    {
+      "id": "rewindSkater",
+      "room": 2,
+      "file": "enemies/rewind-skater-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["idleGlide", "sprint", "anchorTelegraph", "normalSpool", "enhancedChakram", "parryableRewindOrb", "rewind", "spinSlash", "hurt", "unwindDefeat"]
+    },
+    {
+      "id": "chronoJailer",
+      "room": 2,
+      "file": "enemies/chrono-jailer-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["hover", "strafe", "clockSweep", "normalSpear", "enhancedSpearFan", "parryableClockCore", "timeCage", "coreBurst", "stagger", "collapse"]
+    },
+    {
+      "id": "vectorRam",
+      "room": 3,
+      "file": "enemies/vector-ram-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["idle", "stalk", "chargeTelegraph", "normalArrow", "enhancedCharge", "parryableArrowCore", "directionMine", "reverseImpact", "hurt", "shatter"]
+    },
+    {
+      "id": "polarityDrone",
+      "room": 3,
+      "file": "enemies/polarity-drone-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["hover", "orbit", "flipTelegraph", "normalPullOrb", "enhancedPushNova", "parryableSplitOrb", "magneticMine", "polarityDash", "hurt", "dissipate"]
+    },
+    {
+      "id": "phaseMimic",
+      "room": 3,
+      "file": "enemies/phase-mimic-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["disguised", "creep", "reveal", "normalShard", "enhancedBelowSnap", "parryablePhaseKey", "decoyPlatform", "ceilingDrop", "hurt", "collapse"]
+    },
+    {
+      "id": "shardLobber",
+      "room": 3,
+      "file": "enemies/shard-lobber-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["idle", "walk", "aim", "normalShard", "enhancedCluster", "parryableCrystal", "gravityBomb", "shieldRetreat", "hurt", "wreck"]
+    },
+    {
+      "id": "kernelChimera",
+      "room": 3,
+      "file": "enemies/kernel-chimera-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["idle", "march", "kernelTelegraph", "normalKernelOrb", "enhancedDualVolley", "parryableKernelDisc", "splitGrapple", "recombineShockwave", "stagger", "collapse"]
+    }
+  ],
+  "heroSheets": [
+    {
+      "weapon": "sword",
+      "file": "hero/qa-hero-sword-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["ready", "lightSlash", "reverseSlash", "heavyCleave", "dashThrust", "airSpin", "risingSlash", "parryReady", "perfectParry", "counterFinisher"]
+    },
+    {
+      "weapon": "gauntlet",
+      "file": "hero/qa-hero-gauntlet-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["ready", "jab", "cross", "uppercut", "chargedPunch", "dashPunch", "groundSlam", "parryReady", "perfectParry", "counterFinisher"]
+    },
+    {
+      "weapon": "gun",
+      "file": "hero/qa-hero-gun-10-motion.png",
+      "grid": [5, 2],
+      "motions": ["aim", "singleShot", "burst", "chargedRail", "airShot", "slideShot", "grenade", "parryReady", "perfectParry", "counterFinisher"]
+    }
+  ],
+  "projectileSheets": [
+    {
+      "room": 1,
+      "file": "projectiles/room-1-projectiles-3-tier.png",
+      "grid": [3, 5],
+      "columns": ["normal", "enhanced", "parryable"],
+      "rows": ["patchMite", "checksumHopper", "pulseTurret", "repairLeech", "overflowWarden"]
+    },
+    {
+      "room": 2,
+      "file": "projectiles/room-2-projectiles-3-tier.png",
+      "grid": [3, 5],
+      "columns": ["normal", "enhanced", "parryable"],
+      "rows": ["tickRunner", "echoBat", "delaySniper", "rewindSkater", "chronoJailer"]
+    },
+    {
+      "room": 3,
+      "file": "projectiles/room-3-projectiles-3-tier.png",
+      "grid": [3, 5],
+      "columns": ["normal", "enhanced", "parryable"],
+      "rows": ["vectorRam", "polarityDrone", "phaseMimic", "shardLobber", "kernelChimera"]
+    }
+  ],
+  "roomConcepts": [
+    "rooms/room-1-damage-lab-sideview-v2.png",
+    "rooms/room-2-temporal-hall-sideview-v2.png",
+    "rooms/room-3-collision-archive-sideview-v2.png"
+  ]
+}
