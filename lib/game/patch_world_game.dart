@@ -754,7 +754,14 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     world.player.setJumpHeld(input.jumpHeld);
     if (input.consumeJump()) world.player.queueJump();
     if (input.consumeDashDirection() case final double direction) {
-      world.player.tryDash(direction);
+      switch (world.player.selectedWeapon) {
+        case PlayerWeapon.sword:
+          world.player.tryDash(direction);
+        case PlayerWeapon.gauntlet:
+          world.player.queueJump();
+        case PlayerWeapon.gun:
+          break;
+      }
     }
     patternTracker.update(clock.realDt);
     if (movement.length2 > 0) {

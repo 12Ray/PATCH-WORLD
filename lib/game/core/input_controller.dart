@@ -22,11 +22,10 @@ final class InputController {
   }
 
   void handleKeyDown(LogicalKeyboardKey key, {bool isRepeat = false}) {
-    if (key == LogicalKeyboardKey.space || key == LogicalKeyboardKey.keyJ) {
+    if (key == LogicalKeyboardKey.keyJ) {
       _attackQueued = true;
     }
-    if (key == LogicalKeyboardKey.keyK ||
-        key == LogicalKeyboardKey.shiftLeft ||
+    if (key == LogicalKeyboardKey.shiftLeft ||
         key == LogicalKeyboardKey.shiftRight) {
       _parryQueued = true;
     }
@@ -40,10 +39,10 @@ final class InputController {
             key == LogicalKeyboardKey.arrowRight)) {
       _recordHorizontalTap(1);
     }
-    if (!isRepeat && key == LogicalKeyboardKey.keyQ) {
+    if (!isRepeat && key == LogicalKeyboardKey.keyK) {
       queueDash(movementAxis.x);
     }
-    if (key == LogicalKeyboardKey.keyE || key == LogicalKeyboardKey.enter) {
+    if (key == LogicalKeyboardKey.keyL) {
       _interactQueued = true;
     }
     if (key == LogicalKeyboardKey.keyW || key == LogicalKeyboardKey.arrowUp) {

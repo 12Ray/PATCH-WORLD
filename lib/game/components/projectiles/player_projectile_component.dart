@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
 
 final class PlayerProjectileComponent extends CircleComponent
@@ -48,6 +49,14 @@ final class PlayerProjectileComponent extends CircleComponent
   @override
   void update(double dt) {
     position += velocity * dt;
+    final activeRoom = game.world.activeRoom;
+    if (activeRoom is PlatformerRoomGeometry) {
+      final geometry = activeRoom as PlatformerRoomGeometry;
+      final point = Offset(position.x, position.y);
+      if (geometry.solidBounds.any((solid) => solid.contains(point))) {
+        removeFromParent();
+      }
+    }
     _remaining -= dt;
     if (_remaining <= 0) removeFromParent();
     super.update(dt);

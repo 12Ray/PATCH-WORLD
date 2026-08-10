@@ -23,7 +23,7 @@ final class LegacyGlitchTerminal extends RectangleComponent {
     await super.onLoad();
     await add(
       TextComponent(
-        text: 'E',
+        text: 'L',
         position: size / 2,
         anchor: Anchor.center,
         textRenderer: TextPaint(

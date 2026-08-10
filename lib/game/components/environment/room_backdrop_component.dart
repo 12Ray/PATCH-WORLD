@@ -30,7 +30,9 @@ final class RoomBackdropComponent extends PositionComponent
       'assets/images/rooms/temporal-hall-environment-v2.png',
     RoomBackdropStyle.collision =>
       'assets/images/rooms/collision-archive-environment-v2.png',
-    RoomBackdropStyle.optimizer || RoomBackdropStyle.survival => null,
+    RoomBackdropStyle.optimizer =>
+      'assets/images/rooms/optimizer-core-environment-v2.png',
+    RoomBackdropStyle.survival => null,
   };
 
   @override
@@ -88,6 +90,9 @@ final class RoomBackdropComponent extends PositionComponent
         Paint()..filterQuality = FilterQuality.none,
       );
       canvas.drawRect(visibleRect, Paint()..color = const Color(0x33020912));
+      if (style == RoomBackdropStyle.optimizer) {
+        _drawOptimizerPhaseOverlay(canvas);
+      }
       return;
     }
     _drawPanels(canvas);
@@ -268,6 +273,43 @@ final class RoomBackdropComponent extends PositionComponent
       const Color(0xFFFF4FD8),
       0.45,
     );
+  }
+
+  void _drawOptimizerPhaseOverlay(Canvas canvas) {
+    final phase = game.world.activeBoss?.phase.name;
+    if (phase != 'perfect' && phase != 'overflow') return;
+    final center = Offset(size.x / 2, 330);
+    final progress = (math.sin(_time * 3.2) + 1) / 2;
+    if (phase == 'perfect') {
+      canvas.drawCircle(
+        center,
+        118 + progress * 12,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 4
+          ..color = const Color(0xAAEFFFFF),
+      );
+      canvas.drawLine(
+        center,
+        Offset(center.dx, 980),
+        Paint()
+          ..strokeWidth = 3
+          ..color = const Color(0x8836E1FF),
+      );
+      return;
+    }
+    for (var ring = 0; ring < 3; ring += 1) {
+      canvas.drawCircle(
+        center,
+        130 + ring * 46 + progress * 30,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3 - ring * .5
+          ..color = ring.isEven
+              ? const Color(0x88FF4FD8)
+              : const Color(0x8836E1FF),
+      );
+    }
   }
 
   void _drawSurvivalArena(Canvas canvas) {

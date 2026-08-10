@@ -4,7 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 
-enum PlatformSurfaceStyle { damage, temporal, collision }
+enum PlatformSurfaceStyle { damage, temporal, collision, optimizer }
 
 class PlatformSurfaceComponent extends RectangleComponent {
   PlatformSurfaceComponent({
@@ -18,6 +18,7 @@ class PlatformSurfaceComponent extends RectangleComponent {
              PlatformSurfaceStyle.damage => const Color(0xFF25304A),
              PlatformSurfaceStyle.temporal => const Color(0xFF29284C),
              PlatformSurfaceStyle.collision => const Color(0xFF183E47),
+             PlatformSurfaceStyle.optimizer => const Color(0xFF242338),
            },
          priority: 2,
        );
@@ -64,6 +65,18 @@ class PlatformSurfaceComponent extends RectangleComponent {
             ..color = const Color(0x88FF4FD8),
         );
       }
+    } else if (style == PlatformSurfaceStyle.optimizer) {
+      for (double x = 14; x < size.x; x += 32) {
+        canvas.drawRect(
+          Rect.fromLTWH(x, 9, 14, mathMin(4, size.y - 9)),
+          Paint()..color = const Color(0x88FF4FD8),
+        );
+        canvas.drawCircle(
+          Offset(x + 7, mathMin(18, size.y - 3)),
+          2.5,
+          Paint()..color = const Color(0xAA36E1FF),
+        );
+      }
     }
   }
 
@@ -71,6 +84,7 @@ class PlatformSurfaceComponent extends RectangleComponent {
     PlatformSurfaceStyle.damage => const Color(0xFF36E1FF),
     PlatformSurfaceStyle.temporal => const Color(0xFF9D8CFF),
     PlatformSurfaceStyle.collision => const Color(0xFF2CF2C8),
+    PlatformSurfaceStyle.optimizer => const Color(0xFFF4F7FF),
   };
 
   double mathMin(double a, double b) => a < b ? a : b;
@@ -219,6 +233,7 @@ final class DamagePitComponent extends RectangleComponent {
              PlatformSurfaceStyle.damage => const Color(0xFF260B2E),
              PlatformSurfaceStyle.temporal => const Color(0xFF15143A),
              PlatformSurfaceStyle.collision => const Color(0xFF092F37),
+             PlatformSurfaceStyle.optimizer => const Color(0xFF220C28),
            },
          priority: 1,
        );
@@ -233,6 +248,7 @@ final class DamagePitComponent extends RectangleComponent {
         PlatformSurfaceStyle.damage => const Color(0xFFEB4BD8),
         PlatformSurfaceStyle.temporal => const Color(0xFF9D8CFF),
         PlatformSurfaceStyle.collision => const Color(0xFF2CF2C8),
+        PlatformSurfaceStyle.optimizer => const Color(0xFFFF4FD8),
       };
     for (double x = -20; x < size.x + 20; x += 20) {
       canvas.drawLine(
