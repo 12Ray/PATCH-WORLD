@@ -18,7 +18,7 @@ void main() {
 
     test('attack is consumed only once', () {
       final input = InputController();
-      input.handleKeyDown(LogicalKeyboardKey.space);
+      input.handleKeyDown(LogicalKeyboardKey.keyJ);
 
       expect(input.consumeAttack(), isTrue);
       expect(input.consumeAttack(), isFalse);
@@ -26,20 +26,33 @@ void main() {
 
     test('interact is consumed only once', () {
       final input = InputController();
-      input.handleKeyDown(LogicalKeyboardKey.keyE);
+      input.handleKeyDown(LogicalKeyboardKey.keyL);
 
       expect(input.consumeInteract(), isTrue);
       expect(input.consumeInteract(), isFalse);
     });
 
-    test('parry is queued once and number keys do not switch weapons', () {
+    test('shift parries and K queues the weapon special once', () {
       final input = InputController();
       input.handleKeyDown(LogicalKeyboardKey.shiftLeft);
-      input.handleKeyDown(LogicalKeyboardKey.digit3);
+      input.handleKeyDown(LogicalKeyboardKey.keyK);
 
       expect(input.consumeParry(), isTrue);
       expect(input.consumeParry(), isFalse);
+      expect(input.consumeDashDirection(), 0);
       expect(input.consumeDashDirection(), isNull);
+    });
+
+    test('legacy action keys no longer queue J K L actions', () {
+      final input = InputController();
+      input.handleKeyDown(LogicalKeyboardKey.space);
+      input.handleKeyDown(LogicalKeyboardKey.keyQ);
+      input.handleKeyDown(LogicalKeyboardKey.keyE);
+      input.handleKeyDown(LogicalKeyboardKey.enter);
+
+      expect(input.consumeAttack(), isFalse);
+      expect(input.consumeDashDirection(), isNull);
+      expect(input.consumeInteract(), isFalse);
     });
 
     test('up queues a jump and exposes held state', () {
