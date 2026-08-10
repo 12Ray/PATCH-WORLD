@@ -138,6 +138,9 @@ final class PlatformerEnemyComponent extends PositionComponent
   int _projectilePatternIndex = 0;
   int _combatPatternIndex = 0;
   int _activeMotionFrame = 3;
+  double _visualClock = 0;
+  double _hurtTimer = 0;
+  double _defeatTimer = 0;
   SpriteComponent? _spriteVisual;
   List<Sprite>? _spriteFrames;
   final List<Vector2> _motionHistory = <Vector2>[];
@@ -151,6 +154,12 @@ final class PlatformerEnemyComponent extends PositionComponent
   String? get activeActionId => _action?.id;
   bool get dealsContactDamage => false;
   bool get isDormant => _dormant;
+  double get _activeWorldWidth {
+    final room = game.world.activeRoom;
+    return room is PlatformerRoomGeometry
+        ? (room as PlatformerRoomGeometry).worldSize.x
+        : PatchWorldGame.logicalWidth;
+  }
 
   void activateEncounter() {
     if (!_dormant || _resolved) return;
@@ -225,6 +234,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     if (mutation == HealthMutation.defeated) {
       _resolveDefeat();
     } else {
+      _hurtTimer = .20;
       _combatState = EnemyCombatState.hurt;
     }
   }
@@ -260,6 +270,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   @override
   void update(double dt) {
     final simulationDt = game.clock.simulationDt;
+    _visualClock += simulationDt;
     if (_overflowTimer > 0) {
       _combatState = EnemyCombatState.overflowing;
       _overflowTimer -= simulationDt;
@@ -268,7 +279,15 @@ final class PlatformerEnemyComponent extends PositionComponent
       super.update(dt);
       return;
     }
-    if (!game.world.isReady || _resolved) {
+    if (!game.world.isReady) {
+      super.update(dt);
+      return;
+    }
+    if (_resolved) {
+      _defeatTimer = math.max(0, _defeatTimer - simulationDt);
+      _combatState = EnemyCombatState.defeated;
+      _syncSpriteVisual();
+      if (_defeatTimer <= 0) removeFromParent();
       super.update(dt);
       return;
     }
@@ -287,6 +306,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     }
     _actionClock += enemyDt;
     _jumpCooldown = math.max(0, _jumpCooldown - enemyDt);
+    _hurtTimer = math.max(0, _hurtTimer - enemyDt);
     final activeRoom = game.world.activeRoom;
     final room = activeRoom is PlatformerRoomGeometry
         ? activeRoom as PlatformerRoomGeometry
@@ -314,12 +334,12 @@ final class PlatformerEnemyComponent extends PositionComponent
         _updateGrounded(enemyDt, room.solidBounds);
     }
     _updateMotionHistory();
-    if (_action == null && _combatState != EnemyCombatState.hurt) {
+    if (_hurtTimer > 0) {
+      _combatState = EnemyCombatState.hurt;
+    } else if (_action == null) {
       _combatState = _velocity.length2 > 1
           ? EnemyCombatState.moving
           : EnemyCombatState.idle;
-    } else if (_combatState == EnemyCombatState.hurt) {
-      _combatState = EnemyCombatState.idle;
     }
     _syncSpriteVisual();
     super.update(dt);
@@ -359,7 +379,43 @@ final class PlatformerEnemyComponent extends PositionComponent
       EnemyCombatState.defeated => 9,
     };
     visual.sprite = frames[frameIndex];
-    visual.scale.x = _facing;
+    final bob =
+        math.sin(_visualClock * 5 + archetype.index) *
+        (_combatState == EnemyCombatState.moving ? 2.2 : 1.0);
+    var offsetX = 0.0;
+    var scaleX = 1.0;
+    var scaleY = 1.0;
+    var angle = math.sin(_visualClock * 2.2 + archetype.index) * .012;
+    switch (_combatState) {
+      case EnemyCombatState.telegraph:
+        final pulse = (math.sin(_visualClock * 14).abs()) * .07;
+        scaleX += pulse;
+        scaleY += pulse;
+      case EnemyCombatState.attacking:
+        offsetX = _facing * 7;
+        scaleX = 1.10;
+        scaleY = .94;
+        angle = _facing * -.045;
+      case EnemyCombatState.recovering:
+        offsetX = _facing * 2;
+        scaleX = .97;
+        scaleY = 1.03;
+      case EnemyCombatState.hurt || EnemyCombatState.staggered:
+        offsetX = -_facing * 5;
+        angle = -_facing * .08;
+      case EnemyCombatState.overflowing:
+        scaleX = 1.13;
+        scaleY = 1.13;
+      case EnemyCombatState.defeated:
+        scaleX = 1 - (1 - (_defeatTimer / .28).clamp(0, 1)) * .25;
+        scaleY = scaleX;
+        angle = _facing * (1 - (_defeatTimer / .28).clamp(0, 1)) * .18;
+      case EnemyCombatState.idle || EnemyCombatState.moving:
+        break;
+    }
+    visual.position.setValues(size.x / 2 + offsetX, size.y / 2 + bob);
+    visual.scale.setValues(_facing * scaleX, scaleY);
+    visual.angle = angle;
   }
 
   void _scheduleDamageLabAction() {
@@ -379,7 +435,9 @@ final class PlatformerEnemyComponent extends PositionComponent
           _beginPatternAction();
         }
       case PlatformerEnemyArchetype.repairLeech:
-        _beginPatternAction();
+        if (playerDistance <= 520) {
+          _beginPatternAction();
+        }
       case PlatformerEnemyArchetype.overflowWarden:
         final shouldSummonHigh =
             healthState.current <= 5 && !_wardenSummonedAtHighThreshold;
@@ -408,6 +466,7 @@ final class PlatformerEnemyComponent extends PositionComponent
 
   void _scheduleAdvancedRoomAction() {
     if (_action != null || _actionClock < _nextAttackAt) return;
+    if (game.world.player.position.distanceTo(position) > 650) return;
     final variant = switch (archetype) {
       PlatformerEnemyArchetype.rewindSkater =>
         _rewindReturning ? 'rewind' : null,
@@ -718,10 +777,7 @@ final class PlatformerEnemyComponent extends PositionComponent
       PlatformerEnemyComponent(
         archetype: PlatformerEnemyArchetype.repairLeech,
         position: Vector2(
-          (position.x - _facing * 76).clamp(
-            48,
-            PatchWorldGame.logicalWidth - 48,
-          ),
+          (position.x - _facing * 76).clamp(48, _activeWorldWidth - 48),
           position.y - 12,
         ),
         // Summons are support hazards, not one of the room's five primary kills.
@@ -844,7 +900,10 @@ final class PlatformerEnemyComponent extends PositionComponent
           _spawnStrikeAt('enemy.echoBat.echoMine', point, Vector2.all(38), .30);
         }
       case PlatformerEnemyArchetype.delaySniper:
-        position.x = (PatchWorldGame.logicalWidth - position.x).clamp(72, 888);
+        position.x = (_activeWorldWidth - position.x).clamp(
+          72,
+          _activeWorldWidth - 72,
+        );
         unawaited(
           _fireAtPlayer(
             sourceId: 'enemy.delaySniper.phaseRelocate',
@@ -873,7 +932,7 @@ final class PlatformerEnemyComponent extends PositionComponent
         unawaited(_fireRadialBurst(AttackTier.parryable, 4));
       case PlatformerEnemyArchetype.phaseMimic:
         position.setValues(
-          game.world.player.position.x.clamp(70, 890),
+          game.world.player.position.x.clamp(70, _activeWorldWidth - 70),
           (game.world.player.position.y - 130).clamp(110, 360),
         );
         _spawnWorldStrike(
@@ -884,7 +943,7 @@ final class PlatformerEnemyComponent extends PositionComponent
         );
       case PlatformerEnemyArchetype.shardLobber:
         final away = (position.x - game.world.player.position.x).sign;
-        position.x = (position.x + away * 86).clamp(62, 898);
+        position.x = (position.x + away * 86).clamp(62, _activeWorldWidth - 62);
         unawaited(
           _fireAtPlayer(
             sourceId: 'enemy.shardLobber.shieldRetreat',
@@ -960,7 +1019,7 @@ final class PlatformerEnemyComponent extends PositionComponent
       delta.normalize();
       position += delta * speed * dt;
     }
-    position.x = position.x.clamp(36, PatchWorldGame.logicalWidth - 36);
+    position.x = position.x.clamp(36, _activeWorldWidth - 36);
     position.y = position.y.clamp(100, 440);
   }
 
@@ -1110,7 +1169,9 @@ final class PlatformerEnemyComponent extends PositionComponent
   void _resolveDefeat({bool corrupted = false}) {
     if (_resolved) return;
     _resolved = true;
+    _defeatTimer = .28;
     _combatState = EnemyCombatState.defeated;
+    _syncSpriteVisual();
     if (isMounted) {
       game.world.spawnDataShards(
         position,
@@ -1119,7 +1180,6 @@ final class PlatformerEnemyComponent extends PositionComponent
       );
     }
     onDefeated(this);
-    removeFromParent();
   }
 
   @override

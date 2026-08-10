@@ -75,7 +75,7 @@ Optimization Core
 
 전투 이미지 콘셉트, 키 포즈와 런타임 연결이 완료되었습니다.
 
-![Combat Motion v2 · Damage Lab](docs/visual-concepts/combat-motion-v2/rooms/room-1-damage-lab-sideview-v2.png)
+![Combat Motion v2 · extended Damage Lab](docs/visual-concepts/combat-motion-v2/rooms/room-1-damage-lab-sideview-v3-wide.png)
 
 | 영역 | 상태 |
 | --- | --- |
@@ -86,7 +86,8 @@ Optimization Core
 | 패리, 투사체 반사, 무기별 카운터 | 런타임 통합 완료 |
 | 적별 5개 전투 행동과 3단계 투사체 | 런타임 통합 완료 |
 | 일반 적 4종 처치 후 중간보스 해제 | ROOM 1~3 적용 완료 |
-| 세 룸의 Combat v2 지형 테마 | 런타임 적용 완료 |
+| 세 룸의 2880×540 확장 맵과 추적 카메라 | 런타임 적용 완료 |
+| 피트·레이저·스파이크·점프 패드·체크포인트 | 런타임 적용 완료 |
 
 캠페인 ROOM 1~3에서는 `1`/`2`/`3`으로 Sword, Gauntlet, Gun을 선택하고 `K`/`Shift`로 금색 이중 다이아몬드 투사체를 패리할 수 있습니다. 완벽 패리 뒤 1.2초 안에 공격하면 무기별 카운터가 발동합니다. PATCH//SURVIVE는 기존 Pulse 전투를 유지합니다.
 

@@ -21,6 +21,15 @@ final class TimeFreezeOverlayComponent extends PositionComponent
     ..strokeWidth = 1;
 
   @override
+  void update(double dt) {
+    position.setValues(
+      game.camera.viewfinder.position.x - size.x / 2,
+      game.camera.viewfinder.position.y - size.y / 2,
+    );
+    super.update(dt);
+  }
+
+  @override
   void render(Canvas canvas) {
     if (!game.clock.isSimulationFrozen ||
         game.currentRoom != RoomId.temporalHall) {

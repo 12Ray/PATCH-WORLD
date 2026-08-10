@@ -36,6 +36,10 @@ final class EntitySpriteVisual extends SpriteComponent {
   double _squashRemaining = 0;
   double _squashDuration = 0.16;
   double _motionStrength = 0;
+  double _actionRemaining = 0;
+  double _actionDuration = 0.22;
+  double _actionDirection = 1;
+  double _actionTravel = 0;
   double _facing = 1;
   double _opacity = 1;
   Color? _stateTint;
@@ -85,8 +89,19 @@ final class EntitySpriteVisual extends SpriteComponent {
 
   void _updateAnimation(double dt) {
     final frames = _activeFrames;
-    if (!_animationPlaying || frames == null || frames.length < 2) return;
+    if (!_animationPlaying || frames == null) return;
     _animationElapsed += dt;
+    if (frames.length == 1) {
+      if (!_animationLoops && _animationElapsed >= _secondsPerFrame) {
+        final defaults = _defaultFrames;
+        if (defaults == null) {
+          _animationPlaying = false;
+        } else {
+          _startAnimation(defaults, fps: _defaultFps, loops: true);
+        }
+      }
+      return;
+    }
     while (_animationElapsed >= _secondsPerFrame) {
       _animationElapsed -= _secondsPerFrame;
       if (_frameIndex + 1 < frames.length) {
@@ -124,6 +139,17 @@ final class EntitySpriteVisual extends SpriteComponent {
     _squashRemaining = _squashDuration;
   }
 
+  void actionLunge({
+    required double direction,
+    double seconds = 0.22,
+    double travel = 9,
+  }) {
+    _actionDuration = math.max(.05, seconds);
+    _actionRemaining = _actionDuration;
+    _actionDirection = direction.sign == 0 ? 1 : direction.sign;
+    _actionTravel = travel;
+  }
+
   void setStateTint(Color? color) {
     if (_stateTint == color) return;
     _stateTint = color;
@@ -141,8 +167,14 @@ final class EntitySpriteVisual extends SpriteComponent {
   void update(double dt) {
     _updateAnimation(dt);
     _phase += dt * bobSpeed * (1 + _motionStrength * 0.7);
+    final actionProgress = _actionRemaining <= 0
+        ? 0.0
+        : 1 - _actionRemaining / _actionDuration;
+    final actionOffset = _actionRemaining <= 0
+        ? 0.0
+        : math.sin(actionProgress * math.pi) * _actionTravel * _actionDirection;
     position.setValues(
-      _basePosition.x,
+      _basePosition.x + actionOffset,
       _basePosition.y + math.sin(_phase) * bobAmplitude,
     );
     angle = math.sin(_phase * 0.55) * rotationAmplitude;
@@ -158,6 +190,9 @@ final class EntitySpriteVisual extends SpriteComponent {
       scale.setValues(_facing * (1 + pulse * 0.12), 1 - pulse * 0.08);
     } else {
       scale.setValues(_facing, 1);
+    }
+    if (_actionRemaining > 0) {
+      _actionRemaining = math.max(0, _actionRemaining - dt);
     }
     super.update(dt);
   }

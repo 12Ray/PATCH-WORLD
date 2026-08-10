@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
+import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
+import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 
 Future<void> expectTiledRoomBoot(
   WidgetTester tester, {
@@ -40,7 +42,21 @@ Future<void> expectPlatformerRoomBoot(
   expect(game.world.player.position, expectedSpawn);
   expect(
     game.world.activeRoom!.children.whereType<PlatformSurfaceComponent>(),
-    hasLength(greaterThanOrEqualTo(9)),
+    hasLength(greaterThanOrEqualTo(20)),
+  );
+  final geometry = game.world.activeRoom! as PlatformerRoomGeometry;
+  expect(geometry.worldSize.x, greaterThanOrEqualTo(2880));
+  expect(
+    game.world.activeRoom!.children.whereType<RoomHazardComponent>(),
+    hasLength(greaterThanOrEqualTo(2)),
+  );
+  expect(
+    game.world.activeRoom!.children.whereType<JumpPadComponent>(),
+    hasLength(greaterThanOrEqualTo(2)),
+  );
+  expect(
+    game.world.activeRoom!.children.whereType<CheckpointBeaconComponent>(),
+    hasLength(2),
   );
   final enemies = game.world.activeRoom!.children
       .whereType<PlatformerEnemyComponent>()

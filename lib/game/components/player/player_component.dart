@@ -281,6 +281,15 @@ final class PlayerComponent extends RectangleComponent
     _counterWindow = 0;
     _attackCooldown = counter ? 0.18 : selectedWeapon.baseCooldown;
     _playWeaponMotion(motionIndex, fps: counter ? 16 : 13);
+    _visual?.actionLunge(
+      direction: _facing,
+      seconds: counter ? .28 : .22,
+      travel: switch (selectedWeapon) {
+        PlayerWeapon.sword => counter ? 16 : 10,
+        PlayerWeapon.gauntlet => counter ? 18 : 12,
+        PlayerWeapon.gun => counter ? 7 : 4,
+      },
+    );
     _visual?.flash(
       counter ? const Color(0xFFFFD35A) : const Color(0xFF8CF5FF),
       seconds: counter ? 0.16 : 0.08,
@@ -393,7 +402,14 @@ final class PlayerComponent extends RectangleComponent
   void _playWeaponMotion(int index, {required double fps}) {
     final frames = _weaponFrames[selectedWeapon];
     if (frames == null || index < 0 || index >= frames.length) return;
-    _visual?.playOnce(<Sprite>[frames[index]], fps: fps);
+    final ready = frames.first;
+    final sequence = switch (index) {
+      7 => <Sprite>[ready, frames[7], frames[7], ready],
+      8 => <Sprite>[frames[7], frames[8], frames[8], ready],
+      9 => <Sprite>[ready, frames[9], frames[9], ready],
+      _ => <Sprite>[ready, frames[index], frames[index], ready],
+    };
+    _visual?.playOnce(sequence, fps: fps);
   }
 
   void tryInteract() {
@@ -526,7 +542,7 @@ final class PlayerComponent extends RectangleComponent
     if (position.y > PatchWorldGame.logicalHeight + 48) {
       takeDamage(1, causeId: 'hazard.damage-lab.data-pit');
       if (integrity > 0) {
-        position.setFrom(room.playerSpawn);
+        position.setFrom(room.respawnPointFor(position));
         _platformerMotion.reset();
       }
     }

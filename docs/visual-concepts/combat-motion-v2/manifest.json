@@ -160,5 +160,16 @@
     "rooms/room-1-damage-lab-sideview-v2.png",
     "rooms/room-2-temporal-hall-sideview-v2.png",
     "rooms/room-3-collision-archive-sideview-v2.png"
-  ]
+  ],
+  "wideRoomConcepts": [
+    "rooms/room-1-damage-lab-sideview-v3-wide.png",
+    "rooms/room-2-temporal-hall-sideview-v3-wide.png",
+    "rooms/room-3-collision-archive-sideview-v3-wide.png"
+  ],
+  "runtimeMapContract": {
+    "worldSize": [2880, 540],
+    "minimumSolidSurfaces": 20,
+    "checkpointsPerRoom": 2,
+    "bossUnlockAfterNormalKills": 4
+  }
 }

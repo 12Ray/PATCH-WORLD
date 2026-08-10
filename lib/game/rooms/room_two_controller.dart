@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
+import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
 import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -19,6 +20,9 @@ final class RoomTwoController extends Component
   @override
   final Vector2 playerSpawn = Vector2(70, 448);
 
+  @override
+  final Vector2 worldSize = Vector2(2880, PatchWorldGame.logicalHeight);
+
   int get defeatedCount => _defeatedCount;
   int get activatedTerminalCount => _defeatedCount;
 
@@ -26,37 +30,90 @@ final class RoomTwoController extends Component
   Iterable<Rect> get solidBounds => _surfaces.map((surface) => surface.bounds);
 
   @override
+  Vector2 respawnPointFor(Vector2 playerPosition) {
+    if (playerPosition.x >= 1920) return Vector2(2040, 448);
+    if (playerPosition.x >= 960) return Vector2(1010, 448);
+    return playerSpawn.clone();
+  }
+
+  @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await add(RoomBackdropComponent(RoomBackdropStyle.temporal));
+    await add(
+      RoomBackdropComponent(RoomBackdropStyle.temporal, worldSize: worldSize),
+    );
     _surfaces.addAll(<PlatformSurfaceComponent>[
       _surface(0, 0, 24, 540, boundary: true),
-      _surface(936, 0, 24, 540, boundary: true),
-      _surface(0, 484, 350, 56),
-      _surface(438, 484, 522, 56),
-      _surface(138, 400, 150, 22),
-      _surface(326, 330, 138, 22),
-      _surface(505, 386, 140, 22),
-      _surface(680, 306, 138, 22),
-      _surface(824, 394, 112, 22),
+      _surface(2856, 0, 24, 540, boundary: true),
+      _surface(0, 484, 360, 56),
+      _surface(450, 484, 400, 56),
+      _surface(940, 484, 450, 56),
+      _surface(1480, 484, 420, 56),
+      _surface(1990, 484, 890, 56),
+      _surface(150, 405, 170, 22),
+      _surface(340, 330, 150, 22),
+      _surface(520, 390, 150, 22),
+      _surface(700, 300, 160, 22),
+      _surface(850, 410, 130, 20),
+      _surface(1040, 350, 150, 22),
+      _surface(1210, 270, 160, 22),
+      _surface(1380, 405, 140, 20),
+      _surface(1540, 340, 160, 22),
+      _surface(1740, 260, 150, 22),
+      _surface(1890, 410, 140, 20),
+      _surface(2070, 360, 150, 22),
+      _surface(2240, 285, 160, 22),
+      _surface(2410, 390, 145, 22),
+      _surface(2540, 425, 316, 59),
+      _surface(610, 430, 48, 54),
+      _surface(1320, 430, 50, 54),
+      _surface(2300, 430, 54, 54),
     ]);
     await addAll(_surfaces);
-    await add(
-      DamagePitComponent(
-        position: Vector2(350, 484),
-        size: Vector2(88, 56),
-        style: PlatformSurfaceStyle.temporal,
+    await addAll(<Component>[
+      for (final pit in <(double, double)>[
+        (360, 90),
+        (850, 90),
+        (1390, 90),
+        (1900, 90),
+      ])
+        DamagePitComponent(
+          position: Vector2(pit.$1, 484),
+          size: Vector2(pit.$2, 56),
+          style: PlatformSurfaceStyle.temporal,
+        ),
+      RoomHazardComponent(
+        position: Vector2(1120, 338),
+        size: Vector2(56, 12),
+        style: RoomHazardStyle.spikes,
+        sourceId: 'hazard.temporal-hall.clock-teeth',
       ),
-    );
+      RoomHazardComponent(
+        position: Vector2(1810, 282),
+        size: Vector2(14, 128),
+        style: RoomHazardStyle.laser,
+        sourceId: 'hazard.temporal-hall.timeline-cut',
+      ),
+      RoomHazardComponent(
+        position: Vector2(2320, 307),
+        size: Vector2(14, 123),
+        style: RoomHazardStyle.laser,
+        sourceId: 'hazard.temporal-hall.clock-hand',
+      ),
+      JumpPadComponent(position: Vector2(960, 472)),
+      JumpPadComponent(position: Vector2(2035, 472)),
+      CheckpointBeaconComponent(position: Vector2(1010, 484), index: 1),
+      CheckpointBeaconComponent(position: Vector2(2040, 484), index: 2),
+    ]);
     await addAll(<PlatformerEnemyComponent>[
-      _enemy(PlatformerEnemyArchetype.tickRunner, 145, 466),
-      _enemy(PlatformerEnemyArchetype.echoBat, 270, 250),
-      _enemy(PlatformerEnemyArchetype.delaySniper, 392, 312),
-      _enemy(PlatformerEnemyArchetype.rewindSkater, 575, 368),
+      _enemy(PlatformerEnemyArchetype.tickRunner, 290, 466),
+      _enemy(PlatformerEnemyArchetype.echoBat, 760, 235),
+      _enemy(PlatformerEnemyArchetype.delaySniper, 1280, 252),
+      _enemy(PlatformerEnemyArchetype.rewindSkater, 1640, 322),
       _enemy(
         PlatformerEnemyArchetype.chronoJailer,
-        770,
-        210,
+        2690,
+        360,
         startsDormant: true,
       ),
     ]);

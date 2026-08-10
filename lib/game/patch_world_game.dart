@@ -24,6 +24,7 @@ import 'package:patch_world/game/rules/rule_ids.dart';
 import 'package:patch_world/game/rooms/room_one_controller.dart';
 import 'package:patch_world/game/rooms/room_two_controller.dart';
 import 'package:patch_world/game/rooms/room_three_controller.dart';
+import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
 import 'package:patch_world/game/systems/enemy_tempo_system.dart';
@@ -634,10 +635,21 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void _updateScreenShake(double dt) {
-    const centerX = logicalWidth / 2;
+    final activeRoom = world.activeRoom;
+    final platformRoom = activeRoom is PlatformerRoomGeometry
+        ? activeRoom as PlatformerRoomGeometry
+        : null;
+    final centerX = platformRoom != null
+        ? world.player.position.x
+              .clamp(
+                logicalWidth / 2,
+                platformRoom.worldSize.x - logicalWidth / 2,
+              )
+              .toDouble()
+        : logicalWidth / 2;
     const centerY = logicalHeight / 2;
     if (_screenShakeRemaining <= 0) {
-      camera.viewfinder.position.setValues(centerX, centerY);
+      camera.viewfinder.position = Vector2(centerX, centerY);
       return;
     }
     _screenShakeRemaining = math.max(0, _screenShakeRemaining - dt);
@@ -645,7 +657,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     final amplitude = settings.value.screenShake == ScreenShakeSetting.reduced
         ? 1.5
         : 3.2;
-    camera.viewfinder.position.setValues(
+    camera.viewfinder.position = Vector2(
       centerX + math.sin(_screenShakePhase) * amplitude,
       centerY + math.cos(_screenShakePhase * 1.7) * amplitude,
     );
@@ -688,7 +700,6 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           (settings.value.assistMode ? 0.85 : 1),
     );
     runMetrics.update(clock.realDt);
-    _updateScreenShake(clock.realDt);
     world.player.setMovementInput(movement);
     world.player.setJumpHeld(input.jumpHeld);
     if (input.consumeJump()) world.player.queueJump();
@@ -727,6 +738,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       publishUiSnapshot();
     }
     super.update(dt);
+    _updateScreenShake(clock.realDt);
   }
 
   void openRoomOnePatchSelection() {

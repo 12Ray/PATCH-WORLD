@@ -9,12 +9,11 @@ enum RoomBackdropStyle { damage, temporal, collision, optimizer, survival }
 /// Code-native environment art that makes each rule room visually distinct.
 final class RoomBackdropComponent extends PositionComponent
     with HasGameReference<PatchWorldGame> {
-  RoomBackdropComponent(this.style)
+  RoomBackdropComponent(this.style, {Vector2? worldSize})
     : super(
-        size: Vector2(
-          PatchWorldGame.logicalWidth,
-          PatchWorldGame.logicalHeight,
-        ),
+        size:
+            worldSize ??
+            Vector2(PatchWorldGame.logicalWidth, PatchWorldGame.logicalHeight),
         priority: -100,
       );
 
@@ -31,20 +30,26 @@ final class RoomBackdropComponent extends PositionComponent
   void render(Canvas canvas) {
     canvas.drawRect(size.toRect(), Paint()..color = const Color(0xFF090F1D));
     _drawPanels(canvas);
-    switch (style) {
-      case RoomBackdropStyle.damage:
-        _drawDamageLab(canvas);
-      case RoomBackdropStyle.temporal:
-        _drawTemporalHall(canvas);
-      case RoomBackdropStyle.collision:
-        _drawCollisionArchive(canvas);
-      case RoomBackdropStyle.optimizer:
-        _drawOptimizerCore(canvas);
-      case RoomBackdropStyle.survival:
-        _drawSurvivalArena(canvas);
+    final sectionCount = (size.x / PatchWorldGame.logicalWidth).ceil();
+    for (var section = 0; section < sectionCount; section += 1) {
+      canvas.save();
+      canvas.translate(section * PatchWorldGame.logicalWidth, 0);
+      switch (style) {
+        case RoomBackdropStyle.damage:
+          _drawDamageLab(canvas);
+        case RoomBackdropStyle.temporal:
+          _drawTemporalHall(canvas);
+        case RoomBackdropStyle.collision:
+          _drawCollisionArchive(canvas);
+        case RoomBackdropStyle.optimizer:
+          _drawOptimizerCore(canvas);
+        case RoomBackdropStyle.survival:
+          _drawSurvivalArena(canvas);
+      }
+      canvas.restore();
     }
     canvas.drawRect(
-      const Rect.fromLTWH(24, 24, 912, 492),
+      Rect.fromLTWH(24, 24, size.x - 48, size.y - 48),
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2
@@ -54,8 +59,10 @@ final class RoomBackdropComponent extends PositionComponent
 
   void _drawPanels(Canvas canvas) {
     const cell = 48.0;
-    for (var row = 0; row < 12; row += 1) {
-      for (var col = 0; col < 20; col += 1) {
+    final rows = (size.y / cell).ceil();
+    final columns = (size.x / cell).ceil();
+    for (var row = 0; row < rows; row += 1) {
+      for (var col = 0; col < columns; col += 1) {
         final rect = Rect.fromLTWH(col * cell, row * cell, cell, cell);
         canvas.drawRect(
           rect,
@@ -103,7 +110,10 @@ final class RoomBackdropComponent extends PositionComponent
   }
 
   void _drawTemporalHall(Canvas canvas) {
-    final center = Offset(size.x / 2, size.y / 2);
+    const center = Offset(
+      PatchWorldGame.logicalWidth / 2,
+      PatchWorldGame.logicalHeight / 2,
+    );
     final frozen = game.clock.isSimulationFrozen;
     for (var i = 0; i < 4; i += 1) {
       final inset = 58.0 + i * 42;
@@ -143,7 +153,10 @@ final class RoomBackdropComponent extends PositionComponent
   }
 
   void _drawCollisionArchive(Canvas canvas) {
-    final center = Offset(size.x / 2, size.y / 2);
+    const center = Offset(
+      PatchWorldGame.logicalWidth / 2,
+      PatchWorldGame.logicalHeight / 2,
+    );
     for (var i = 0; i < 5; i += 1) {
       canvas.drawCircle(
         center,
@@ -166,7 +179,10 @@ final class RoomBackdropComponent extends PositionComponent
   }
 
   void _drawOptimizerCore(Canvas canvas) {
-    final center = Offset(size.x / 2, size.y / 2);
+    const center = Offset(
+      PatchWorldGame.logicalWidth / 2,
+      PatchWorldGame.logicalHeight / 2,
+    );
     for (var i = 0; i < 7; i += 1) {
       canvas.drawCircle(
         center,
@@ -194,7 +210,10 @@ final class RoomBackdropComponent extends PositionComponent
   }
 
   void _drawSurvivalArena(Canvas canvas) {
-    final center = Offset(size.x / 2, size.y / 2);
+    const center = Offset(
+      PatchWorldGame.logicalWidth / 2,
+      PatchWorldGame.logicalHeight / 2,
+    );
     for (var index = 0; index < 12; index += 1) {
       final angle = index * math.pi / 6 + _time * 0.08;
       canvas.drawLine(

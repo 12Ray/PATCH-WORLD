@@ -1,6 +1,6 @@
 # PATCH//WORLD combat motion v2
 
-Status: image-first concept set complete (2026-08-10)
+Status: runtime key-pose integration and wide-room v3 pass complete (2026-08-10)
 
 This package is the visual source of truth for the next combat pass. It was
 generated with the built-in ImageGen workflow using the current runtime sprites
@@ -12,12 +12,15 @@ transparent RGBA with the installed ImageGen helper.
 - `enemies/`: fifteen enemy sheets, ten ordered combat poses each.
 - `hero/`: sword, gauntlet, and gun sheets, ten combat poses each.
 - `projectiles/`: one 3-column x 5-row attack-tier sheet per room.
-- `rooms/`: three side-view room redesign concepts.
+- `rooms/`: original v2 concepts and three extended v3 wide-room concepts.
 - `manifest.json`: exact cell order and gameplay meaning for every sheet.
 
-These are approved concept/key-pose sheets, not runtime frame strips yet. The
-next asset pass must crop each proportional grid cell, normalize pivots and
-baselines, then create multi-frame in-between animation strips.
+The character grids were cropped and normalized into 33 runtime strips under
+`assets/images/sprites/combat_v2/`. Each character owns ten unique key poses.
+Runtime code now adds anticipation, attack travel, squash, recoil, hurt hold,
+defeat hold, and return-to-idle timing around those poses. Authored multi-frame
+in-betweens remain a later animation-polish pass rather than being represented
+as frames that do not exist.
 
 ## Universal attack language
 
@@ -56,6 +59,23 @@ Each room concept is side-view and keeps collision surfaces visually quieter
 than the background. Cyan, magenta, and gold projectile paths are shown in the
 same frame to validate peripheral readability.
 
+## Wide-room v3 runtime contract
+
+- Each campaign room is `2880 x 540`, three times the original horizontal size.
+- The fixed-resolution camera follows the player and clamps to world edges.
+- Each room contains at least twenty solid surfaces, four data pits, two
+  checkpoints, two or more active hazards, and two or more jump pads.
+- The four normal enemies are distributed across the traversal sections. The
+  room boss remains sealed in the final arena until all four are defeated.
+- Falling after a checkpoint returns the player to the latest section instead
+  of the room entrance.
+
+The v3 concepts are:
+
+- `rooms/room-1-damage-lab-sideview-v3-wide.png`
+- `rooms/room-2-temporal-hall-sideview-v3-wide.png`
+- `rooms/room-3-collision-archive-sideview-v3-wide.png`
+
 ## Generation prompt set
 
 The final prompt set used the `stylized-concept` taxonomy and these shared
@@ -65,3 +85,9 @@ background for removable chroma; no labels, text, grid lines, scenery, shadows,
 or watermark. Enemy-specific action lists and exact cell order are recorded in
 `manifest.json`.
 
+The wide-room v3 prompts used the existing v2 room images as visual references,
+requested one continuous three-screen left-to-right route, and required
+multi-level paths, safe checkpoint alcoves, pits, vertical machinery, readable
+cyan walkable edges, magenta hazards, a gold boss seal, and no UI, labels, text,
+watermark, perspective floor, or top-down view. Generation used the built-in
+ImageGen mode; final project copies are the three `v3-wide.png` files above.

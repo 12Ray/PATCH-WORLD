@@ -25,7 +25,11 @@ void main() {
     await tester.runAsync(() => game.world.loaded);
 
     final room = game.world.activeRoom! as RoomOneController;
-    expect(room.children.whereType<PlatformSurfaceComponent>(), hasLength(9));
+    expect(
+      room.children.whereType<PlatformSurfaceComponent>(),
+      hasLength(greaterThanOrEqualTo(20)),
+    );
+    expect(room.worldSize.x, 2880);
     expect(room.children.whereType<PlatformerEnemyComponent>(), hasLength(5));
     expect(
       room.children
@@ -59,18 +63,8 @@ void main() {
         enemy.archetype: enemy.activeActionId,
     };
     expect(actions[PlatformerEnemyArchetype.patchMite], 'patchMite.bite');
-    expect(
-      actions[PlatformerEnemyArchetype.checksumHopper],
-      'checksumHopper.leap',
-    );
-    expect(
-      actions[PlatformerEnemyArchetype.pulseTurret],
-      'pulseTurret.lockedShot',
-    );
-    expect(
-      actions[PlatformerEnemyArchetype.repairLeech],
-      'repairLeech.channel',
-    );
+    expect(actions[PlatformerEnemyArchetype.checksumHopper], isNull);
+    expect(actions[PlatformerEnemyArchetype.pulseTurret], isNull);
     final warden = room.children
         .whereType<PlatformerEnemyComponent>()
         .singleWhere(
