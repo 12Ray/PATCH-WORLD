@@ -10,14 +10,20 @@ void main() {
         'assets/images/rooms/damage-lab-environment-v2.png',
         'assets/images/rooms/temporal-hall-environment-v2.png',
         'assets/images/rooms/collision-archive-environment-v2.png',
+        'assets/images/rooms/optimizer-core-environment-v2.png',
       ]) {
         final data = await rootBundle.load(path);
         final codec = await instantiateImageCodec(
           data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
         );
         final frame = await codec.getNextFrame();
-        expect(frame.image.width, 1440);
-        expect(frame.image.height, 540);
+        if (path.contains('optimizer-core')) {
+          expect(frame.image.width, 1672);
+          expect(frame.image.height, 941);
+        } else {
+          expect(frame.image.width, 1440);
+          expect(frame.image.height, 540);
+        }
         frame.image.dispose();
         codec.dispose();
       }

@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 
-/// Geometry contract shared by the three side-view campaign rooms.
+/// Geometry contract shared by every side-view campaign room and boss arena.
 abstract interface class PlatformerRoomGeometry {
   Vector2 get playerSpawn;
   Vector2 get worldSize;
