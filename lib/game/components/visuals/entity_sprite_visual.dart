@@ -69,6 +69,21 @@ final class EntitySpriteVisual extends SpriteComponent {
     _startAnimation(frames, fps: fps, loops: false);
   }
 
+  /// Plays a low-priority one-shot only when no attack, ability, hurt, or
+  /// other transient animation is already active.
+  ///
+  /// Landing uses this path so touching the floor cannot cut a meaningful
+  /// combat action short. The caller can ignore the result when it only needs
+  /// best-effort feedback.
+  bool playOnceIfIdle(List<Sprite> frames, {required double fps}) {
+    if (_activeFrames != null && !_animationLoops && _animationPlaying) {
+      return false;
+    }
+    if (frames.isEmpty || fps <= 0) return false;
+    _startAnimation(frames, fps: fps, loops: false);
+    return true;
+  }
+
   void setAnimationPlaying(bool value) {
     _animationPlaying = value;
   }

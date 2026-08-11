@@ -8,6 +8,8 @@ import 'package:patch_world/game/patch_world_game.dart';
 enum PlatformSurfaceStyle { damage, temporal, collision, optimizer }
 
 extension PlatformSurfaceTheme on PlatformSurfaceStyle {
+  String get assetSlug => name;
+
   Color get bodyColor => switch (this) {
     PlatformSurfaceStyle.damage => const Color(0xFF131C2D),
     PlatformSurfaceStyle.temporal => const Color(0xFF1B1932),
@@ -37,7 +39,8 @@ extension PlatformSurfaceTheme on PlatformSurfaceStyle {
   };
 }
 
-class PlatformSurfaceComponent extends RectangleComponent {
+class PlatformSurfaceComponent extends RectangleComponent
+    with HasGameReference<PatchWorldGame> {
   PlatformSurfaceComponent({
     required super.position,
     required super.size,
@@ -47,10 +50,30 @@ class PlatformSurfaceComponent extends RectangleComponent {
 
   final bool isBoundary;
   final PlatformSurfaceStyle style;
+  Image? _foregroundImage;
+
+  int get foregroundFrameIndex => size.y > size.x * .72 ? 1 : 0;
 
   Rect get bounds => Rect.fromLTWH(position.x, position.y, size.x, size.y);
   @override
   bool get isSolid => !isRemoving;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    unawaited(_loadForeground());
+  }
+
+  Future<void> _loadForeground() async {
+    try {
+      final image = await game.images.load(
+        'sprites/art_v3/environment/${style.assetSlug}-foreground.png',
+      );
+      if (!isRemoving) _foregroundImage = image;
+    } catch (_) {
+      // The procedural material remains the fallback for a missing skin.
+    }
+  }
 
   @override
   void render(Canvas canvas) {
@@ -83,6 +106,30 @@ class PlatformSurfaceComponent extends RectangleComponent {
     );
     for (double x = 8; x < size.x; x += 32) {
       _drawSurfaceModule(canvas, x);
+    }
+    _drawForegroundSkin(canvas);
+  }
+
+  void _drawForegroundSkin(Canvas canvas) {
+    final image = _foregroundImage;
+    if (image == null || size.x <= 0 || size.y <= 0) return;
+    const sourceWidth = 384.0;
+    const sourceHeight = 256.0;
+    final source = Rect.fromLTWH(
+      foregroundFrameIndex * sourceWidth,
+      0,
+      sourceWidth,
+      sourceHeight,
+    );
+    final tileWidth = math.max(72.0, math.min(192.0, size.y * 4));
+    for (var x = 0.0; x < size.x; x += tileWidth) {
+      final width = math.min(tileWidth, size.x - x);
+      canvas.drawImageRect(
+        image,
+        Rect.fromLTWH(source.left, 0, source.width * width / tileWidth, 256),
+        Rect.fromLTWH(x, 0, width, size.y),
+        Paint()..filterQuality = FilterQuality.none,
+      );
     }
   }
 
@@ -171,6 +218,9 @@ final class MovingPlatformComponent extends PlatformSurfaceComponent {
   double _elapsed = 0;
 
   @override
+  int get foregroundFrameIndex => 2;
+
+  @override
   void update(double dt) {
     _elapsed += dt;
     final phase = (_elapsed / periodSeconds) * math.pi * 2;
@@ -212,6 +262,9 @@ final class ConveyorPlatformComponent extends PlatformSurfaceComponent {
   double _phase = 0;
 
   @override
+  int get foregroundFrameIndex => 2;
+
+  @override
   void update(double dt) {
     _phase = (_phase + dt * direction * 42) % 24;
     super.update(dt);
@@ -236,8 +289,7 @@ final class ConveyorPlatformComponent extends PlatformSurfaceComponent {
   }
 }
 
-final class BreakablePlatformComponent extends PlatformSurfaceComponent
-    with HasGameReference<PatchWorldGame> {
+final class BreakablePlatformComponent extends PlatformSurfaceComponent {
   BreakablePlatformComponent({
     required super.position,
     required super.size,
@@ -251,6 +303,9 @@ final class BreakablePlatformComponent extends PlatformSurfaceComponent
   double _standingTime = 0;
   double _brokenTime = 0;
   bool _broken = false;
+
+  @override
+  int get foregroundFrameIndex => 2;
 
   @override
   bool get isSolid => !_broken && super.isSolid;

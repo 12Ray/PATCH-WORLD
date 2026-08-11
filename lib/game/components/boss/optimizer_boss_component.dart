@@ -104,6 +104,27 @@ final class OptimizerBossComponent extends CircleComponent
     _predictFrames = _frames(predictImage, 5);
     _perfectFrames = _frames(perfectImage, 4);
     _overflowFrames = _frames(overflowImage, 6);
+    try {
+      final artV3Analyze = await game.images.load(
+        'sprites/art_v3/boss/optimizer-analyze.png',
+      );
+      final artV3Predict = await game.images.load(
+        'sprites/art_v3/boss/optimizer-predict.png',
+      );
+      final artV3Perfect = await game.images.load(
+        'sprites/art_v3/boss/optimizer-perfect.png',
+      );
+      final artV3Overflow = await game.images.load(
+        'sprites/art_v3/boss/optimizer-overflow.png',
+      );
+      if (isRemoving) return;
+      _analyzeFrames = _frames(artV3Analyze, 4);
+      _predictFrames = _frames(artV3Predict, 4);
+      _perfectFrames = _frames(artV3Perfect, 4);
+      _overflowFrames = _frames(artV3Overflow, 4);
+    } catch (_) {
+      // Existing phase strips remain the isolated fallback for Art v3.
+    }
     _applyPhaseAnimation();
   }
 

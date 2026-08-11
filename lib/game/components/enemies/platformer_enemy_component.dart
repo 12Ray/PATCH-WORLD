@@ -8,6 +8,7 @@ import 'package:flame/text.dart';
 import 'package:patch_world/game/combat/attack_tier.dart';
 import 'package:patch_world/game/components/effects/enemy_damage_volume_component.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_action_timeline.dart';
+import 'package:patch_world/game/components/enemies/platformer/enemy_art_v3_frame_resolver.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_combat_state.dart';
 import 'package:patch_world/game/components/enemies/platformer/platformer_enemy_brain.dart';
 import 'package:patch_world/game/core/health_state.dart';
@@ -57,6 +58,8 @@ extension PlatformerEnemyArchetypeSpec on PlatformerEnemyArchetype {
     PlatformerEnemyArchetype.shardLobber => 'SHARD LOBBER',
     PlatformerEnemyArchetype.kernelChimera => 'KERNEL CHIMERA',
   };
+
+  String get artV3AssetPath => 'sprites/art_v3/enemies/$assetSlug.png';
 
   PlatformerEnemyMobility get mobility => switch (this) {
     PlatformerEnemyArchetype.checksumHopper => PlatformerEnemyMobility.hopper,
@@ -144,6 +147,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   SpriteComponent? _spriteVisual;
   TextComponent? _nameLabel;
   List<Sprite>? _spriteFrames;
+  List<Sprite>? _artV3Frames;
   final List<Vector2> _motionHistory = <Vector2>[];
 
   @override
@@ -231,6 +235,19 @@ final class PlatformerEnemyComponent extends PositionComponent
         priority: 4,
       )..paint.filterQuality = FilterQuality.none;
       _spriteFrames = frames;
+      try {
+        final artV3Image = await game.images.load(archetype.artV3AssetPath);
+        _artV3Frames = List<Sprite>.generate(
+          8,
+          (index) => Sprite(
+            artV3Image,
+            srcPosition: Vector2(index * 256.0, 0),
+            srcSize: Vector2.all(256),
+          ),
+        );
+      } catch (_) {
+        // Art v3 is presentation-only. Combat Motion v2 remains the fallback.
+      }
       _spriteVisual = visual;
       await add(visual);
     } catch (_) {
@@ -389,7 +406,21 @@ final class PlatformerEnemyComponent extends PositionComponent
       EnemyCombatState.overflowing => 8,
       EnemyCombatState.defeated => 9,
     };
-    visual.sprite = frames[frameIndex];
+    final artV3Frames = _artV3Frames;
+    if (artV3Frames == null ||
+        _combatState == EnemyCombatState.hurt ||
+        _combatState == EnemyCombatState.staggered ||
+        _combatState == EnemyCombatState.overflowing ||
+        _combatState == EnemyCombatState.defeated) {
+      visual.sprite = frames[frameIndex];
+    } else {
+      final artV3FrameIndex = resolveArtV3EnemyFrame(
+        state: _combatState,
+        visualClock: _visualClock,
+        archetypeIndex: archetype.index,
+      );
+      visual.sprite = artV3Frames[artV3FrameIndex];
+    }
     final bob =
         math.sin(_visualClock * 5 + archetype.index) *
         (_combatState == EnemyCombatState.moving ? 2.2 : 1.0);

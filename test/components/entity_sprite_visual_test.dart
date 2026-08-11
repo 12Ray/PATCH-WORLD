@@ -26,6 +26,32 @@ void main() {
     expect(visual.sprite, same(idleA));
   });
 
+  test('low-priority landing cannot interrupt an active one-shot', () async {
+    final image = await _testImage();
+    final idle = Sprite(image, srcSize: Vector2.all(2));
+    final attackA = Sprite(image, srcSize: Vector2.all(2));
+    final attackB = Sprite(image, srcSize: Vector2.all(2));
+    final landing = Sprite(image, srcSize: Vector2.all(2));
+    final visual = EntitySpriteVisual(
+      sprite: idle,
+      size: Vector2.all(16),
+      parentSize: Vector2.all(32),
+      bobAmplitude: 0,
+      rotationAmplitude: 0,
+    );
+
+    visual.setDefaultAnimation(<Sprite>[idle], fps: 6);
+    visual.playOnce(<Sprite>[attackA, attackB], fps: 10);
+
+    expect(visual.playOnceIfIdle(<Sprite>[landing], fps: 12), isFalse);
+    expect(visual.sprite, same(attackA));
+
+    visual.update(.21);
+    expect(visual.sprite, same(idle));
+    expect(visual.playOnceIfIdle(<Sprite>[landing], fps: 12), isTrue);
+    expect(visual.sprite, same(landing));
+  });
+
   test('action lunge adds and then clears readable travel', () async {
     final image = await _testImage();
     final sprite = Sprite(image, srcSize: Vector2.all(2));
