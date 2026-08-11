@@ -155,6 +155,7 @@ final class PlatformerEnemyComponent extends PositionComponent
 
   int get health => healthState.current;
   bool get isOverflowing => _overflowTimer > 0;
+  bool get hasArtV3Visual => _artV3Frames?.length == 8;
   EnemyCombatState get combatState => _combatState;
   String? get activeActionId => _action?.id;
   bool get dealsContactDamage => false;

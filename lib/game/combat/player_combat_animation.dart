@@ -77,3 +77,17 @@ extension PlayerWeaponCombatAsset on PlayerWeapon {
   String combatAnimationAssetPath(PlayerCombatAnimation state) =>
       'sprites/art_v3/hero/$assetName-${state.assetSuffix}.png';
 }
+
+List<T> composeAbilityMotionFrames<T>({
+  required List<T> abilityFrames,
+  List<T>? transitionFrames,
+  List<T>? authoredActionFrames,
+}) {
+  final transition = transitionFrames ?? const <Never>[];
+  return <T>[
+    ...?authoredActionFrames,
+    if (transition.isNotEmpty) transition.first,
+    ...abilityFrames,
+    if (transition.length > 1) ...transition.skip(1),
+  ];
+}

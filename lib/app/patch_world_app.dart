@@ -15,6 +15,7 @@ import 'package:patch_world/app/overlays/touch_controls_overlay.dart';
 import 'package:patch_world/app/overlays/weapon_selection_overlay.dart';
 import 'package:patch_world/app/overlays/survival_upgrade_overlay.dart';
 import 'package:patch_world/app/overlays/survival_result_overlay.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/services/game_settings.dart';
@@ -30,6 +31,23 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
   static const bool _survivalQaAutoStart = bool.fromEnvironment(
     'SURVIVAL_QA_AUTOSTART',
   );
+  static const bool _campaignQaAutoStart = bool.fromEnvironment(
+    'CAMPAIGN_QA_AUTOSTART',
+  );
+  static const String _campaignQaWeapon = String.fromEnvironment(
+    'CAMPAIGN_QA_WEAPON',
+    defaultValue: 'sword',
+  );
+  static final double _campaignQaStartX =
+      double.tryParse(
+        const String.fromEnvironment('CAMPAIGN_QA_START_X', defaultValue: '-1'),
+      ) ??
+      -1;
+  static final double _campaignQaStartY =
+      double.tryParse(
+        const String.fromEnvironment('CAMPAIGN_QA_START_Y', defaultValue: '-1'),
+      ) ??
+      -1;
 
   late final PatchWorldGame _game;
 
@@ -37,11 +55,27 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
   void initState() {
     super.initState();
     _game = PatchWorldGame(initialRoom: _buildInitialRoom);
-    if (_survivalQaAutoStart) {
+    if (_survivalQaAutoStart || _campaignQaAutoStart) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await _game.ready();
         await _game.world.loaded;
-        if (mounted) _game.startSurvivalRun();
+        if (!mounted) return;
+        if (_survivalQaAutoStart) {
+          _game.startSurvivalRun();
+          return;
+        }
+        final weapon = switch (_campaignQaWeapon) {
+          'gauntlet' => PlayerWeapon.gauntlet,
+          'gun' => PlayerWeapon.gun,
+          _ => PlayerWeapon.sword,
+        };
+        await _game.selectStartingWeapon(weapon);
+        if (_campaignQaStartX >= 0) {
+          _game.world.player.position.x = _campaignQaStartX;
+        }
+        if (_campaignQaStartY >= 0) {
+          _game.world.player.position.y = _campaignQaStartY;
+        }
       });
     }
   }

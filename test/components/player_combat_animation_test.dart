@@ -39,4 +39,17 @@ void main() {
     expect(() => PlayerCombatAnimation.attackForIndex(0), throwsArgumentError);
     expect(() => PlayerCombatAnimation.attackForIndex(7), throwsArgumentError);
   });
+
+  test(
+    'ability composition retains every authored transition and action frame',
+    () {
+      final result = composeAbilityMotionFrames<int>(
+        authoredActionFrames: <int>[1, 2, 3, 4],
+        transitionFrames: <int>[5, 6, 7, 8],
+        abilityFrames: <int>[9, 10],
+      );
+
+      expect(result, <int>[1, 2, 3, 4, 5, 9, 10, 6, 7, 8]);
+    },
+  );
 }

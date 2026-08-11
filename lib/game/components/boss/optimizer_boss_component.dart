@@ -46,7 +46,10 @@ final class OptimizerBossComponent extends CircleComponent
   List<Sprite>? _predictFrames;
   List<Sprite>? _perfectFrames;
   List<Sprite>? _overflowFrames;
+  bool _artV3AnimationsLoaded = false;
   double _visualTime = 0;
+
+  bool get hasArtV3Visual => _visual != null && _artV3AnimationsLoaded;
 
   @override
   Vector2 get duplicatePosition => position;
@@ -122,6 +125,7 @@ final class OptimizerBossComponent extends CircleComponent
       _predictFrames = _frames(artV3Predict, 4);
       _perfectFrames = _frames(artV3Perfect, 4);
       _overflowFrames = _frames(artV3Overflow, 4);
+      _artV3AnimationsLoaded = true;
     } catch (_) {
       // Existing phase strips remain the isolated fallback for Art v3.
     }

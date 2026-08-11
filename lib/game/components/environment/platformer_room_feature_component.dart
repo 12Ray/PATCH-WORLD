@@ -245,6 +245,9 @@ final class BossSealGateComponent extends PlatformSurfaceComponent {
   bool get isUnlocked => _unlocked;
 
   @override
+  ArtV3EnvironmentRole get foregroundRole => ArtV3EnvironmentRole.interactive;
+
+  @override
   bool get isSolid => !_unlocked && super.isSolid;
 
   void unlock() => _unlocked = true;
@@ -272,6 +275,16 @@ final class BossSealGateComponent extends PlatformSurfaceComponent {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3
         ..color = Color.fromARGB(alpha, 255, 211, 90),
+    );
+    drawForegroundRole(
+      canvas,
+      role: ArtV3EnvironmentRole.interactive,
+      destination: Rect.fromCenter(
+        center: rect.center,
+        width: math.max(96, size.x * 4),
+        height: visibleHeight,
+      ),
+      opacity: alpha / 255,
     );
   }
 }

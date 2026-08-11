@@ -7,6 +7,36 @@ import 'package:patch_world/game/patch_world_game.dart';
 
 enum PlatformSurfaceStyle { damage, temporal, collision, optimizer }
 
+enum ArtV3EnvironmentRole { surface, cornerWall, statePlatform, interactive }
+
+const double artV3EnvironmentFrameWidth = 384;
+const double artV3EnvironmentFrameHeight = 256;
+
+Rect artV3EnvironmentSourceRect(ArtV3EnvironmentRole role) => Rect.fromLTWH(
+  role.index * artV3EnvironmentFrameWidth,
+  0,
+  artV3EnvironmentFrameWidth,
+  artV3EnvironmentFrameHeight,
+);
+
+void drawArtV3EnvironmentFrame(
+  Canvas canvas,
+  Image image, {
+  required ArtV3EnvironmentRole role,
+  required Rect destination,
+  double opacity = 1,
+}) {
+  if (destination.isEmpty) return;
+  canvas.drawImageRect(
+    image,
+    artV3EnvironmentSourceRect(role),
+    destination,
+    Paint()
+      ..filterQuality = FilterQuality.none
+      ..color = Color.fromRGBO(255, 255, 255, opacity.clamp(0, 1)),
+  );
+}
+
 extension PlatformSurfaceTheme on PlatformSurfaceStyle {
   String get assetSlug => name;
 
@@ -52,7 +82,11 @@ class PlatformSurfaceComponent extends RectangleComponent
   final PlatformSurfaceStyle style;
   Image? _foregroundImage;
 
-  int get foregroundFrameIndex => size.y > size.x * .72 ? 1 : 0;
+  bool get hasArtV3Foreground => _foregroundImage != null;
+
+  ArtV3EnvironmentRole get foregroundRole => size.y > size.x * .72
+      ? ArtV3EnvironmentRole.cornerWall
+      : ArtV3EnvironmentRole.surface;
 
   Rect get bounds => Rect.fromLTWH(position.x, position.y, size.x, size.y);
   @override
@@ -113,24 +147,39 @@ class PlatformSurfaceComponent extends RectangleComponent
   void _drawForegroundSkin(Canvas canvas) {
     final image = _foregroundImage;
     if (image == null || size.x <= 0 || size.y <= 0) return;
-    const sourceWidth = 384.0;
-    const sourceHeight = 256.0;
-    final source = Rect.fromLTWH(
-      foregroundFrameIndex * sourceWidth,
-      0,
-      sourceWidth,
-      sourceHeight,
-    );
+    final source = artV3EnvironmentSourceRect(foregroundRole);
     final tileWidth = math.max(72.0, math.min(192.0, size.y * 4));
     for (var x = 0.0; x < size.x; x += tileWidth) {
       final width = math.min(tileWidth, size.x - x);
       canvas.drawImageRect(
         image,
-        Rect.fromLTWH(source.left, 0, source.width * width / tileWidth, 256),
+        Rect.fromLTWH(
+          source.left,
+          source.top,
+          source.width * width / tileWidth,
+          source.height,
+        ),
         Rect.fromLTWH(x, 0, width, size.y),
         Paint()..filterQuality = FilterQuality.none,
       );
     }
+  }
+
+  void drawForegroundRole(
+    Canvas canvas, {
+    required ArtV3EnvironmentRole role,
+    required Rect destination,
+    double opacity = 1,
+  }) {
+    final image = _foregroundImage;
+    if (image == null) return;
+    drawArtV3EnvironmentFrame(
+      canvas,
+      image,
+      role: role,
+      destination: destination,
+      opacity: opacity,
+    );
   }
 
   void _drawSurfaceModule(Canvas canvas, double x) {
@@ -218,7 +267,7 @@ final class MovingPlatformComponent extends PlatformSurfaceComponent {
   double _elapsed = 0;
 
   @override
-  int get foregroundFrameIndex => 2;
+  ArtV3EnvironmentRole get foregroundRole => ArtV3EnvironmentRole.statePlatform;
 
   @override
   void update(double dt) {
@@ -262,7 +311,7 @@ final class ConveyorPlatformComponent extends PlatformSurfaceComponent {
   double _phase = 0;
 
   @override
-  int get foregroundFrameIndex => 2;
+  ArtV3EnvironmentRole get foregroundRole => ArtV3EnvironmentRole.statePlatform;
 
   @override
   void update(double dt) {
@@ -305,7 +354,7 @@ final class BreakablePlatformComponent extends PlatformSurfaceComponent {
   bool _broken = false;
 
   @override
-  int get foregroundFrameIndex => 2;
+  ArtV3EnvironmentRole get foregroundRole => ArtV3EnvironmentRole.statePlatform;
 
   @override
   bool get isSolid => !_broken && super.isSolid;

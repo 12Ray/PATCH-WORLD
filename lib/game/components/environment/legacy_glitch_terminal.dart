@@ -1,9 +1,15 @@
+import 'dart:async';
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
-final class LegacyGlitchTerminal extends RectangleComponent {
+import 'package:patch_world/game/components/environment/platform_surface_component.dart';
+import 'package:patch_world/game/patch_world_game.dart';
+
+final class LegacyGlitchTerminal extends RectangleComponent
+    with HasGameReference<PatchWorldGame> {
   LegacyGlitchTerminal({required super.position, required this.onActivated})
     : super(
         size: Vector2(76, 44),
@@ -16,11 +22,16 @@ final class LegacyGlitchTerminal extends RectangleComponent {
   bool _enabled = false;
   bool _coolingDown = false;
   double _time = 0;
+  ui.Image? _foregroundImage;
   bool get isEnabled => _enabled && !_coolingDown;
+  bool get hasArtV3Foreground => _foregroundImage != null;
+
+  ArtV3EnvironmentRole get foregroundRole => ArtV3EnvironmentRole.interactive;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    unawaited(_loadForeground());
     await add(
       TextComponent(
         text: 'L',
@@ -35,6 +46,17 @@ final class LegacyGlitchTerminal extends RectangleComponent {
         ),
       ),
     );
+  }
+
+  Future<void> _loadForeground() async {
+    try {
+      final image = await game.images.load(
+        'sprites/art_v3/environment/optimizer-foreground.png',
+      );
+      if (!isRemoving) _foregroundImage = image;
+    } catch (_) {
+      // The procedural terminal remains the fallback for a missing skin.
+    }
   }
 
   void enable() {
@@ -57,6 +79,16 @@ final class LegacyGlitchTerminal extends RectangleComponent {
   void render(Canvas canvas) {
     super.render(canvas);
     final center = Offset(width / 2, height / 2);
+    final foreground = _foregroundImage;
+    if (foreground != null) {
+      drawArtV3EnvironmentFrame(
+        canvas,
+        foreground,
+        role: foregroundRole,
+        destination: Rect.fromCenter(center: center, width: 104, height: 76),
+        opacity: isEnabled ? 1 : .72,
+      );
+    }
     final pulse = 1 + math.sin(_time * 5) * 0.12;
     final activeColor = isEnabled
         ? const Color(0xFF36E1FF)

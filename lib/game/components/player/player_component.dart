@@ -101,6 +101,13 @@ final class PlayerComponent extends RectangleComponent
   int get airJumpsRemaining =>
       selectedWeapon == PlayerWeapon.gauntlet ? _airJumpsRemaining : 0;
   bool get isDashing => _dashRemaining > 0;
+  bool get hasCompleteArtV3Visuals => PlayerWeapon.values.every(
+    (weapon) =>
+        _weaponLocomotionFrames[weapon]?.length ==
+            PlayerAnimationState.values.length &&
+        _weaponCombatFrames[weapon]?.length ==
+            PlayerCombatAnimation.values.length,
+  );
 
   @override
   Future<void> onLoad() async {
@@ -427,7 +434,13 @@ final class PlayerComponent extends RectangleComponent
     final isGunRail = selectedWeapon == PlayerWeapon.gun && motionIndex == 4;
     final railFrames = _gunRailFrames;
     if (isGunRail && railFrames != null) {
-      _playAbilityMotion(railFrames, weapon: PlayerWeapon.gun);
+      _playAbilityMotion(
+        railFrames,
+        weapon: PlayerWeapon.gun,
+        authoredActionFrames:
+            _weaponCombatFrames[PlayerWeapon.gun]?[PlayerCombatAnimation
+                .attack4],
+      );
     } else {
       _playCombatMotion(
         counter
@@ -585,12 +598,15 @@ final class PlayerComponent extends RectangleComponent
   void _playAbilityMotion(
     List<Sprite> abilityFrames, {
     required PlayerWeapon weapon,
+    List<Sprite>? authoredActionFrames,
   }) {
     final state = PlayerCombatAnimation.abilityTransition;
     final connector = _weaponCombatFrames[weapon]?[state];
-    final frames = connector == null
-        ? abilityFrames
-        : <Sprite>[connector.first, ...abilityFrames, ...connector.skip(1)];
+    final frames = composeAbilityMotionFrames<Sprite>(
+      abilityFrames: abilityFrames,
+      transitionFrames: connector,
+      authoredActionFrames: authoredActionFrames,
+    );
     _visual?.playOnce(frames, fps: state.fps(weapon));
   }
 
