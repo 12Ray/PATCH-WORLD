@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "frameWidth": 384,
+  "frameHeight": 256,
+  "roles": [
+    "surface",
+    "cornerWall",
+    "statePlatform",
+    "interactive"
+  ],
+  "rooms": {
+    "damage": {
+      "asset": "damage-foreground.png",
+      "frames": 4,
+      "roles": [
+        "surface",
+        "cornerWall",
+        "statePlatform",
+        "interactive"
+      ],
+      "alphaCoverage": [
+        0.3045,
+        0.3105,
+        0.353,
+        0.2937
+      ],
+      "sourceGrid": [
+        4,
+        4
+      ],
+      "sourceIndices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "promptVersion": "art-v3-pass3-6-2026-08-11",
+      "source": "OpenAI built-in ImageGen with approved environment v2 and Damage Lab kit references",
+      "license": "OpenAI generated project asset",
+      "gameplayContract": "visual skin only; code geometry remains authoritative"
+    },
+    "temporal": {
+      "asset": "temporal-foreground.png",
+      "frames": 4,
+      "roles": [
+        "surface",
+        "cornerWall",
+        "statePlatform",
+        "interactive"
+      ],
+      "alphaCoverage": [
+        0.3553,
+        0.2777,
+        0.2614,
+        0.3859
+      ],
+      "sourceGrid": [
+        4,
+        4
+      ],
+      "sourceIndices": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "promptVersion": "art-v3-pass3-6-2026-08-11",
+      "source": "OpenAI built-in ImageGen with approved environment v2 and Damage Lab kit references",
+      "license": "OpenAI generated project asset",
+      "gameplayContract": "visual skin only; code geometry remains authoritative"
+    },
+    "collision": {
+      "asset": "collision-foreground.png",
+      "frames": 4,
+      "roles": [
+        "surface",
+        "cornerWall",
+        "statePlatform",
+        "interactive"
+      ],
+      "alphaCoverage": [
+        0.3156,
+        0.2876,
+        0.2834,
+        0.4662
+      ],
+      "sourceGrid": [
+        4,
+        4
+      ],
+      "sourceIndices": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "promptVersion": "art-v3-pass3-6-2026-08-11",
+      "source": "OpenAI built-in ImageGen with approved environment v2 and Damage Lab kit references",
+      "license": "OpenAI generated project asset",
+      "gameplayContract": "visual skin only; code geometry remains authoritative"
+    },
+    "optimizer": {
+      "asset": "optimizer-foreground.png",
+      "frames": 4,
+      "roles": [
+        "surface",
+        "cornerWall",
+        "statePlatform",
+        "interactive"
+      ],
+      "alphaCoverage": [
+        0.3232,
+        0.268,
+        0.3262,
+        0.4753
+      ],
+      "sourceGrid": [
+        4,
+        4
+      ],
+      "sourceIndices": [
+        12,
+        13,
+        14,
+        15
+      ],
+      "promptVersion": "art-v3-pass3-6-2026-08-11",
+      "source": "OpenAI built-in ImageGen with approved environment v2 and Damage Lab kit references",
+      "license": "OpenAI generated project asset",
+      "gameplayContract": "visual skin only; code geometry remains authoritative"
+    }
+  }
+}

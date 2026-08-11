@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "states": {
+    "analyze": {
+      "asset": "optimizer-analyze.png",
+      "state": "analyze",
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "eventFrame": 0,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "displaySize": [
+        132,
+        132
+      ],
+      "alphaCoverage": [
+        0.2489,
+        0.2772,
+        0.2728,
+        0.2532
+      ],
+      "sourceGrid": [
+        4,
+        4
+      ],
+      "sourceIndices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "promptVersion": "art-v3-pass6-2026-08-11",
+      "source": "OpenAI built-in ImageGen with existing optimizer phase animations as identity references",
+      "license": "OpenAI generated project asset"
+    },
+    "predict": {
+      "asset": "optimizer-predict.png",
+      "state": "predict",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "eventFrame": 1,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "displaySize": [
+        132,
+        132
+      ],
+      "alphaCoverage": [
+        0.266,
+        0.2501,
+        0.2224,
+        0.2455
+      ],
+      "sourceGrid": [
+        4,
+        4
+      ],
+      "sourceIndices": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "promptVersion": "art-v3-pass6-2026-08-11",
+      "source": "OpenAI built-in ImageGen with existing optimizer phase animations as identity references",
+      "license": "OpenAI generated project asset"
+    },
+    "perfect": {
+      "asset": "optimizer-perfect.png",
+      "state": "perfect",
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "eventFrame": 0,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "displaySize": [
+        132,
+        132
+      ],
+      "alphaCoverage": [
+        0.2334,
+        0.2399,
+        0.2702,
+        0.235
+      ],
+      "sourceGrid": [
+        4,
+        4
+      ],
+      "sourceIndices": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "promptVersion": "art-v3-pass6-2026-08-11",
+      "source": "OpenAI built-in ImageGen with existing optimizer phase animations as identity references",
+      "license": "OpenAI generated project asset"
+    },
+    "overflow": {
+      "asset": "optimizer-overflow.png",
+      "state": "overflow",
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "eventFrame": 0,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "displaySize": [
+        132,
+        132
+      ],
+      "alphaCoverage": [
+        0.3522,
+        0.3951,
+        0.2918,
+        0.3073
+      ],
+      "sourceGrid": [
+        4,
+        4
+      ],
+      "sourceIndices": [
+        12,
+        13,
+        14,
+        15
+      ],
+      "promptVersion": "art-v3-pass6-2026-08-11",
+      "source": "OpenAI built-in ImageGen with existing optimizer phase animations as identity references",
+      "license": "OpenAI generated project asset"
+    }
+  }
+}

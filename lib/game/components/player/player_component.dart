@@ -5,12 +5,14 @@ import 'dart:ui';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:patch_world/game/combat/attack_tier.dart';
+import 'package:patch_world/game/combat/player_combat_animation.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/effects/player_strike_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
+import 'package:patch_world/game/components/player/player_animation_state_resolver.dart';
 import 'package:patch_world/game/components/player/platformer_motion.dart';
 import 'package:patch_world/game/components/projectiles/player_projectile_component.dart';
 import 'package:patch_world/game/components/visuals/entity_sprite_visual.dart';
@@ -59,10 +61,16 @@ final class PlayerComponent extends RectangleComponent
   List<Sprite>? _hurtFrames;
   final Map<PlayerWeapon, List<Sprite>> _weaponFrames =
       <PlayerWeapon, List<Sprite>>{};
+  final Map<PlayerWeapon, Map<PlayerAnimationState, List<Sprite>>>
+  _weaponLocomotionFrames =
+      <PlayerWeapon, Map<PlayerAnimationState, List<Sprite>>>{};
+  final Map<PlayerWeapon, Map<PlayerCombatAnimation, List<Sprite>>>
+  _weaponCombatFrames =
+      <PlayerWeapon, Map<PlayerCombatAnimation, List<Sprite>>>{};
   List<Sprite>? _gauntletDoubleJumpFrames;
   List<Sprite>? _swordDashFrames;
   List<Sprite>? _gunRailFrames;
-  bool _usingMoveAnimation = false;
+  PlayerAnimationState? _activeMovementAnimation;
   PlayerWeapon selectedWeapon = PlayerWeapon.sword;
   int _weaponComboStep = 0;
   double _weaponComboReset = 0;
@@ -93,6 +101,13 @@ final class PlayerComponent extends RectangleComponent
   int get airJumpsRemaining =>
       selectedWeapon == PlayerWeapon.gauntlet ? _airJumpsRemaining : 0;
   bool get isDashing => _dashRemaining > 0;
+  bool get hasCompleteArtV3Visuals => PlayerWeapon.values.every(
+    (weapon) =>
+        _weaponLocomotionFrames[weapon]?.length ==
+            PlayerAnimationState.values.length &&
+        _weaponCombatFrames[weapon]?.length ==
+            PlayerCombatAnimation.values.length,
+  );
 
   @override
   Future<void> onLoad() async {
@@ -144,11 +159,38 @@ final class PlayerComponent extends RectangleComponent
     _moveFrames = _frames(moveImage, 6);
     _pulseFrames = _frames(pulseImage, 4);
     _hurtFrames = _frames(hurtImage, 3);
+    visual.setDefaultAnimation(_idleFrames!, fps: 6);
     for (final weapon in PlayerWeapon.values) {
       final image = await game.images.load(
         'sprites/combat_v2/hero/${weapon.assetName}.png',
       );
       _weaponFrames[weapon] = _frames(image, 10);
+      final locomotion = <PlayerAnimationState, List<Sprite>>{};
+      for (final state in PlayerAnimationState.values) {
+        try {
+          final stateImage = await game.images.load(
+            weapon.animationAssetPath(state),
+          );
+          locomotion[state] = _frames(stateImage, state.frameCount);
+        } catch (_) {
+          // Art v3 states are presentation-only. Keep the QA Hero fallback
+          // alive if an individual optional strip is absent or corrupt.
+        }
+      }
+      _weaponLocomotionFrames[weapon] = locomotion;
+      final combat = <PlayerCombatAnimation, List<Sprite>>{};
+      for (final state in PlayerCombatAnimation.values) {
+        try {
+          final stateImage = await game.images.load(
+            weapon.combatAnimationAssetPath(state),
+          );
+          combat[state] = _frames(stateImage, state.frameCount);
+        } catch (_) {
+          // Each Art v3 strip is optional so one damaged file cannot prevent
+          // the remaining authored combat motions from loading.
+        }
+      }
+      _weaponCombatFrames[weapon] = combat;
     }
     final gauntletSpin = await game.images.load(
       'sprites/abilities/gauntlet-double-jump-spin.png',
@@ -189,7 +231,9 @@ final class PlayerComponent extends RectangleComponent
         _platformerMotion.tryAirJump()) {
       _airJumpsRemaining -= 1;
       final spinFrames = _gauntletDoubleJumpFrames;
-      if (spinFrames != null) _visual?.playOnce(spinFrames, fps: 16.5);
+      if (spinFrames != null) {
+        _playAbilityMotion(spinFrames, weapon: PlayerWeapon.gauntlet);
+      }
       _visual?.squash(seconds: 0.12);
       if (isMounted) {
         unawaited(game.audio.playJump(doubleJump: true));
@@ -215,6 +259,8 @@ final class PlayerComponent extends RectangleComponent
     _dashCooldown = 0;
     _dashContactImmunity = 0;
     _airJumpsRemaining = 1;
+    _activeMovementAnimation = null;
+    _syncMovementAnimation(force: true);
     _visual?.resetPresentation();
   }
 
@@ -241,6 +287,7 @@ final class PlayerComponent extends RectangleComponent
     selectedWeapon = weapon;
     _weaponComboStep = 0;
     _weaponComboReset = 0;
+    _syncMovementAnimation(force: true);
     final frames = _weaponFrames[weapon];
     if (frames != null) _visual?.playOnce(<Sprite>[frames.first], fps: 8);
     if (isMounted) game.publishUiSnapshot(force: true);
@@ -284,7 +331,9 @@ final class PlayerComponent extends RectangleComponent
     _visual?.flash(const Color(0xFF36E1FF), seconds: 0.10);
     _visual?.actionLunge(direction: direction, seconds: .15, travel: 20);
     final dashFrames = _swordDashFrames;
-    if (dashFrames != null) _visual?.playOnce(dashFrames, fps: 20);
+    if (dashFrames != null) {
+      _playAbilityMotion(dashFrames, weapon: PlayerWeapon.sword);
+    }
     if (isMounted) {
       game.patchEffects.onPlayerDashed();
       unawaited(game.audio.playSwordDash());
@@ -385,9 +434,21 @@ final class PlayerComponent extends RectangleComponent
     final isGunRail = selectedWeapon == PlayerWeapon.gun && motionIndex == 4;
     final railFrames = _gunRailFrames;
     if (isGunRail && railFrames != null) {
-      _visual?.playOnce(railFrames, fps: 14);
+      _playAbilityMotion(
+        railFrames,
+        weapon: PlayerWeapon.gun,
+        authoredActionFrames:
+            _weaponCombatFrames[PlayerWeapon.gun]?[PlayerCombatAnimation
+                .attack4],
+      );
     } else {
-      _playWeaponMotion(motionIndex, fps: counter ? 16 : 13);
+      _playCombatMotion(
+        counter
+            ? PlayerCombatAnimation.counter
+            : PlayerCombatAnimation.attackForIndex(motionIndex),
+        fallbackIndex: motionIndex,
+        fallbackFps: counter ? 16 : 13,
+      );
     }
     _visual?.actionLunge(
       direction: _facing,
@@ -489,7 +550,11 @@ final class PlayerComponent extends RectangleComponent
     if (!canParry || !_usesPlatformerMovement) return;
     _parryWindow = parryWindowSeconds;
     _parryRecovery = parryRecoverySeconds;
-    _playWeaponMotion(7, fps: 12);
+    _playCombatMotion(
+      PlayerCombatAnimation.parry,
+      fallbackIndex: 7,
+      fallbackFps: 12,
+    );
     _visual?.flash(const Color(0xFFFFE39A), seconds: 0.12);
   }
 
@@ -502,7 +567,11 @@ final class PlayerComponent extends RectangleComponent
     _parryRecovery = 0.18;
     _counterWindow = 1.2;
     _hitInvulnerability = math.max(_hitInvulnerability, 0.20);
-    _playWeaponMotion(8, fps: 18);
+    _playCombatMotion(
+      PlayerCombatAnimation.perfectParry,
+      fallbackIndex: 8,
+      fallbackFps: 18,
+    );
     _visual?.flash(const Color(0xFFFFD35A), seconds: 0.22);
     _visual?.squash(seconds: 0.16);
     if (isMounted) {
@@ -511,6 +580,34 @@ final class PlayerComponent extends RectangleComponent
       game.publishUiSnapshot(force: true);
     }
     return true;
+  }
+
+  void _playCombatMotion(
+    PlayerCombatAnimation state, {
+    required int fallbackIndex,
+    required double fallbackFps,
+  }) {
+    final frames = _weaponCombatFrames[selectedWeapon]?[state];
+    if (frames != null) {
+      _visual?.playOnce(frames, fps: state.fps(selectedWeapon));
+      return;
+    }
+    _playWeaponMotion(fallbackIndex, fps: fallbackFps);
+  }
+
+  void _playAbilityMotion(
+    List<Sprite> abilityFrames, {
+    required PlayerWeapon weapon,
+    List<Sprite>? authoredActionFrames,
+  }) {
+    final state = PlayerCombatAnimation.abilityTransition;
+    final connector = _weaponCombatFrames[weapon]?[state];
+    final frames = composeAbilityMotionFrames<Sprite>(
+      abilityFrames: abilityFrames,
+      transitionFrames: connector,
+      authoredActionFrames: authoredActionFrames,
+    );
+    _visual?.playOnce(frames, fps: state.fps(weapon));
   }
 
   void _playWeaponMotion(int index, {required double fps}) {
@@ -665,6 +762,7 @@ final class PlayerComponent extends RectangleComponent
 
     if (!wasGrounded && _platformerMotion.grounded && isMounted) {
       unawaited(game.audio.playLand());
+      _playLandingAnimation();
     }
 
     if (position.y > room.killPlaneY) {
@@ -720,12 +818,43 @@ final class PlayerComponent extends RectangleComponent
   );
 
   void _syncMovementAnimation({bool force = false}) {
-    final moving = isMoving;
-    if (!force && moving == _usingMoveAnimation) return;
-    final frames = moving ? _moveFrames : _idleFrames;
+    if (!isMounted) return;
+    final state = _desiredMovementAnimation;
+    if (!force && state == _activeMovementAnimation) return;
+    final List<Sprite>? frames;
+    final double fps;
+    if (game.mode == PatchWorldMode.campaign) {
+      frames =
+          _weaponLocomotionFrames[selectedWeapon]?[state] ??
+          (state == PlayerAnimationState.idle ? _idleFrames : _moveFrames);
+      fps = state.fps;
+    } else {
+      frames = state == PlayerAnimationState.run ? _moveFrames : _idleFrames;
+      fps = state == PlayerAnimationState.run ? 10 : 6;
+    }
     if (frames == null) return;
-    _usingMoveAnimation = moving;
-    _visual?.setDefaultAnimation(frames, fps: moving ? 10 : 6);
+    _activeMovementAnimation = state;
+    _visual?.setDefaultAnimation(frames, fps: fps);
+  }
+
+  PlayerAnimationState get _desiredMovementAnimation {
+    return resolvePlayerAnimationState(
+      usesPlatformerMovement: _usesPlatformerMovement,
+      grounded: _platformerMotion.grounded,
+      horizontalVelocity: _platformerMotion.velocity.x,
+      verticalVelocity: _platformerMotion.velocity.y,
+      isMoving: isMoving,
+    );
+  }
+
+  void _playLandingAnimation() {
+    if (!isMounted) return;
+    if (game.mode != PatchWorldMode.campaign) return;
+    final frames =
+        _weaponLocomotionFrames[selectedWeapon]?[PlayerAnimationState.land];
+    if (frames != null) {
+      _visual?.playOnceIfIdle(frames, fps: PlayerAnimationState.land.fps);
+    }
   }
 
   void _clampToLogicalWorld() {

@@ -1,0 +1,2030 @@
+{
+  "version": 3,
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "sequences": {
+    "sword": {
+      "asset": "sword-idle.png",
+      "state": "idle",
+      "sourceFrameSize": [
+        256,
+        256
+      ],
+      "displaySize": [
+        54,
+        54
+      ],
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "baseline": 0.86,
+      "standingFrame": 0,
+      "eventFrame": null,
+      "alphaCoverage": [
+        0.3573,
+        0.3633,
+        0.3707,
+        0.362
+      ],
+      "promptVersion": "art-v3-pass0-2026-08-11",
+      "source": "OpenAI built-in ImageGen with Combat Motion v2 reference",
+      "license": "OpenAI generated project asset"
+    },
+    "gauntlet": {
+      "asset": "gauntlet-idle.png",
+      "state": "idle",
+      "sourceFrameSize": [
+        256,
+        256
+      ],
+      "displaySize": [
+        54,
+        54
+      ],
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "baseline": 0.86,
+      "standingFrame": 0,
+      "eventFrame": null,
+      "alphaCoverage": [
+        0.4025,
+        0.3935,
+        0.405,
+        0.4029
+      ],
+      "promptVersion": "art-v3-pass0-2026-08-11",
+      "source": "OpenAI built-in ImageGen with Combat Motion v2 reference",
+      "license": "OpenAI generated project asset"
+    },
+    "gun": {
+      "asset": "gun-idle.png",
+      "state": "idle",
+      "sourceFrameSize": [
+        256,
+        256
+      ],
+      "displaySize": [
+        54,
+        54
+      ],
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "baseline": 0.86,
+      "standingFrame": 0,
+      "eventFrame": null,
+      "alphaCoverage": [
+        0.3378,
+        0.3363,
+        0.3363,
+        0.3358
+      ],
+      "promptVersion": "art-v3-pass0-2026-08-11",
+      "source": "OpenAI built-in ImageGen with Combat Motion v2 reference",
+      "license": "OpenAI generated project asset"
+    }
+  },
+  "locomotion": {
+    "sword": {
+      "run": {
+        "asset": "sword-run.png",
+        "state": "run",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 6,
+        "fps": 10,
+        "loop": true,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2919,
+          0.2691,
+          0.2849,
+          0.2957,
+          0.2843,
+          0.2792
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      },
+      "jumpRise": {
+        "asset": "sword-jump-rise.png",
+        "state": "jumpRise",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 2,
+        "fps": 10,
+        "loop": true,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2989,
+          0.2917
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          6,
+          7
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      },
+      "apex": {
+        "asset": "sword-apex.png",
+        "state": "apex",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 1,
+        "fps": 1,
+        "loop": true,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2922
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          8
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      },
+      "fall": {
+        "asset": "sword-fall.png",
+        "state": "fall",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 2,
+        "fps": 10,
+        "loop": true,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2975,
+          0.2749
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          9,
+          10
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      },
+      "land": {
+        "asset": "sword-land.png",
+        "state": "land",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 3,
+        "fps": 12,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2637,
+          0.2622,
+          0.3069
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          11,
+          12,
+          13
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      }
+    },
+    "gauntlet": {
+      "run": {
+        "asset": "gauntlet-run.png",
+        "state": "run",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 6,
+        "fps": 10,
+        "loop": true,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2849,
+          0.2404,
+          0.2827,
+          0.2682,
+          0.2766,
+          0.2762
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      },
+      "jumpRise": {
+        "asset": "gauntlet-jump-rise.png",
+        "state": "jumpRise",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 2,
+        "fps": 10,
+        "loop": true,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2802,
+          0.2876
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          6,
+          7
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      },
+      "apex": {
+        "asset": "gauntlet-apex.png",
+        "state": "apex",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 1,
+        "fps": 1,
+        "loop": true,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2534
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          8
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      },
+      "fall": {
+        "asset": "gauntlet-fall.png",
+        "state": "fall",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 2,
+        "fps": 10,
+        "loop": true,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2602,
+          0.2229
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          9,
+          10
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      },
+      "land": {
+        "asset": "gauntlet-land.png",
+        "state": "land",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 3,
+        "fps": 12,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2759,
+          0.2497,
+          0.2646
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          11,
+          12,
+          13
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      }
+    },
+    "gun": {
+      "run": {
+        "asset": "gun-run.png",
+        "state": "run",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 6,
+        "fps": 10,
+        "loop": true,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2732,
+          0.2603,
+          0.2781,
+          0.2566,
+          0.2631,
+          0.2553
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      },
+      "jumpRise": {
+        "asset": "gun-jump-rise.png",
+        "state": "jumpRise",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 2,
+        "fps": 10,
+        "loop": true,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2489,
+          0.2722
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          6,
+          7
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      },
+      "apex": {
+        "asset": "gun-apex.png",
+        "state": "apex",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 1,
+        "fps": 1,
+        "loop": true,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2497
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          8
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      },
+      "fall": {
+        "asset": "gun-fall.png",
+        "state": "fall",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 2,
+        "fps": 10,
+        "loop": true,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2616,
+          0.2655
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          9,
+          10
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      },
+      "land": {
+        "asset": "gun-land.png",
+        "state": "land",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 3,
+        "fps": 12,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": null,
+        "alphaCoverage": [
+          0.2692,
+          0.2532,
+          0.2702
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          11,
+          12,
+          13
+        ],
+        "promptVersion": "art-v3-pass1-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Art v3 idle and Combat Motion v2 references",
+        "license": "OpenAI generated project asset"
+      }
+    }
+  },
+  "combat": {
+    "sword": {
+      "attack1": {
+        "asset": "sword-attack-1.png",
+        "state": "attack1",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 14.285714,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          1
+        ],
+        "alphaCoverage": [
+          0.1656,
+          0.1749,
+          0.1288,
+          0.1489
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack2": {
+        "asset": "sword-attack-2.png",
+        "state": "attack2",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 14.285714,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          1
+        ],
+        "alphaCoverage": [
+          0.187,
+          0.202,
+          0.1569,
+          0.1481
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          4,
+          5,
+          6,
+          7
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack3": {
+        "asset": "sword-attack-3.png",
+        "state": "attack3",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 14.285714,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          1
+        ],
+        "alphaCoverage": [
+          0.2174,
+          0.1601,
+          0.1312,
+          0.1503
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack4": {
+        "asset": "sword-attack-4.png",
+        "state": "attack4",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 14.285714,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          1
+        ],
+        "alphaCoverage": [
+          0.1548,
+          0.1596,
+          0.1409,
+          0.1458
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          12,
+          13,
+          14,
+          15
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack5": {
+        "asset": "sword-attack-5.png",
+        "state": "attack5",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 14.285714,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          1
+        ],
+        "alphaCoverage": [
+          0.2107,
+          0.2501,
+          0.232,
+          0.1361
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          16,
+          17,
+          18,
+          19
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack6": {
+        "asset": "sword-attack-6.png",
+        "state": "attack6",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 14.285714,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          1
+        ],
+        "alphaCoverage": [
+          0.1757,
+          0.1232,
+          0.1193,
+          0.1407
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          20,
+          21,
+          22,
+          23
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "parry": {
+        "asset": "sword-parry.png",
+        "state": "parry",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 12,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          1
+        ],
+        "alphaCoverage": [
+          0.2326,
+          0.1565,
+          0.1695,
+          0.1592
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "perfectParry": {
+        "asset": "sword-perfect-parry.png",
+        "state": "perfectParry",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 18,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.2376,
+          0.1838,
+          0.1642,
+          0.1581
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          4,
+          5,
+          6,
+          7
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "counter": {
+        "asset": "sword-counter.png",
+        "state": "counter",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 16,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          2
+        ],
+        "alphaCoverage": [
+          0.2407,
+          0.2118,
+          0.1519,
+          0.1562
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "abilityTransition": {
+        "asset": "sword-ability-transition.png",
+        "state": "abilityTransition",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 20,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.1531,
+          0.2632,
+          0.2336,
+          0.1353
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          12,
+          13,
+          14,
+          15
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      }
+    },
+    "gauntlet": {
+      "attack1": {
+        "asset": "gauntlet-attack-1.png",
+        "state": "attack1",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 11.111111,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.2215,
+          0.2053,
+          0.1999,
+          0.2032
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack2": {
+        "asset": "gauntlet-attack-2.png",
+        "state": "attack2",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 11.111111,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.2706,
+          0.2539,
+          0.2112,
+          0.205
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          4,
+          5,
+          6,
+          7
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack3": {
+        "asset": "gauntlet-attack-3.png",
+        "state": "attack3",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 11.111111,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.2342,
+          0.2643,
+          0.2374,
+          0.2051
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack4": {
+        "asset": "gauntlet-attack-4.png",
+        "state": "attack4",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 11.111111,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.2907,
+          0.281,
+          0.2077,
+          0.1949
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          12,
+          13,
+          14,
+          15
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack5": {
+        "asset": "gauntlet-attack-5.png",
+        "state": "attack5",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 11.111111,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.3446,
+          0.2201,
+          0.2093,
+          0.1816
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          16,
+          17,
+          18,
+          19
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack6": {
+        "asset": "gauntlet-attack-6.png",
+        "state": "attack6",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 11.111111,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          1
+        ],
+        "alphaCoverage": [
+          0.3247,
+          0.2925,
+          0.2649,
+          0.1945
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          20,
+          21,
+          22,
+          23
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "parry": {
+        "asset": "gauntlet-parry.png",
+        "state": "parry",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 12,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          1
+        ],
+        "alphaCoverage": [
+          0.2262,
+          0.1542,
+          0.1737,
+          0.1619
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "perfectParry": {
+        "asset": "gauntlet-perfect-parry.png",
+        "state": "perfectParry",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 18,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.2034,
+          0.2109,
+          0.1688,
+          0.1637
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          4,
+          5,
+          6,
+          7
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "counter": {
+        "asset": "gauntlet-counter.png",
+        "state": "counter",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 16,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          2
+        ],
+        "alphaCoverage": [
+          0.3217,
+          0.2311,
+          0.1821,
+          0.1693
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "abilityTransition": {
+        "asset": "gauntlet-ability-transition.png",
+        "state": "abilityTransition",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 16.5,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.221,
+          0.1889,
+          0.1866,
+          0.2042
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          12,
+          13,
+          14,
+          15
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      }
+    },
+    "gun": {
+      "attack1": {
+        "asset": "gun-attack-1.png",
+        "state": "attack1",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 12.5,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.1624,
+          0.1556,
+          0.1534,
+          0.1487
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack2": {
+        "asset": "gun-attack-2.png",
+        "state": "attack2",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 12.5,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.1643,
+          0.155,
+          0.1541,
+          0.147
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          4,
+          5,
+          6,
+          7
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack3": {
+        "asset": "gun-attack-3.png",
+        "state": "attack3",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 12.5,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.18,
+          0.1703,
+          0.1533,
+          0.1473
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack4": {
+        "asset": "gun-attack-4.png",
+        "state": "attack4",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 12.5,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.1916,
+          0.1753,
+          0.1563,
+          0.1468
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          12,
+          13,
+          14,
+          15
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack5": {
+        "asset": "gun-attack-5.png",
+        "state": "attack5",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 12.5,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.1787,
+          0.1493,
+          0.1448,
+          0.134
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          16,
+          17,
+          18,
+          19
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "attack6": {
+        "asset": "gun-attack-6.png",
+        "state": "attack6",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 12.5,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.1806,
+          0.1539,
+          0.1529,
+          0.1475
+        ],
+        "sourceGrid": [
+          4,
+          6
+        ],
+        "sourceIndices": [
+          20,
+          21,
+          22,
+          23
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "parry": {
+        "asset": "gun-parry.png",
+        "state": "parry",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 12,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          1
+        ],
+        "alphaCoverage": [
+          0.197,
+          0.2039,
+          0.185,
+          0.1468
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "perfectParry": {
+        "asset": "gun-perfect-parry.png",
+        "state": "perfectParry",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 18,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.1841,
+          0.1781,
+          0.1587,
+          0.1475
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          4,
+          5,
+          6,
+          7
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "counter": {
+        "asset": "gun-counter.png",
+        "state": "counter",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 16,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.1752,
+          0.1972,
+          0.1614,
+          0.1451
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      },
+      "abilityTransition": {
+        "asset": "gun-ability-transition.png",
+        "state": "abilityTransition",
+        "sourceFrameSize": [
+          256,
+          256
+        ],
+        "displaySize": [
+          54,
+          54
+        ],
+        "frames": 4,
+        "fps": 14,
+        "loop": false,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "baseline": 0.86,
+        "eventFrame": 0,
+        "activeFrame": [
+          0,
+          0
+        ],
+        "alphaCoverage": [
+          0.1825,
+          0.1784,
+          0.1745,
+          0.1432
+        ],
+        "sourceGrid": [
+          4,
+          4
+        ],
+        "sourceIndices": [
+          12,
+          13,
+          14,
+          15
+        ],
+        "promptVersion": "art-v3-pass2-2026-08-11",
+        "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
+        "license": "OpenAI generated project asset",
+        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+      }
+    }
+  }
+}

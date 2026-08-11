@@ -46,7 +46,10 @@ final class OptimizerBossComponent extends CircleComponent
   List<Sprite>? _predictFrames;
   List<Sprite>? _perfectFrames;
   List<Sprite>? _overflowFrames;
+  bool _artV3AnimationsLoaded = false;
   double _visualTime = 0;
+
+  bool get hasArtV3Visual => _visual != null && _artV3AnimationsLoaded;
 
   @override
   Vector2 get duplicatePosition => position;
@@ -104,6 +107,28 @@ final class OptimizerBossComponent extends CircleComponent
     _predictFrames = _frames(predictImage, 5);
     _perfectFrames = _frames(perfectImage, 4);
     _overflowFrames = _frames(overflowImage, 6);
+    try {
+      final artV3Analyze = await game.images.load(
+        'sprites/art_v3/boss/optimizer-analyze.png',
+      );
+      final artV3Predict = await game.images.load(
+        'sprites/art_v3/boss/optimizer-predict.png',
+      );
+      final artV3Perfect = await game.images.load(
+        'sprites/art_v3/boss/optimizer-perfect.png',
+      );
+      final artV3Overflow = await game.images.load(
+        'sprites/art_v3/boss/optimizer-overflow.png',
+      );
+      if (isRemoving) return;
+      _analyzeFrames = _frames(artV3Analyze, 4);
+      _predictFrames = _frames(artV3Predict, 4);
+      _perfectFrames = _frames(artV3Perfect, 4);
+      _overflowFrames = _frames(artV3Overflow, 4);
+      _artV3AnimationsLoaded = true;
+    } catch (_) {
+      // Existing phase strips remain the isolated fallback for Art v3.
+    }
     _applyPhaseAnimation();
   }
 
