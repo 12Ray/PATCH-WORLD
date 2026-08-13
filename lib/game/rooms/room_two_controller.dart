@@ -1,241 +1,178 @@
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:patch_world/game/components/boss/campaign_chapter_boss_component.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
 import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
-import 'package:patch_world/game/components/player/player_component.dart';
-import 'package:patch_world/game/patch_world_game.dart';
-import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
+import 'package:patch_world/game/items/run_item_state.dart';
+import 'package:patch_world/game/rooms/four_cell_chapter_controller.dart';
 
-final class RoomTwoController extends Component
-    with HasGameReference<PatchWorldGame>
-    implements PlatformerRoomGeometry {
-  final List<PlatformSurfaceComponent> _surfaces = <PlatformSurfaceComponent>[];
-  int _defeatedCount = 0;
-  bool _completed = false;
-  Vector2 _respawnPoint = Vector2(70, 988);
-  late final BossSealGateComponent _bossGate;
+final class RoomTwoController extends FourCellChapterController {
+  RoomTwoController({required super.progress});
 
   @override
-  final Vector2 playerSpawn = Vector2(70, 988);
+  PlatformSurfaceStyle get surfaceStyle => PlatformSurfaceStyle.temporal;
 
   @override
-  final Vector2 worldSize = Vector2(2880, 1080);
+  RoomBackdropStyle get backdropStyle => RoomBackdropStyle.temporal;
 
   @override
-  double get killPlaneY => 1160;
-
-  int get defeatedCount => _defeatedCount;
-  int get activatedTerminalCount => _defeatedCount;
+  CampaignChapterBossKind get bossKind => CampaignChapterBossKind.chronoJailer;
 
   @override
-  Iterable<Rect> get solidBounds => _surfaces
-      .where((surface) => surface.isSolid)
-      .map((surface) => surface.bounds);
+  RunItemId get questRewardItem => RunItemId.echoClock;
 
   @override
-  Vector2 respawnPointFor(Vector2 playerPosition) => _respawnPoint.clone();
+  RunItemId get bossRewardItem => RunItemId.temporalRelay;
 
   @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-    await add(
-      RoomBackdropComponent(RoomBackdropStyle.temporal, worldSize: worldSize),
-    );
-    _bossGate = BossSealGateComponent(
-      position: Vector2(2490, 610),
-      size: Vector2(28, 414),
-      style: PlatformSurfaceStyle.temporal,
-    );
-    _surfaces.addAll(<PlatformSurfaceComponent>[
-      _surface(0, 0, 24, 1080, boundary: true),
-      _surface(2856, 0, 24, 1080, boundary: true),
-      _surface(0, 1024, 330, 56),
-      _surface(420, 1024, 400, 56),
-      _surface(910, 1024, 420, 56),
-      _surface(1420, 1024, 420, 56),
-      _surface(1930, 1024, 950, 56),
-      _surface(120, 930, 180, 22),
-      _surface(300, 840, 170, 22),
-      _surface(480, 750, 180, 22),
-      _surface(650, 660, 180, 22),
-      _surface(820, 570, 180, 22),
-      _surface(990, 480, 180, 22),
-      _surface(1160, 390, 180, 22),
-      _surface(1330, 480, 180, 22),
-      _surface(1500, 570, 180, 22),
-      _surface(1670, 660, 180, 22),
-      _surface(1840, 750, 180, 22),
-      _surface(2010, 840, 180, 22),
-      _surface(2190, 750, 180, 22),
-      _surface(2340, 660, 170, 22),
-      _surface(2520, 944, 336, 80),
-      MovingPlatformComponent(
-        start: Vector2(560, 900),
-        end: Vector2(560, 690),
-        size: Vector2(120, 22),
-        periodSeconds: 4.0,
-        style: PlatformSurfaceStyle.temporal,
-      ),
-      MovingPlatformComponent(
-        start: Vector2(1050, 780),
-        end: Vector2(1240, 690),
-        size: Vector2(120, 22),
-        periodSeconds: 3.2,
-        style: PlatformSurfaceStyle.temporal,
-      ),
-      MovingPlatformComponent(
-        start: Vector2(1770, 500),
-        end: Vector2(1950, 410),
-        size: Vector2(120, 22),
-        periodSeconds: 3.6,
-        style: PlatformSurfaceStyle.temporal,
-      ),
-      BreakablePlatformComponent(
-        position: Vector2(1370, 760),
-        size: Vector2(150, 22),
-        style: PlatformSurfaceStyle.temporal,
-      ),
-      _bossGate,
-    ]);
-    await addAll(_surfaces);
-    await addAll(<Component>[
-      for (final pit in <(double, double)>[
-        (330, 90),
-        (820, 90),
-        (1330, 90),
-        (1840, 90),
-      ])
-        DamagePitComponent(
-          position: Vector2(pit.$1, 1024),
-          size: Vector2(pit.$2, 56),
-          style: PlatformSurfaceStyle.temporal,
+  String get recordLocalizationKey => 'quest.timeFragment';
+
+  @override
+  String get bossIntroLocalizationKey => 'boss.chronoJailer.intro';
+
+  @override
+  Color get chapterAccentColor => const Color(0xFF9D8CFF);
+
+  int get activatedTerminalCount => recordCount;
+
+  @override
+  List<ChapterEnemySpawn> get enemySpawns => const <ChapterEnemySpawn>[
+    ChapterEnemySpawn(0, PlatformerEnemyArchetype.tickRunner, 300, 972),
+    ChapterEnemySpawn(0, PlatformerEnemyArchetype.echoBat, 700, 720),
+    ChapterEnemySpawn(1, PlatformerEnemyArchetype.delaySniper, 1160, 840),
+    ChapterEnemySpawn(1, PlatformerEnemyArchetype.tickRunner, 1740, 972),
+    ChapterEnemySpawn(2, PlatformerEnemyArchetype.rewindSkater, 2100, 862),
+    ChapterEnemySpawn(2, PlatformerEnemyArchetype.echoBat, 2700, 780),
+  ];
+
+  @override
+  List<PlatformSurfaceComponent> buildChapterSurfaces() =>
+      <PlatformSurfaceComponent>[
+        surface(0, 0, 24, 1080, boundary: true),
+        surface(worldSize.x - 24, 0, 24, 1080, boundary: true),
+        // ROOM 2-1: clockwork ascent.
+        surface(0, 1024, 400, 56),
+        surface(500, 1024, 460, 56),
+        surface(100, 900, 190, 22),
+        surface(310, 810, 180, 22),
+        surface(650, 720, 190, 22),
+        MovingPlatformComponent(
+          start: Vector2(450, 910),
+          end: Vector2(570, 700),
+          size: Vector2(120, 22),
+          periodSeconds: 4,
+          style: surfaceStyle,
         ),
-      RoomHazardComponent(
-        position: Vector2(690, 648),
-        size: Vector2(100, 12),
-        style: RoomHazardStyle.spikes,
-        surfaceStyle: PlatformSurfaceStyle.temporal,
-        sourceId: 'hazard.temporal-hall.clock-teeth',
-      ),
-      RoomHazardComponent(
-        position: Vector2(1515, 558),
-        size: Vector2(100, 12),
-        style: RoomHazardStyle.spikes,
-        surfaceStyle: PlatformSurfaceStyle.temporal,
-        sourceId: 'hazard.temporal-hall.rewind-teeth',
-      ),
-      PulsingLaserComponent(
-        position: Vector2(940, 592),
-        size: Vector2(14, 342),
-        sourceId: 'hazard.temporal-hall.timeline-cut',
-        style: PlatformSurfaceStyle.temporal,
-        activeSeconds: 1.1,
-        inactiveSeconds: 1.3,
-      ),
-      PulsingLaserComponent(
-        position: Vector2(1590, 592),
-        size: Vector2(14, 342),
-        sourceId: 'hazard.temporal-hall.clock-hand',
-        style: PlatformSurfaceStyle.temporal,
-        activeSeconds: 1.3,
-        inactiveSeconds: 1.1,
-        phaseOffset: 1.2,
-      ),
-      CrusherHazardComponent(
-        start: Vector2(2130, 380),
-        end: Vector2(2130, 690),
-        size: Vector2(90, 60),
-        sourceId: 'hazard.temporal-hall.pendulum',
-        style: PlatformSurfaceStyle.temporal,
-        periodSeconds: 4.2,
-      ),
-      JumpPadComponent(
-        position: Vector2(930, 1012),
-        style: PlatformSurfaceStyle.temporal,
-      ),
-      JumpPadComponent(
-        position: Vector2(1960, 1012),
-        style: PlatformSurfaceStyle.temporal,
-      ),
-      CheckpointBeaconComponent(
-        position: Vector2(1010, 1024),
-        index: 1,
-        style: PlatformSurfaceStyle.temporal,
-        onActivated: _activateCheckpoint,
-      ),
-      CheckpointBeaconComponent(
-        position: Vector2(2040, 1024),
-        index: 2,
-        style: PlatformSurfaceStyle.temporal,
-        onActivated: _activateCheckpoint,
-      ),
-    ]);
-    await addAll(<PlatformerEnemyComponent>[
-      _enemy(PlatformerEnemyArchetype.tickRunner, 350, 822),
-      _enemy(PlatformerEnemyArchetype.echoBat, 880, 535),
-      _enemy(PlatformerEnemyArchetype.delaySniper, 1250, 372),
-      _enemy(PlatformerEnemyArchetype.rewindSkater, 1870, 732),
-      _enemy(
-        PlatformerEnemyArchetype.chronoJailer,
-        2690,
-        885,
-        startsDormant: true,
-      ),
-    ]);
-  }
+        // ROOM 2-2: broken timeline.
+        surface(960, 1024, 360, 56),
+        surface(1420, 1024, 500, 56),
+        surface(1040, 880, 210, 22),
+        surface(1490, 790, 190, 22),
+        surface(1700, 700, 170, 22),
+        BreakablePlatformComponent(
+          position: Vector2(1300, 720),
+          size: Vector2(150, 22),
+          style: surfaceStyle,
+        ),
+        // ROOM 2-3: rewind pendulum chamber.
+        surface(1920, 1024, 380, 56),
+        surface(2400, 1024, 480, 56),
+        surface(2010, 900, 200, 22),
+        surface(2500, 790, 190, 22),
+        surface(2690, 700, 150, 22),
+        MovingPlatformComponent(
+          start: Vector2(2250, 900),
+          end: Vector2(2400, 690),
+          size: Vector2(125, 22),
+          periodSeconds: 3.5,
+          style: surfaceStyle,
+        ),
+        // Boss cell.
+        surface(2880, 1024, 960, 56),
+        surface(3070, 850, 180, 22),
+        surface(3530, 850, 180, 22),
+      ];
 
-  PlatformSurfaceComponent _surface(
-    double x,
-    double y,
-    double width,
-    double height, {
-    bool boundary = false,
-  }) => PlatformSurfaceComponent(
-    position: Vector2(x, y),
-    size: Vector2(width, height),
-    isBoundary: boundary,
-    style: PlatformSurfaceStyle.temporal,
-  );
+  @override
+  List<Component> buildChapterFeatures() => <Component>[
+    DamagePitComponent(
+      position: Vector2(400, 1024),
+      size: Vector2(100, 56),
+      style: surfaceStyle,
+    ),
+    DamagePitComponent(
+      position: Vector2(1320, 1024),
+      size: Vector2(100, 56),
+      style: surfaceStyle,
+    ),
+    DamagePitComponent(
+      position: Vector2(2300, 1024),
+      size: Vector2(100, 56),
+      style: surfaceStyle,
+    ),
+    RoomHazardComponent(
+      position: Vector2(680, 708),
+      size: Vector2(100, 12),
+      style: RoomHazardStyle.spikes,
+      surfaceStyle: surfaceStyle,
+      sourceId: 'hazard.temporal-hall.room2-1.clock-teeth',
+    ),
+    RoomHazardComponent(
+      position: Vector2(2520, 778),
+      size: Vector2(100, 12),
+      style: RoomHazardStyle.spikes,
+      surfaceStyle: surfaceStyle,
+      sourceId: 'hazard.temporal-hall.room2-3.rewind-teeth',
+    ),
+    PulsingLaserComponent(
+      position: Vector2(1560, 650),
+      size: Vector2(14, 374),
+      sourceId: 'hazard.temporal-hall.room2-2.timeline-cut',
+      style: surfaceStyle,
+      activeSeconds: 1.1,
+      inactiveSeconds: 1.3,
+    ),
+    PulsingLaserComponent(
+      position: Vector2(2740, 680),
+      size: Vector2(14, 344),
+      sourceId: 'hazard.temporal-hall.room2-3.clock-hand',
+      style: surfaceStyle,
+      phaseOffset: 1.2,
+    ),
+    CrusherHazardComponent(
+      start: Vector2(2170, 430),
+      end: Vector2(2170, 760),
+      size: Vector2(90, 60),
+      sourceId: 'hazard.temporal-hall.room2-3.pendulum',
+      style: surfaceStyle,
+      periodSeconds: 4.2,
+    ),
+    JumpPadComponent(position: Vector2(525, 1012), style: surfaceStyle),
+    JumpPadComponent(position: Vector2(1450, 1012), style: surfaceStyle),
+    JumpPadComponent(position: Vector2(2430, 1012), style: surfaceStyle),
+    CheckpointBeaconComponent(
+      position: Vector2(1015, 1024),
+      index: 1,
+      style: surfaceStyle,
+      onActivated: onCheckpointActivated,
+    ),
+    CheckpointBeaconComponent(
+      position: Vector2(1975, 1024),
+      index: 2,
+      style: surfaceStyle,
+      onActivated: onCheckpointActivated,
+    ),
+    CheckpointBeaconComponent(
+      position: Vector2(2935, 1024),
+      index: 3,
+      style: surfaceStyle,
+      onActivated: onCheckpointActivated,
+    ),
+  ];
 
-  PlatformerEnemyComponent _enemy(
-    PlatformerEnemyArchetype archetype,
-    double x,
-    double y, {
-    bool startsDormant = false,
-  }) => PlatformerEnemyComponent(
-    archetype: archetype,
-    position: Vector2(x, y),
-    onDefeated: _onEnemyDefeated,
-    startsDormant: startsDormant,
-  );
-
-  void _activateCheckpoint(int index, Vector2 respawnPoint) {
-    _respawnPoint = respawnPoint;
-  }
-
-  void _onEnemyDefeated(PlatformerEnemyComponent enemy) {
-    if (_completed) return;
-    _defeatedCount += 1;
-    game.runMetrics.recordOverflow();
-    game.publishUiSnapshot(force: true);
-    if (_defeatedCount == 4) {
-      _bossGate.unlock();
-      for (final candidate in children.whereType<PlatformerEnemyComponent>()) {
-        if (candidate.archetype.isMidBoss) candidate.activateEncounter();
-      }
-      return;
-    }
-    if (_defeatedCount < 5) return;
-    _completed = true;
-    Future<void>.delayed(
-      const Duration(milliseconds: 500),
-      game.openRoomTwoPatchSelection,
-    );
-  }
-
-  bool tryInteract(PlayerComponent player) => false;
+  @override
+  void openPatchSelection() => game.openRoomTwoPatchSelection();
 }

@@ -143,9 +143,13 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     }
     _scorePopups.clear();
     final nextRoom = switch (roomId) {
-      RoomId.damageLab => RoomOneController(),
-      RoomId.temporalHall => RoomTwoController(),
-      RoomId.collisionArchive => RoomThreeController(),
+      RoomId.damageLab => RoomOneController(progress: game.damageLabProgress),
+      RoomId.temporalHall => RoomTwoController(
+        progress: game.temporalHallProgress,
+      ),
+      RoomId.collisionArchive => RoomThreeController(
+        progress: game.collisionArchiveProgress,
+      ),
       RoomId.optimizerCore => BossRoomController(),
       RoomId.survivalArena => SurvivalArenaController(),
     };
@@ -169,6 +173,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   bool tryInteract(PlayerComponent player) {
     final room = _activeRoom;
     return switch (room) {
+      RoomOneController controller => controller.tryInteract(player),
       RoomTwoController controller => controller.tryInteract(player),
       RoomThreeController controller => controller.tryInteract(player),
       BossRoomController controller => controller.tryInteract(player),

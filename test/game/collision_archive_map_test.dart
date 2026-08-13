@@ -18,7 +18,6 @@ void main() {
         PlatformerEnemyArchetype.polarityDrone,
         PlatformerEnemyArchetype.phaseMimic,
         PlatformerEnemyArchetype.shardLobber,
-        PlatformerEnemyArchetype.kernelChimera,
       ],
     );
   });

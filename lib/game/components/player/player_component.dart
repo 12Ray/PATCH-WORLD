@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:flutter/services.dart';
 import 'package:patch_world/game/combat/attack_tier.dart';
 import 'package:patch_world/game/combat/player_combat_animation.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
@@ -16,11 +18,30 @@ import 'package:patch_world/game/components/player/player_animation_state_resolv
 import 'package:patch_world/game/components/player/platformer_motion.dart';
 import 'package:patch_world/game/components/projectiles/player_projectile_component.dart';
 import 'package:patch_world/game/components/visuals/entity_sprite_visual.dart';
+import 'package:patch_world/game/items/run_item_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
 import 'package:patch_world/services/game_settings.dart';
+
+final class _PendingWeaponImpact {
+  _PendingWeaponImpact({
+    required this.remaining,
+    required this.weapon,
+    required this.motionIndex,
+    required this.counter,
+    required this.gunRail,
+    required this.facing,
+  });
+
+  double remaining;
+  final PlayerWeapon weapon;
+  final int motionIndex;
+  final bool counter;
+  final bool gunRail;
+  final double facing;
+}
 
 final class PlayerComponent extends RectangleComponent
     with CollisionCallbacks, HasGameReference<PatchWorldGame> {
@@ -67,9 +88,19 @@ final class PlayerComponent extends RectangleComponent
   final Map<PlayerWeapon, Map<PlayerCombatAnimation, List<Sprite>>>
   _weaponCombatFrames =
       <PlayerWeapon, Map<PlayerCombatAnimation, List<Sprite>>>{};
+  final Map<
+    PlayerWeapon,
+    Map<PlayerCombatAnimation, List<SpriteFrameTransform>>
+  >
+  _combatFrameTransforms =
+      <PlayerWeapon, Map<PlayerCombatAnimation, List<SpriteFrameTransform>>>{};
+  final List<_PendingWeaponImpact> _pendingWeaponImpacts =
+      <_PendingWeaponImpact>[];
   List<Sprite>? _gauntletDoubleJumpFrames;
   List<Sprite>? _swordDashFrames;
   List<Sprite>? _gunRailFrames;
+  final Map<PlayerWeapon, List<Sprite>> _composedAbilityFrames =
+      <PlayerWeapon, List<Sprite>>{};
   PlayerAnimationState? _activeMovementAnimation;
   PlayerWeapon selectedWeapon = PlayerWeapon.sword;
   int _weaponComboStep = 0;
@@ -94,6 +125,8 @@ final class PlayerComponent extends RectangleComponent
       ? _platformerMotion.velocity.length2 > 0.01
       : _movementInput.length2 > 0.01;
   int get dataShardCharge => _dataShardCharge;
+  int get dataShardThreshold =>
+      isMounted && game.runItems.contains(RunItemId.echoClock) ? 5 : 6;
   double get facingDirection => _facing;
   double get dashCooldownRemaining => _dashCooldown;
   double get dashCooldownProgress =>
@@ -101,6 +134,7 @@ final class PlayerComponent extends RectangleComponent
   int get airJumpsRemaining =>
       selectedWeapon == PlayerWeapon.gauntlet ? _airJumpsRemaining : 0;
   bool get isDashing => _dashRemaining > 0;
+  bool get isGrounded => _platformerMotion.grounded;
   bool get hasCompleteArtV3Visuals => PlayerWeapon.values.every(
     (weapon) =>
         _weaponLocomotionFrames[weapon]?.length ==
@@ -112,6 +146,9 @@ final class PlayerComponent extends RectangleComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    // Loading starts while the title/weapon selection is open so the combat
+    // cache is normally warm before input is enabled. It must not block Flame's
+    // onLoad lifecycle because image decode completion can depend on a frame.
     unawaited(_loadVisual());
     await add(
       RectangleHitbox.relative(
@@ -134,7 +171,7 @@ final class PlayerComponent extends RectangleComponent
       );
       if (isRemoving) return;
       _visual = visual;
-      await add(visual);
+      add(visual);
       await _loadAnimations(visual);
     } catch (_) {
       paint.color = const Color(0xFF36E1FF);
@@ -142,6 +179,7 @@ final class PlayerComponent extends RectangleComponent
   }
 
   Future<void> _loadAnimations(EntitySpriteVisual visual) async {
+    await _loadCombatFrameTransforms();
     final idleImage = await game.images.load(
       'sprites/animations/qa-hero-idle.png',
     );
@@ -205,7 +243,59 @@ final class PlayerComponent extends RectangleComponent
     _gauntletDoubleJumpFrames = _frames(gauntletSpin, 6);
     _swordDashFrames = _frames(swordDash, 6);
     _gunRailFrames = _frames(gunRail, 6);
+    _composedAbilityFrames[PlayerWeapon.sword] = composeAbilityMotionFrames(
+      abilityFrames: _swordDashFrames!,
+      transitionFrames:
+          _weaponCombatFrames[PlayerWeapon.sword]?[PlayerCombatAnimation
+              .abilityTransition],
+    );
+    _composedAbilityFrames[PlayerWeapon.gauntlet] = composeAbilityMotionFrames(
+      abilityFrames: _gauntletDoubleJumpFrames!,
+      transitionFrames:
+          _weaponCombatFrames[PlayerWeapon.gauntlet]?[PlayerCombatAnimation
+              .abilityTransition],
+    );
+    _composedAbilityFrames[PlayerWeapon.gun] = composeAbilityMotionFrames(
+      abilityFrames: _gunRailFrames!,
+      transitionFrames:
+          _weaponCombatFrames[PlayerWeapon.gun]?[PlayerCombatAnimation
+              .abilityTransition],
+      authoredActionFrames:
+          _weaponCombatFrames[PlayerWeapon.gun]?[PlayerCombatAnimation.attack4],
+    );
     _syncMovementAnimation(force: true);
+  }
+
+  Future<void> _loadCombatFrameTransforms() async {
+    try {
+      final source = await rootBundle.loadString(
+        'assets/images/sprites/art_v3/hero/combat_frame_transforms.json',
+      );
+      final decoded = jsonDecode(source) as Map<String, dynamic>;
+      for (final weapon in PlayerWeapon.values) {
+        final weaponData = decoded[weapon.assetName] as Map<String, dynamic>?;
+        if (weaponData == null) continue;
+        final states = <PlayerCombatAnimation, List<SpriteFrameTransform>>{};
+        for (final state in PlayerCombatAnimation.values) {
+          final entries = weaponData[state.assetSuffix] as List<dynamic>?;
+          if (entries == null || entries.length != state.frameCount) continue;
+          states[state] = entries
+              .map((entry) {
+                final data = entry as Map<String, dynamic>;
+                return SpriteFrameTransform(
+                  dx: (data['dx'] as num?)?.toDouble() ?? 0,
+                  dy: (data['dy'] as num?)?.toDouble() ?? 0,
+                  scale: (data['scale'] as num?)?.toDouble() ?? 1,
+                );
+              })
+              .toList(growable: false);
+        }
+        _combatFrameTransforms[weapon] = states;
+      }
+    } catch (_) {
+      // Rendering remains functional if optional normalization metadata is
+      // missing; authored sprites are still displayed at their fixed box.
+    }
   }
 
   List<Sprite> _frames(Image image, int count) => List.generate(
@@ -260,6 +350,7 @@ final class PlayerComponent extends RectangleComponent
     _dashContactImmunity = 0;
     _airJumpsRemaining = 1;
     _activeMovementAnimation = null;
+    _pendingWeaponImpacts.clear();
     _syncMovementAnimation(force: true);
     _visual?.resetPresentation();
   }
@@ -430,7 +521,11 @@ final class PlayerComponent extends RectangleComponent
     _weaponComboStep = counter ? 0 : (_weaponComboStep + 1) % 6;
     _weaponComboReset = 0.85;
     _counterWindow = 0;
-    _attackCooldown = counter ? 0.18 : selectedWeapon.baseCooldown;
+    final temporalRelayMultiplier =
+        game.runItems.contains(RunItemId.temporalRelay) ? .92 : 1.0;
+    _attackCooldown =
+        (counter ? 0.18 : selectedWeapon.baseCooldown) *
+        temporalRelayMultiplier;
     final isGunRail = selectedWeapon == PlayerWeapon.gun && motionIndex == 4;
     final railFrames = _gunRailFrames;
     if (isGunRail && railFrames != null) {
@@ -464,18 +559,48 @@ final class PlayerComponent extends RectangleComponent
       seconds: counter ? 0.16 : 0.08,
     );
 
+    final combatMotion = counter
+        ? PlayerCombatAnimation.counter
+        : PlayerCombatAnimation.attackForIndex(motionIndex);
+    _pendingWeaponImpacts.add(
+      _PendingWeaponImpact(
+        remaining: combatMotion.eventFrame / combatMotion.fps(selectedWeapon),
+        weapon: selectedWeapon,
+        motionIndex: motionIndex,
+        counter: counter,
+        gunRail: isGunRail,
+        facing: _facing,
+      ),
+    );
+  }
+
+  void _resolveWeaponImpact(_PendingWeaponImpact impact) {
+    final weapon = impact.weapon;
+    final motionIndex = impact.motionIndex;
+    final counter = impact.counter;
+    final isGunRail = impact.gunRail;
+    final facing = impact.facing;
+
+    final itemDamageBonus =
+        !counter &&
+            motionIndex == 6 &&
+            game.runItems.contains(RunItemId.overflowCapacitor)
+        ? 1
+        : 0;
     final damage = counter
-        ? 3
-        : switch (selectedWeapon) {
-            PlayerWeapon.sword => motionIndex == 4 || motionIndex == 6 ? 2 : 1,
-            PlayerWeapon.gauntlet => motionIndex >= 3 ? 2 : 1,
-            PlayerWeapon.gun => motionIndex == 4 ? 2 : 1,
-          };
-    switch (selectedWeapon) {
+        ? 3 + (game.runItems.contains(RunItemId.collisionPrism) ? 1 : 0)
+        : switch (weapon) {
+                PlayerWeapon.sword =>
+                  motionIndex == 4 || motionIndex == 6 ? 2 : 1,
+                PlayerWeapon.gauntlet => motionIndex >= 3 ? 2 : 1,
+                PlayerWeapon.gun => motionIndex == 4 ? 2 : 1,
+              } +
+              itemDamageBonus;
+    switch (weapon) {
       case PlayerWeapon.sword:
         game.world.add(
           PlayerStrikeComponent(
-            position: position + Vector2(_facing * 38, -2),
+            position: position + Vector2(facing * 38, -2),
             size: Vector2(counter ? 112 : 72, counter ? 58 : 42),
             sourceId: counter
                 ? 'player.sword.parryCounter'
@@ -491,7 +616,7 @@ final class PlayerComponent extends RectangleComponent
         if (motionIndex == 6 || counter) {
           game.world.add(
             PlayerStrikeComponent(
-              position: position + Vector2(_facing * 24, 12),
+              position: position + Vector2(facing * 24, 12),
               size: Vector2(counter ? 104 : 82, counter ? 72 : 54),
               sourceId: counter
                   ? 'player.gauntlet.parryCounter'
@@ -506,7 +631,7 @@ final class PlayerComponent extends RectangleComponent
         } else {
           game.world.add(
             PlayerStrikeComponent(
-              position: position + Vector2(_facing * 29, 0),
+              position: position + Vector2(facing * 29, 0),
               size: Vector2(52, 38),
               sourceId: 'player.gauntlet.combo.$motionIndex',
               damage: damage,
@@ -521,8 +646,8 @@ final class PlayerComponent extends RectangleComponent
           final spread = (index - (shots - 1) / 2) * 0.12;
           game.world.add(
             PlayerProjectileComponent(
-              position: position + Vector2(_facing * 26, -3),
-              velocity: Vector2(_facing * (counter ? 460 : 360), spread * 360),
+              position: position + Vector2(facing * 26, -3),
+              velocity: Vector2(facing * (counter ? 460 : 360), spread * 360),
               sourceId: counter
                   ? 'player.gun.parryCounter'
                   : 'player.gun.combo.$motionIndex',
@@ -540,7 +665,7 @@ final class PlayerComponent extends RectangleComponent
     game.patchEffects.onPatchPulseEmitted(position.clone());
     unawaited(
       game.audio.playWeaponAttack(
-        selectedWeapon,
+        weapon,
         heavy: counter || isGunRail || motionIndex == 6,
       ),
     );
@@ -589,7 +714,11 @@ final class PlayerComponent extends RectangleComponent
   }) {
     final frames = _weaponCombatFrames[selectedWeapon]?[state];
     if (frames != null) {
-      _visual?.playOnce(frames, fps: state.fps(selectedWeapon));
+      _visual?.playOnce(
+        frames,
+        fps: state.fps(selectedWeapon),
+        frameTransforms: _combatFrameTransforms[selectedWeapon]?[state],
+      );
       return;
     }
     _playWeaponMotion(fallbackIndex, fps: fallbackFps);
@@ -601,12 +730,13 @@ final class PlayerComponent extends RectangleComponent
     List<Sprite>? authoredActionFrames,
   }) {
     final state = PlayerCombatAnimation.abilityTransition;
-    final connector = _weaponCombatFrames[weapon]?[state];
-    final frames = composeAbilityMotionFrames<Sprite>(
-      abilityFrames: abilityFrames,
-      transitionFrames: connector,
-      authoredActionFrames: authoredActionFrames,
-    );
+    final frames =
+        _composedAbilityFrames[weapon] ??
+        composeAbilityMotionFrames<Sprite>(
+          abilityFrames: abilityFrames,
+          transitionFrames: _weaponCombatFrames[weapon]?[state],
+          authoredActionFrames: authoredActionFrames,
+        );
     _visual?.playOnce(frames, fps: state.fps(weapon));
   }
 
@@ -675,12 +805,13 @@ final class PlayerComponent extends RectangleComponent
     _dataShardCharge += math.max(1, amount);
     _attackCooldown = math.max(0, _attackCooldown - 0.08);
     _visual?.flash(const Color(0xFF36E1FF), seconds: 0.08);
-    if (_dataShardCharge < 6) {
+    final chargeThreshold = dataShardThreshold;
+    if (_dataShardCharge < chargeThreshold) {
       if (isMounted) game.publishUiSnapshot(force: true);
       return;
     }
 
-    _dataShardCharge -= 6;
+    _dataShardCharge -= chargeThreshold;
     _attackCooldown = 0;
     if (integrity < maxIntegrity) integrity += 1;
     if (isMounted) {
@@ -692,10 +823,25 @@ final class PlayerComponent extends RectangleComponent
     }
   }
 
+  void restoreIntegrity(int amount) {
+    if (amount <= 0 || integrity >= maxIntegrity) return;
+    integrity = math.min(maxIntegrity, integrity + amount);
+    if (isMounted) {
+      unawaited(game.audio.playHeal());
+      game.publishUiSnapshot(force: true);
+    }
+  }
+
   @override
   void update(double dt) {
     final statusDt = isMounted ? game.clock.playerStatusDt : dt;
     final simulationDt = isMounted ? game.clock.simulationDt : dt;
+    for (final impact in _pendingWeaponImpacts.toList()) {
+      impact.remaining -= simulationDt;
+      if (impact.remaining > 0) continue;
+      _pendingWeaponImpacts.remove(impact);
+      if (integrity > 0 && !isRemoving) _resolveWeaponImpact(impact);
+    }
     _attackCooldown = math.max(0, _attackCooldown - simulationDt);
     _hitInvulnerability = math.max(0, _hitInvulnerability - statusDt);
     _parryWindow = math.max(0, _parryWindow - statusDt);
@@ -716,13 +862,17 @@ final class PlayerComponent extends RectangleComponent
             activeRoom.isPhaseWindowOpen
         ? game.survivalModifiers.phaseOpenMoveMultiplier
         : 1.0;
+    final vectorBootsMultiplier =
+        isMounted && game.runItems.contains(RunItemId.vectorBoots) ? 1.05 : 1.0;
     final platformRoom = activeRoom is PlatformerRoomGeometry
         ? activeRoom as PlatformerRoomGeometry
         : null;
     if (platformRoom != null && _usesPlatformerMovement) {
       _updatePlatformer(statusDt, platformRoom);
     } else {
-      position += _movementInput * (moveSpeed * phaseMoveMultiplier * statusDt);
+      position +=
+          _movementInput *
+          (moveSpeed * phaseMoveMultiplier * vectorBootsMultiplier * statusDt);
       _clampToLogicalWorld();
     }
     if (_movementInput.x.abs() > 0.05) _facing = _movementInput.x.sign;
@@ -741,7 +891,9 @@ final class PlayerComponent extends RectangleComponent
         step,
         horizontal: _movementInput.x,
         jumpHeld: _jumpHeld,
-        runSpeedMultiplier: selectedWeapon.moveSpeedMultiplier,
+        runSpeedMultiplier:
+            selectedWeapon.moveSpeedMultiplier *
+            (game.runItems.contains(RunItemId.vectorBoots) ? 1.05 : 1),
       );
 
       if (_dashRemaining > 0) {
@@ -933,7 +1085,7 @@ final class PlayerComponent extends RectangleComponent
       );
     }
     if (_dataShardCharge == 0) return;
-    for (var index = 0; index < 6; index += 1) {
+    for (var index = 0; index < dataShardThreshold; index += 1) {
       final active = index < _dataShardCharge;
       canvas.drawRect(
         Rect.fromLTWH(2 + index * 5, -9, 3, 3),

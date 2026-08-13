@@ -91,9 +91,15 @@
   "rule.collisionMerge": "충돌이 적을 융합합니다",
   "rule.patternAnalysis": "행동 패턴 분석 중",
   "rule.survivalEscalation": "위협 예산 상승 중",
-  "objective.damageLab": "목표: Damage Lab 적 오버플로 {count}/5",
-  "objective.temporalHall": "목표: 시간 적 제거 {count}/5 · 멈추면 시간도 멈춥니다",
-  "objective.collisionArchive": "목표: 충돌 개체 제거 {count}/5",
+  "objective.damageLab": "ROOM 1-{room} · 전투방 {cleared}/3 · QA 기록 {records}/3",
+  "objective.damageLabBoss": "ROOM 1-BOSS · OVERFLOW WARDEN을 한계치까지 치유하세요",
+  "objective.damageLabExit": "보상 획득 후 패치 터미널을 작동하세요",
+  "objective.temporalHall": "ROOM 2-{room} · 전투방 {cleared}/3 · 시간 파편 {records}/3",
+  "objective.temporalHallBoss": "ROOM 2-BOSS · CHRONO JAILER를 격파하세요",
+  "objective.temporalHallExit": "보상 획득 후 시간 패치 터미널을 작동하세요",
+  "objective.collisionArchive": "ROOM 3-{room} · 전투방 {cleared}/3 · 융합 기록 {records}/3",
+  "objective.collisionArchiveBoss": "ROOM 3-BOSS · KERNEL CHIMERA를 격파하세요",
+  "objective.collisionArchiveExit": "보상 획득 후 충돌 패치 터미널을 작동하세요",
   "objective.optimizerDamage": "목표: 공격하여 THE OPTIMIZER를 PERFECT 단계로 만들기",
   "objective.optimizerPerfect": "목표: 터미널(E) 활성화 후 6초 내 펄스 4회 · 안정성 {stability}/150",
   "objective.optimizerOverflow": "CORE OVERFLOW · 엔딩 계산 중",
@@ -215,6 +221,25 @@
   "bossPhase.defeated": "격파",
   "bossPhase.optimizer_fragment": "옵티마이저 파편",
   "bossPhase.composite": "컴포지트",
+  "bossPhase.warden_dormant": "대기",
+  "bossPhase.warden_intro": "기동",
+  "bossPhase.warden_shielded": "방벽",
+  "bossPhase.warden_breached": "파열",
+  "bossPhase.warden_critical": "임계",
+  "bossPhase.warden_overflow": "오버플로",
+  "bossPhase.warden_defeated": "격파",
+  "bossPhase.chrono_jailer_dormant": "대기",
+  "bossPhase.chrono_jailer_intro": "시간 봉쇄",
+  "bossPhase.chrono_jailer_phase1": "시계 감옥",
+  "bossPhase.chrono_jailer_phase2": "시간 파열",
+  "bossPhase.chrono_jailer_phase3": "최후의 초침",
+  "bossPhase.chrono_jailer_defeated": "격파",
+  "bossPhase.kernel_chimera_dormant": "대기",
+  "bossPhase.kernel_chimera_intro": "커널 결합",
+  "bossPhase.kernel_chimera_phase1": "벡터 외피",
+  "bossPhase.kernel_chimera_phase2": "극성 분열",
+  "bossPhase.kernel_chimera_phase3": "임계 융합",
+  "bossPhase.kernel_chimera_defeated": "격파",
   "effect.perfectDodge": "완벽 회피",
   "effect.houndBreak": "브레이크 확정",
   "effect.phaseExecution": "페이즈 처형",
@@ -291,5 +316,24 @@
   "hud.doubleJumpSpent": "더블 점프 사용됨",
   "hud.rangedPassive": "원거리 패시브",
   "touch.dash": "대시",
-  "patchSelection.synergy": "시너지 {grade}"
+  "patchSelection.synergy": "시너지 {grade}",
+  "quest.qaRecord": "QA 기록",
+  "item.conduitHeart.name": "도관 심장",
+  "item.conduitHeart.description": "전투방 클리어 시 무결성 1 회복",
+  "item.overflowCapacitor.name": "오버플로 축전기",
+  "item.overflowCapacitor.description": "콤보 마지막 공격 피해 +1",
+  "boss.overflowWarden.intro": "OVERFLOW WARDEN // LIMIT BREAK",
+  "interaction.applyPatch": "패치 적용"
+  ,"quest.timeFragment": "시간 파편"
+  ,"quest.mergeLog": "융합 기록"
+  ,"item.echoClock.name": "메아리 시계"
+  ,"item.echoClock.description": "데이터 서지 발동 요구량 6에서 5로 감소"
+  ,"item.temporalRelay.name": "시간 릴레이"
+  ,"item.temporalRelay.description": "모든 무기 공격 간격 8% 감소"
+  ,"item.vectorBoots.name": "벡터 부츠"
+  ,"item.vectorBoots.description": "이동 속도 5% 증가"
+  ,"item.collisionPrism.name": "충돌 프리즘"
+  ,"item.collisionPrism.description": "패링 반격 피해 +1"
+  ,"boss.chronoJailer.intro": "CHRONO JAILER // TIME LOCK"
+  ,"boss.kernelChimera.intro": "KERNEL CHIMERA // FORCED MERGE"
 }

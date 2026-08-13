@@ -18,7 +18,6 @@ void main() {
         PlatformerEnemyArchetype.echoBat,
         PlatformerEnemyArchetype.delaySniper,
         PlatformerEnemyArchetype.rewindSkater,
-        PlatformerEnemyArchetype.chronoJailer,
       ],
     );
   });

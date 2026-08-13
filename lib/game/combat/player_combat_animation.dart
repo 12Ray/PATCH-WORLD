@@ -36,7 +36,16 @@ enum PlayerCombatAnimation {
 
   int get frameCount => 4;
 
-  int get eventFrame => 0;
+  int get eventFrame => switch (this) {
+    PlayerCombatAnimation.attack1 ||
+    PlayerCombatAnimation.attack2 ||
+    PlayerCombatAnimation.attack3 ||
+    PlayerCombatAnimation.attack4 ||
+    PlayerCombatAnimation.attack5 ||
+    PlayerCombatAnimation.attack6 ||
+    PlayerCombatAnimation.counter => 1,
+    _ => 0,
+  };
 
   double fps(PlayerWeapon weapon) => switch (this) {
     PlayerCombatAnimation.attack1 ||

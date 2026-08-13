@@ -72,6 +72,43 @@ void main() {
     visual.update(.01);
     expect(visual.position.x, closeTo(16, .001));
   });
+
+  test(
+    'combat frame transforms stabilize pivot and return to identity',
+    () async {
+      final image = await _testImage();
+      final idle = Sprite(image, srcSize: Vector2.all(2));
+      final attackA = Sprite(image, srcSize: Vector2.all(2));
+      final attackB = Sprite(image, srcSize: Vector2.all(2));
+      final visual = EntitySpriteVisual(
+        sprite: idle,
+        size: Vector2.all(16),
+        parentSize: Vector2.all(32),
+        bobAmplitude: 0,
+        rotationAmplitude: 0,
+      );
+      visual.setDefaultAnimation(<Sprite>[idle], fps: 6);
+      visual.playOnce(
+        <Sprite>[attackA, attackB],
+        fps: 10,
+        frameTransforms: const <SpriteFrameTransform>[
+          SpriteFrameTransform(dx: 3, scale: .92),
+          SpriteFrameTransform(dx: -2, scale: 1.08),
+        ],
+      );
+
+      visual.update(.01);
+      expect(visual.position.x, closeTo(19, .001));
+      expect(visual.scale.y, closeTo(.92, .001));
+      visual.update(.1);
+      expect(visual.position.x, closeTo(14, .001));
+      expect(visual.scale.y, closeTo(1.08, .001));
+      visual.update(.11);
+      expect(visual.sprite, same(idle));
+      expect(visual.position.x, closeTo(16, .001));
+      expect(visual.scale.y, closeTo(1, .001));
+    },
+  );
 }
 
 Future<Image> _testImage() async {

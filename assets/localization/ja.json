@@ -91,9 +91,15 @@
   "rule.collisionMerge": "接触すると敵が融合する",
   "rule.patternAnalysis": "行動パターン解析中",
   "rule.survivalEscalation": "脅威レベル上昇中",
-  "objective.damageLab": "目標: Damage Labの敵をオーバーフロー {count}/5",
-  "objective.temporalHall": "目標: 時間の敵を撃破 {count}/5 · 止まると時間も止まる",
-  "objective.collisionArchive": "目標: 衝突エンティティを撃破 {count}/5",
+  "objective.damageLab": "ROOM 1-{room} · 戦闘室 {cleared}/3 · QA記録 {records}/3",
+  "objective.damageLabBoss": "ROOM 1-BOSS · OVERFLOW WARDENを限界まで回復せよ",
+  "objective.damageLabExit": "報酬を取得してパッチ端末を起動せよ",
+  "objective.temporalHall": "ROOM 2-{room} · 戦闘室 {cleared}/3 · 時間の欠片 {records}/3",
+  "objective.temporalHallBoss": "ROOM 2-BOSS · CHRONO JAILERを撃破せよ",
+  "objective.temporalHallExit": "報酬を取得して時間パッチ端末を起動せよ",
+  "objective.collisionArchive": "ROOM 3-{room} · 戦闘室 {cleared}/3 · 融合記録 {records}/3",
+  "objective.collisionArchiveBoss": "ROOM 3-BOSS · KERNEL CHIMERAを撃破せよ",
+  "objective.collisionArchiveExit": "報酬を取得して衝突パッチ端末を起動せよ",
   "objective.optimizerDamage": "目標: THE OPTIMIZERがPERFECT段階に入るまで攻撃",
   "objective.optimizerPerfect": "目標: 端末(E)を起動後、6秒以内にパルス4回 · 安定度 {stability}/150",
   "objective.optimizerOverflow": "CORE OVERFLOW · エンディングを計算中",
@@ -215,6 +221,25 @@
   "bossPhase.defeated": "撃破",
   "bossPhase.optimizer_fragment": "オプティマイザー・フラグメント",
   "bossPhase.composite": "コンポジット",
+  "bossPhase.warden_dormant": "待機",
+  "bossPhase.warden_intro": "起動",
+  "bossPhase.warden_shielded": "シールド",
+  "bossPhase.warden_breached": "破損",
+  "bossPhase.warden_critical": "臨界",
+  "bossPhase.warden_overflow": "オーバーフロー",
+  "bossPhase.warden_defeated": "撃破",
+  "bossPhase.chrono_jailer_dormant": "待機",
+  "bossPhase.chrono_jailer_intro": "時間封鎖",
+  "bossPhase.chrono_jailer_phase1": "時計監獄",
+  "bossPhase.chrono_jailer_phase2": "時間破砕",
+  "bossPhase.chrono_jailer_phase3": "最後の秒針",
+  "bossPhase.chrono_jailer_defeated": "撃破",
+  "bossPhase.kernel_chimera_dormant": "待機",
+  "bossPhase.kernel_chimera_intro": "カーネル結合",
+  "bossPhase.kernel_chimera_phase1": "ベクター外殻",
+  "bossPhase.kernel_chimera_phase2": "極性分裂",
+  "bossPhase.kernel_chimera_phase3": "臨界融合",
+  "bossPhase.kernel_chimera_defeated": "撃破",
   "effect.perfectDodge": "パーフェクト回避",
   "effect.houndBreak": "ブレイク確定",
   "effect.phaseExecution": "フェーズ処刑",
@@ -291,5 +316,24 @@
   "hud.doubleJumpSpent": "ダブルジャンプ使用済み",
   "hud.rangedPassive": "遠距離パッシブ",
   "touch.dash": "ダッシュ",
-  "patchSelection.synergy": "シナジー {grade}"
+  "patchSelection.synergy": "シナジー {grade}",
+  "quest.qaRecord": "QA記録",
+  "item.conduitHeart.name": "コンジット・ハート",
+  "item.conduitHeart.description": "戦闘室クリア時に耐久力を1回復",
+  "item.overflowCapacitor.name": "オーバーフロー・キャパシタ",
+  "item.overflowCapacitor.description": "コンボ最終攻撃のダメージ+1",
+  "boss.overflowWarden.intro": "OVERFLOW WARDEN // LIMIT BREAK",
+  "interaction.applyPatch": "パッチ適用"
+  ,"quest.timeFragment": "時間の欠片"
+  ,"quest.mergeLog": "融合記録"
+  ,"item.echoClock.name": "エコー・クロック"
+  ,"item.echoClock.description": "データサージ必要量を6から5に減少"
+  ,"item.temporalRelay.name": "テンポラル・リレー"
+  ,"item.temporalRelay.description": "全武器の攻撃間隔を8%短縮"
+  ,"item.vectorBoots.name": "ベクター・ブーツ"
+  ,"item.vectorBoots.description": "移動速度5%上昇"
+  ,"item.collisionPrism.name": "コリジョン・プリズム"
+  ,"item.collisionPrism.description": "パリィ反撃ダメージ+1"
+  ,"boss.chronoJailer.intro": "CHRONO JAILER // TIME LOCK"
+  ,"boss.kernelChimera.intro": "KERNEL CHIMERA // FORCED MERGE"
 }

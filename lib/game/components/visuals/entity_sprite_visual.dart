@@ -3,6 +3,14 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 
+final class SpriteFrameTransform {
+  const SpriteFrameTransform({this.dx = 0, this.dy = 0, this.scale = 1});
+
+  final double dx;
+  final double dy;
+  final double scale;
+}
+
 /// A sprite presentation layer that keeps gameplay hitboxes independent from
 /// the visible silhouette while adding small, readable game-feel motions.
 final class EntitySpriteVisual extends SpriteComponent {
@@ -46,6 +54,7 @@ final class EntitySpriteVisual extends SpriteComponent {
   Color _flashColor = const Color(0xFFFFFFFF);
   List<Sprite>? _defaultFrames;
   List<Sprite>? _activeFrames;
+  List<SpriteFrameTransform>? _activeFrameTransforms;
   double _defaultFps = 8;
   double _secondsPerFrame = 1 / 8;
   double _animationElapsed = 0;
@@ -64,9 +73,18 @@ final class EntitySpriteVisual extends SpriteComponent {
     }
   }
 
-  void playOnce(List<Sprite> frames, {required double fps}) {
+  void playOnce(
+    List<Sprite> frames, {
+    required double fps,
+    List<SpriteFrameTransform>? frameTransforms,
+  }) {
     if (frames.isEmpty || fps <= 0) return;
-    _startAnimation(frames, fps: fps, loops: false);
+    _startAnimation(
+      frames,
+      fps: fps,
+      loops: false,
+      frameTransforms: frameTransforms,
+    );
   }
 
   /// Plays a low-priority one-shot only when no attack, ability, hurt, or
@@ -109,8 +127,12 @@ final class EntitySpriteVisual extends SpriteComponent {
     List<Sprite> frames, {
     required double fps,
     required bool loops,
+    List<SpriteFrameTransform>? frameTransforms,
   }) {
     _activeFrames = frames;
+    _activeFrameTransforms = frameTransforms?.length == frames.length
+        ? frameTransforms
+        : null;
     _secondsPerFrame = 1 / fps;
     _animationElapsed = 0;
     _frameIndex = 0;
@@ -199,6 +221,14 @@ final class EntitySpriteVisual extends SpriteComponent {
   void update(double dt) {
     _updateAnimation(dt);
     _phase += dt * bobSpeed * (1 + _motionStrength * 0.7);
+    final transientAction =
+        _activeFrames != null && !_animationLoops && _animationPlaying;
+    final frameTransform = _activeFrameTransforms == null
+        ? const SpriteFrameTransform()
+        : _activeFrameTransforms![_frameIndex.clamp(
+            0,
+            _activeFrameTransforms!.length - 1,
+          )];
     final actionProgress = _actionRemaining <= 0
         ? 0.0
         : 1 - _actionRemaining / _actionDuration;
@@ -206,10 +236,15 @@ final class EntitySpriteVisual extends SpriteComponent {
         ? 0.0
         : math.sin(actionProgress * math.pi) * _actionTravel * _actionDirection;
     position.setValues(
-      _basePosition.x + actionOffset,
-      _basePosition.y + math.sin(_phase) * bobAmplitude,
+      _basePosition.x + actionOffset + frameTransform.dx * _facing,
+      _basePosition.y +
+          frameTransform.dy +
+          (transientAction ? 0 : math.sin(_phase) * bobAmplitude),
     );
-    angle = math.sin(_phase * 0.55) * rotationAmplitude;
+    // Do not stack idle bob/rotation on top of authored combat poses. Keeping
+    // the visual pivot still during one-shots removes the apparent size jump
+    // and makes the actual contact frame easier to read.
+    angle = transientAction ? 0 : math.sin(_phase * 0.55) * rotationAmplitude;
 
     if (_flashRemaining > 0) {
       _flashRemaining = math.max(0, _flashRemaining - dt);
@@ -219,9 +254,12 @@ final class EntitySpriteVisual extends SpriteComponent {
       _squashRemaining = math.max(0, _squashRemaining - dt);
       final progress = 1 - _squashRemaining / _squashDuration;
       final pulse = math.sin(progress * math.pi);
-      scale.setValues(_facing * (1 + pulse * 0.12), 1 - pulse * 0.08);
+      scale.setValues(
+        _facing * frameTransform.scale * (1 + pulse * 0.12),
+        frameTransform.scale * (1 - pulse * 0.08),
+      );
     } else {
-      scale.setValues(_facing, 1);
+      scale.setValues(_facing * frameTransform.scale, frameTransform.scale);
     }
     if (_actionRemaining > 0) {
       _actionRemaining = math.max(0, _actionRemaining - dt);

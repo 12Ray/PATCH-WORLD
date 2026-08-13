@@ -26,4 +26,24 @@ void main() {
       expect(pattern[4].actionId, contains('.special.'));
     }
   });
+
+  test('context selection avoids repeating the two most recent actions', () {
+    final pattern = PlatformerEnemyBrain.combatPattern('patchMite');
+    final selection = PlatformerEnemyBrain.chooseAction(
+      'patchMite',
+      EnemyCombatContext(
+        distance: 90,
+        verticalDelta: 0,
+        healthRatio: .35,
+        playerGrounded: true,
+        recentActionIds: <String>[pattern[0].actionId, pattern[1].actionId],
+        decisionSeed: 4,
+      ),
+    );
+    expect(<String>[
+      pattern[0].actionId,
+      pattern[1].actionId,
+    ], isNot(contains(selection.decision.actionId)));
+    expect(selection.motionFrame, inInclusiveRange(3, 7));
+  });
 }

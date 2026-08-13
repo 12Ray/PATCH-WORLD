@@ -3,10 +3,24 @@ import 'package:patch_world/game/combat/player_combat_animation.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 
 void main() {
-  test('all Pass 2 combat events are visible from gameplay time zero', () {
+  test('combat impacts use authored contact frames', () {
     for (final weapon in PlayerWeapon.values) {
       for (final state in PlayerCombatAnimation.values) {
-        expect(state.eventFrame, 0, reason: '${weapon.name}.${state.name}');
+        final expectedEventFrame = switch (state) {
+          PlayerCombatAnimation.attack1 ||
+          PlayerCombatAnimation.attack2 ||
+          PlayerCombatAnimation.attack3 ||
+          PlayerCombatAnimation.attack4 ||
+          PlayerCombatAnimation.attack5 ||
+          PlayerCombatAnimation.attack6 ||
+          PlayerCombatAnimation.counter => 1,
+          _ => 0,
+        };
+        expect(
+          state.eventFrame,
+          expectedEventFrame,
+          reason: '${weapon.name}.${state.name}',
+        );
         expect(
           state.activeFrameEnd(weapon),
           inInclusiveRange(0, state.frameCount - 1),
