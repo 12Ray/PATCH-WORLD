@@ -2,6 +2,8 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
+import 'package:patch_world/game/components/boss/overflow_warden_boss_component.dart';
+import 'package:patch_world/game/components/boss/campaign_chapter_boss_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/boss_room_controller.dart';
@@ -21,6 +23,16 @@ Future<void> expectCampaignRoomArtV3Loaded(
     tester,
     () =>
         game.world.player.hasCompleteArtV3Visuals &&
+        (roomId != RoomId.damageLab ||
+            room.children
+                .whereType<OverflowWardenBossComponent>()
+                .single
+                .hasArtV3Visual) &&
+        (roomId == RoomId.damageLab ||
+            room.children
+                .whereType<CampaignChapterBossComponent>()
+                .single
+                .hasArtV3Visual) &&
         room.children.whereType<PlatformerEnemyComponent>().every(
           (enemy) => enemy.hasArtV3Visual,
         ) &&
@@ -30,7 +42,24 @@ Future<void> expectCampaignRoomArtV3Loaded(
   );
 
   expect(game.world.player.hasCompleteArtV3Visuals, isTrue);
-  expect(room.children.whereType<PlatformerEnemyComponent>(), hasLength(5));
+  if (roomId == RoomId.damageLab) {
+    expect(
+      room.children
+          .whereType<OverflowWardenBossComponent>()
+          .single
+          .hasArtV3Visual,
+      isTrue,
+    );
+  } else {
+    expect(
+      room.children
+          .whereType<CampaignChapterBossComponent>()
+          .single
+          .hasArtV3Visual,
+      isTrue,
+    );
+  }
+  expect(room.children.whereType<PlatformerEnemyComponent>(), hasLength(6));
   expect(
     room.children.whereType<PlatformerEnemyComponent>().every(
       (enemy) => enemy.hasArtV3Visual,

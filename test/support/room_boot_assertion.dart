@@ -5,6 +5,7 @@ import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
+import 'package:patch_world/game/components/boss/campaign_chapter_boss_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
@@ -56,15 +57,19 @@ Future<void> expectPlatformerRoomBoot(
   );
   expect(
     game.world.activeRoom!.children.whereType<CheckpointBeaconComponent>(),
-    hasLength(2),
+    hasLength(3),
   );
   final enemies = game.world.activeRoom!.children
       .whereType<PlatformerEnemyComponent>()
       .toList(growable: false);
-  expect(enemies, hasLength(5));
-  expect(enemies.where((enemy) => enemy.archetype.isMidBoss), hasLength(1));
+  expect(enemies, hasLength(6));
+  expect(enemies.where((enemy) => enemy.archetype.isMidBoss), isEmpty);
   expect(
     enemies.map((enemy) => enemy.archetype).toSet(),
     expectedArchetypes.toSet(),
+  );
+  expect(
+    game.world.activeRoom!.children.whereType<CampaignChapterBossComponent>(),
+    hasLength(1),
   );
 }

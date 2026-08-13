@@ -91,9 +91,15 @@
   "rule.collisionMerge": "COLLISION PRODUCES UNITY",
   "rule.patternAnalysis": "PATTERN ANALYSIS ACTIVE",
   "rule.survivalEscalation": "THREAT BUDGET ESCALATING",
-  "objective.damageLab": "OBJECTIVE: OVERFLOW DAMAGE LAB ENEMIES {count}/5",
-  "objective.temporalHall": "OBJECTIVE: CLEAR TIME ENEMIES {count}/5 · STOP TO FREEZE TIME",
-  "objective.collisionArchive": "OBJECTIVE: CLEAR COLLISION ENTITIES {count}/5",
+  "objective.damageLab": "ROOM 1-{room} · CELLS {cleared}/3 · QA RECORDS {records}/3",
+  "objective.damageLabBoss": "ROOM 1-BOSS · HEAL THE OVERFLOW WARDEN PAST ITS LIMIT",
+  "objective.damageLabExit": "CLAIM THE REWARD AND ACTIVATE THE PATCH TERMINAL",
+  "objective.temporalHall": "ROOM 2-{room} · CELLS {cleared}/3 · TIME FRAGMENTS {records}/3",
+  "objective.temporalHallBoss": "ROOM 2-BOSS · DEFEAT THE CHRONO JAILER",
+  "objective.temporalHallExit": "CLAIM THE REWARD AND ACTIVATE THE TIME PATCH TERMINAL",
+  "objective.collisionArchive": "ROOM 3-{room} · CELLS {cleared}/3 · MERGE LOGS {records}/3",
+  "objective.collisionArchiveBoss": "ROOM 3-BOSS · DEFEAT THE KERNEL CHIMERA",
+  "objective.collisionArchiveExit": "CLAIM THE REWARD AND ACTIVATE THE COLLISION PATCH TERMINAL",
   "objective.optimizerDamage": "OBJECTIVE: ATTACK UNTIL THE OPTIMIZER ENTERS PERFECT PHASE",
   "objective.optimizerPerfect": "OBJECTIVE: ACTIVATE TERMINAL (E), THEN PULSE 4× IN 6S · STABILITY {stability}/150",
   "objective.optimizerOverflow": "CORE OVERFLOW · CALCULATING ENDING",
@@ -215,6 +221,25 @@
   "bossPhase.defeated": "DEFEATED",
   "bossPhase.optimizer_fragment": "OPTIMIZER FRAGMENT",
   "bossPhase.composite": "COMPOSITE",
+  "bossPhase.warden_dormant": "DORMANT",
+  "bossPhase.warden_intro": "BOOTING",
+  "bossPhase.warden_shielded": "SHIELDED",
+  "bossPhase.warden_breached": "BREACHED",
+  "bossPhase.warden_critical": "CRITICAL",
+  "bossPhase.warden_overflow": "OVERFLOW",
+  "bossPhase.warden_defeated": "DEFEATED",
+  "bossPhase.chrono_jailer_dormant": "DORMANT",
+  "bossPhase.chrono_jailer_intro": "TIME LOCK",
+  "bossPhase.chrono_jailer_phase1": "CLOCK PRISON",
+  "bossPhase.chrono_jailer_phase2": "TIME FRACTURE",
+  "bossPhase.chrono_jailer_phase3": "FINAL SECOND",
+  "bossPhase.chrono_jailer_defeated": "DEFEATED",
+  "bossPhase.kernel_chimera_dormant": "DORMANT",
+  "bossPhase.kernel_chimera_intro": "KERNEL BIND",
+  "bossPhase.kernel_chimera_phase1": "VECTOR SHELL",
+  "bossPhase.kernel_chimera_phase2": "POLARITY SPLIT",
+  "bossPhase.kernel_chimera_phase3": "CRITICAL MERGE",
+  "bossPhase.kernel_chimera_defeated": "DEFEATED",
   "effect.perfectDodge": "PERFECT DODGE",
   "effect.houndBreak": "BREAK CONFIRMED",
   "effect.phaseExecution": "PHASE EXECUTION",
@@ -291,5 +316,24 @@
   "hud.doubleJumpSpent": "DOUBLE JUMP SPENT",
   "hud.rangedPassive": "RANGED PASSIVE",
   "touch.dash": "DASH",
-  "patchSelection.synergy": "{grade} SYNERGY"
+  "patchSelection.synergy": "{grade} SYNERGY",
+  "quest.qaRecord": "QA RECORD",
+  "item.conduitHeart.name": "CONDUIT HEART",
+  "item.conduitHeart.description": "Restore 1 integrity after clearing a combat cell",
+  "item.overflowCapacitor.name": "OVERFLOW CAPACITOR",
+  "item.overflowCapacitor.description": "Final combo attack deals +1 damage",
+  "boss.overflowWarden.intro": "OVERFLOW WARDEN // LIMIT BREAK",
+  "interaction.applyPatch": "APPLY PATCH"
+  ,"quest.timeFragment": "TIME FRAGMENT"
+  ,"quest.mergeLog": "MERGE LOG"
+  ,"item.echoClock.name": "ECHO CLOCK"
+  ,"item.echoClock.description": "Data surge threshold is reduced from 6 to 5"
+  ,"item.temporalRelay.name": "TEMPORAL RELAY"
+  ,"item.temporalRelay.description": "All weapon attack intervals are reduced by 8%"
+  ,"item.vectorBoots.name": "VECTOR BOOTS"
+  ,"item.vectorBoots.description": "Movement speed is increased by 5%"
+  ,"item.collisionPrism.name": "COLLISION PRISM"
+  ,"item.collisionPrism.description": "Parry counter damage +1"
+  ,"boss.chronoJailer.intro": "CHRONO JAILER // TIME LOCK"
+  ,"boss.kernelChimera.intro": "KERNEL CHIMERA // FORCED MERGE"
 }

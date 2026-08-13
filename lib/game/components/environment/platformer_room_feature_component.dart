@@ -252,6 +252,11 @@ final class BossSealGateComponent extends PlatformSurfaceComponent {
 
   void unlock() => _unlocked = true;
 
+  void lock() {
+    _unlocked = false;
+    _unlockProgress = 0;
+  }
+
   @override
   void update(double dt) {
     if (_unlocked) _unlockProgress = math.min(1, _unlockProgress + dt * 2.5);

@@ -36,7 +36,10 @@ void main() {
     game.world.player.configureLoadout(PlayerWeapon.gun, assistMode: false);
     game.resumeEngine();
     game.world.player.tryAttack();
-    await tester.pump(const Duration(milliseconds: 1));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
     expect(
       game.world.children.whereType<PlayerProjectileComponent>(),
       isNotEmpty,

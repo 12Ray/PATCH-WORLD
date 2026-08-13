@@ -140,6 +140,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   bool _polarityPushes = false;
   int _projectilePatternIndex = 0;
   int _combatPatternIndex = 0;
+  final List<String> _recentActionIds = <String>[];
   int _activeMotionFrame = 3;
   double _visualClock = 0;
   double _hurtTimer = 0;
@@ -557,16 +558,28 @@ final class PlatformerEnemyComponent extends PositionComponent
   }
 
   void _beginPatternAction() {
-    final pattern = PlatformerEnemyBrain.combatPattern(archetype.name);
-    final patternIndex = _combatPatternIndex % pattern.length;
+    final player = game.world.player;
+    final selection = PlatformerEnemyBrain.chooseAction(
+      archetype.name,
+      EnemyCombatContext(
+        distance: player.position.distanceTo(position),
+        verticalDelta: (player.position.y - position.y).abs(),
+        healthRatio: healthState.current / healthState.overflowThreshold,
+        playerGrounded: player.isGrounded,
+        recentActionIds: List<String>.unmodifiable(_recentActionIds),
+        decisionSeed: _combatPatternIndex,
+      ),
+    );
     _combatPatternIndex += 1;
-    final decision = pattern[patternIndex];
+    final decision = selection.decision;
+    _recentActionIds.insert(0, decision.actionId);
+    if (_recentActionIds.length > 3) _recentActionIds.removeLast();
     _beginAction(
       id: decision.actionId,
       telegraph: decision.telegraph,
       active: decision.active,
       recovery: decision.recovery,
-      motionFrame: 3 + patternIndex,
+      motionFrame: selection.motionFrame,
     );
   }
 

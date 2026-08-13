@@ -9,6 +9,8 @@ import 'package:flame/game.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:patch_world/app/overlay_ids.dart';
+import 'package:patch_world/game/campaign/damage_lab_floor_state.dart';
+import 'package:patch_world/game/campaign/campaign_floor_state.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/core/input_controller.dart';
 import 'package:patch_world/game/core/game_clock.dart';
@@ -16,6 +18,7 @@ import 'package:patch_world/game/core/run_state.dart';
 import 'package:patch_world/game/core/run_metrics.dart';
 import 'package:patch_world/game/core/ui_snapshot.dart';
 import 'package:patch_world/game/patch_world.dart';
+import 'package:patch_world/game/items/run_item_state.dart';
 import 'package:patch_world/game/rules/anomalies/damage_sign_inverted_rule.dart';
 import 'package:patch_world/game/rules/game_rule.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
@@ -103,6 +106,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   final InputController input = InputController();
   final RunState runState = RunState();
   final RunMetrics runMetrics = RunMetrics();
+  final DamageLabFloorState damageLabProgress = DamageLabFloorState();
+  final CampaignFloorState temporalHallProgress = CampaignFloorState();
+  final CampaignFloorState collisionArchiveProgress = CampaignFloorState();
+  final RunItemState runItems = RunItemState();
   final SurvivalRunState survivalRun = SurvivalRunState();
   final RuleEngine ruleEngine = RuleEngine();
   final GameClock clock = GameClock();
@@ -150,8 +157,19 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   String _settingsReturnOverlay = OverlayIds.pause;
   String _creditsReturnOverlay = OverlayIds.title;
   PlayerWeapon? _selectedRunWeapon;
+  bool _cinematicInputLocked = false;
 
   PlayerWeapon? get selectedRunWeapon => _selectedRunWeapon;
+
+  void setCinematicInputLocked(bool value) {
+    if (_cinematicInputLocked == value) return;
+    _cinematicInputLocked = value;
+    input.clearAll();
+    if (value && world.isReady) {
+      world.player.setMovementInput(Vector2.zero());
+      world.player.setJumpHeld(false);
+    }
+  }
 
   RuleContext get ruleContext => RuleContext(
     roomId: currentRoom,
@@ -309,6 +327,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       assistMode: settings.value.assistMode,
     );
     runState.reset();
+    damageLabProgress.reset();
+    temporalHallProgress.reset();
+    collisionArchiveProgress.reset();
+    runItems.reset();
     survivalRun.reset();
     if (survivalQaStartCombo > 0) {
       survivalRun.seedComboForQa(survivalQaStartCombo);
@@ -681,8 +703,14 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     final platformRoom = activeRoom is PlatformerRoomGeometry
         ? activeRoom as PlatformerRoomGeometry
         : null;
+    final cameraTarget = switch (activeRoom) {
+      PlatformerRoomCameraTarget room => room.cameraTargetFor(
+        world.player.position,
+      ),
+      _ => world.player.position,
+    };
     final centerX = platformRoom != null
-        ? world.player.position.x
+        ? cameraTarget.x
               .clamp(
                 logicalWidth / 2,
                 platformRoom.worldSize.x - logicalWidth / 2,
@@ -690,7 +718,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
               .toDouble()
         : logicalWidth / 2;
     final centerY = platformRoom != null
-        ? world.player.position.y
+        ? cameraTarget.y
               .clamp(
                 logicalHeight / 2,
                 platformRoom.worldSize.y - logicalHeight / 2,
@@ -724,8 +752,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       return;
     }
     input.advance(dt);
-    final movement = input.movementAxis;
-    final hasGameplayIntent = input.hasGameplayIntent;
+    final movement = _cinematicInputLocked
+        ? Vector2.zero()
+        : input.movementAxis;
+    final hasGameplayIntent = !_cinematicInputLocked && input.hasGameplayIntent;
     final activeRoom = world.activeRoom;
     final survivalTempo = activeRoom is SurvivalArenaController
         ? activeRoom.enemySpeedMultiplier
@@ -751,16 +781,20 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     );
     runMetrics.update(clock.realDt);
     world.player.setMovementInput(movement);
-    world.player.setJumpHeld(input.jumpHeld);
-    if (input.consumeJump()) world.player.queueJump();
-    if (input.consumeDashDirection() case final double direction) {
-      switch (world.player.selectedWeapon) {
-        case PlayerWeapon.sword:
-          world.player.tryDash(direction);
-        case PlayerWeapon.gauntlet:
-          world.player.queueJump();
-        case PlayerWeapon.gun:
-          break;
+    world.player.setJumpHeld(!_cinematicInputLocked && input.jumpHeld);
+    if (!_cinematicInputLocked && input.consumeJump()) {
+      world.player.queueJump();
+    }
+    if (!_cinematicInputLocked) {
+      if (input.consumeDashDirection() case final double direction) {
+        switch (world.player.selectedWeapon) {
+          case PlayerWeapon.sword:
+            world.player.tryDash(direction);
+          case PlayerWeapon.gauntlet:
+            world.player.queueJump();
+          case PlayerWeapon.gun:
+            break;
+        }
       }
     }
     patternTracker.update(clock.realDt);
@@ -780,12 +814,14 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           activeRoom.isPhaseWindowOpen,
       playerPosition: world.player.position,
     );
-    if (input.consumeAttack()) {
+    if (!_cinematicInputLocked && input.consumeAttack()) {
       patternTracker.recordAttack();
       world.player.tryAttack();
     }
-    if (input.consumeParry()) world.player.tryParry();
-    if (input.consumeInteract()) world.player.tryInteract();
+    if (!_cinematicInputLocked && input.consumeParry()) world.player.tryParry();
+    if (!_cinematicInputLocked && input.consumeInteract()) {
+      world.player.tryInteract();
+    }
     _uiPublishAccumulator += clock.realDt;
     if (_uiPublishAccumulator >= 0.10) {
       _uiPublishAccumulator = 0;
@@ -930,6 +966,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       overlays.add(OverlayIds.touchControls);
     }
     runState.reset();
+    damageLabProgress.reset();
+    temporalHallProgress.reset();
+    collisionArchiveProgress.reset();
+    runItems.reset();
     runMetrics.reset();
     completedRun.value = null;
     _consecutiveRoomDeaths = 0;
@@ -962,6 +1002,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     overlays.remove(OverlayIds.hud);
     overlays.remove(OverlayIds.touchControls);
     runState.reset();
+    damageLabProgress.reset();
+    temporalHallProgress.reset();
+    collisionArchiveProgress.reset();
+    runItems.reset();
     runMetrics.reset();
     completedRun.value = null;
     survivalResult.value = null;
@@ -1232,6 +1276,13 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     final burst = enemyTempo.frameBurstSnapshot;
     final boss = world.activeBoss;
     final activeRoom = world.activeRoom;
+    final damageLabRoom = activeRoom is RoomOneController ? activeRoom : null;
+    final temporalHallRoom = activeRoom is RoomTwoController
+        ? activeRoom
+        : null;
+    final collisionArchiveRoom = activeRoom is RoomThreeController
+        ? activeRoom
+        : null;
     final survivalRoom = activeRoom is SurvivalArenaController
         ? activeRoom
         : null;
@@ -1258,27 +1309,39 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       },
       objectiveLabel: switch (currentRoom) {
         RoomId.damageLab => localization.text(
-          'objective.damageLab',
+          damageLabRoom?.isCompleted == true
+              ? 'objective.damageLabExit'
+              : damageLabRoom?.currentCellNumber == 4
+              ? 'objective.damageLabBoss'
+              : 'objective.damageLab',
           parameters: <String, Object>{
-            'count': activeRoom is RoomOneController
-                ? activeRoom.overflowCount
-                : 0,
+            'room': damageLabRoom?.currentCellNumber ?? 1,
+            'cleared': damageLabRoom?.clearedEncounterCount ?? 0,
+            'records': damageLabRoom?.qaRecordCount ?? 0,
           },
         ),
         RoomId.temporalHall => localization.text(
-          'objective.temporalHall',
+          temporalHallRoom?.isCompleted == true
+              ? 'objective.temporalHallExit'
+              : temporalHallRoom?.currentCellNumber == 4
+              ? 'objective.temporalHallBoss'
+              : 'objective.temporalHall',
           parameters: <String, Object>{
-            'count': activeRoom is RoomTwoController
-                ? activeRoom.defeatedCount
-                : 0,
+            'room': temporalHallRoom?.currentCellNumber ?? 1,
+            'cleared': temporalHallRoom?.clearedEncounterCount ?? 0,
+            'records': temporalHallRoom?.recordCount ?? 0,
           },
         ),
         RoomId.collisionArchive => localization.text(
-          'objective.collisionArchive',
+          collisionArchiveRoom?.isCompleted == true
+              ? 'objective.collisionArchiveExit'
+              : collisionArchiveRoom?.currentCellNumber == 4
+              ? 'objective.collisionArchiveBoss'
+              : 'objective.collisionArchive',
           parameters: <String, Object>{
-            'count': activeRoom is RoomThreeController
-                ? activeRoom.defeatedCount
-                : 0,
+            'room': collisionArchiveRoom?.currentCellNumber ?? 1,
+            'cleared': collisionArchiveRoom?.clearedEncounterCount ?? 0,
+            'records': collisionArchiveRoom?.recordCount ?? 0,
           },
         ),
         RoomId.optimizerCore => switch (boss?.phase.name) {
@@ -1332,13 +1395,27 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       echoPulseCount: patchEffects.echoPulseCount,
       frameBurstPhase: burst?.phase,
       frameBurstProgress: burst?.phaseProgress,
-      bossHealth: boss?.health ?? survivalRoom?.milestoneBossHealth,
-      bossMaxHealth: boss == null ? survivalRoom?.milestoneBossMaxHealth : 20,
+      bossHealth:
+          damageLabRoom?.bossHealth ??
+          temporalHallRoom?.bossHealth ??
+          collisionArchiveRoom?.bossHealth ??
+          boss?.health ??
+          survivalRoom?.milestoneBossHealth,
+      bossMaxHealth:
+          damageLabRoom?.bossMaxHealth ??
+          temporalHallRoom?.bossMaxHealth ??
+          collisionArchiveRoom?.bossMaxHealth ??
+          (boss == null ? survivalRoom?.milestoneBossMaxHealth : 20),
       bossStability: boss?.phase.name == 'perfect'
           ? boss?.stability.current
           : null,
       patternConfidence: boss == null ? null : pattern.confidence,
-      bossPhase: boss?.phase.name ?? survivalRoom?.milestoneBossLabel,
+      bossPhase:
+          damageLabRoom?.bossPhaseKey ??
+          temporalHallRoom?.bossPhaseKey ??
+          collisionArchiveRoom?.bossPhaseKey ??
+          boss?.phase.name ??
+          survivalRoom?.milestoneBossLabel,
     );
     if (force || uiSnapshot.value != next) {
       uiSnapshot.value = next;
