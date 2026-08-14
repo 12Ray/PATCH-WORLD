@@ -35,6 +35,9 @@ jobs:
             --dart-define=APP_VERSION="$VERSION" \
             --dart-define=BUILD_SHA=${GITHUB_SHA::8} \
             --dart-define=BUILD_TIME=$(date -u +%Y%m%dT%H%M%SZ)
+      - name: Enforce web release budgets
+        shell: pwsh
+        run: ./tool/qa_budget.ps1
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

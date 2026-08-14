@@ -16,6 +16,7 @@ final class SurvivalScorePopupComponent extends TextComponent {
          priority: 70,
          textRenderer: TextPaint(
            style: TextStyle(
+             fontFamily: 'PatchWorldCJK',
              color: switch (kind) {
                SurvivalScorePopupKind.normal => const Color(0xFF36E1FF),
                SurvivalScorePopupKind.elite => const Color(0xFFFFC857),

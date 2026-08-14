@@ -53,12 +53,14 @@ final class CampaignChapterBossComponent extends PositionComponent
     required super.position,
     required this.kind,
     required this.onDefeated,
+    this.onPhaseChanged,
   }) : healthState = HealthState(max: 20, current: 20, overflowMargin: 0),
        super(size: Vector2(78, 90), anchor: Anchor.center, priority: 17);
 
   final CampaignChapterBossKind kind;
   final HealthState healthState;
   final VoidCallback onDefeated;
+  final void Function(CampaignChapterBossPhase phase)? onPhaseChanged;
   CampaignChapterBossPhase phase = CampaignChapterBossPhase.dormant;
 
   SpriteComponent? _visual;
@@ -111,6 +113,7 @@ final class CampaignChapterBossComponent extends PositionComponent
         anchor: Anchor.bottomCenter,
         textRenderer: TextPaint(
           style: TextStyle(
+            fontFamily: 'PatchWorldCJK',
             color: kind.accentColor,
             fontSize: 11,
             fontWeight: FontWeight.w800,
@@ -152,6 +155,7 @@ final class CampaignChapterBossComponent extends PositionComponent
   void beginIntro() {
     if (phase != CampaignChapterBossPhase.dormant) return;
     phase = CampaignChapterBossPhase.intro;
+    onPhaseChanged?.call(phase);
     game.publishUiSnapshot(force: true);
   }
 
@@ -159,6 +163,7 @@ final class CampaignChapterBossComponent extends PositionComponent
     if (phase != CampaignChapterBossPhase.intro) return;
     phase = CampaignChapterBossPhase.phaseOne;
     _attackCooldown = .6;
+    onPhaseChanged?.call(phase);
     game.publishUiSnapshot(force: true);
   }
 
@@ -179,6 +184,7 @@ final class CampaignChapterBossComponent extends PositionComponent
     if (phase != previousPhase) {
       _attackCooldown = .25;
       scale.setAll(1.12);
+      onPhaseChanged?.call(phase);
       game.triggerImpactFeedback();
       game.publishUiSnapshot(force: true);
     }
@@ -194,6 +200,7 @@ final class CampaignChapterBossComponent extends PositionComponent
     if (_resolved) return;
     _resolved = true;
     phase = CampaignChapterBossPhase.defeated;
+    onPhaseChanged?.call(phase);
     _pendingAttack = null;
     _defeatRemaining = 1.1;
     game.triggerImpactFeedback();

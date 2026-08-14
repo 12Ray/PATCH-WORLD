@@ -201,6 +201,7 @@ final class PlatformerEnemyComponent extends PositionComponent
       anchor: Anchor.bottomCenter,
       textRenderer: TextPaint(
         style: TextStyle(
+          fontFamily: 'PatchWorldCJK',
           color: archetype.accentColor,
           fontSize: archetype.isMidBoss ? 9 : 7,
           fontWeight: FontWeight.w700,

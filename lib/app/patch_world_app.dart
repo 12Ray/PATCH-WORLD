@@ -2,10 +2,12 @@ import 'package:flame/game.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:patch_world/app/overlay_ids.dart';
+import 'package:patch_world/app/frame_pacing_probe.dart';
 import 'package:patch_world/app/overlays/credits_overlay.dart';
 import 'package:patch_world/app/overlays/defeat_overlay.dart';
 import 'package:patch_world/app/overlays/ending_overlay.dart';
 import 'package:patch_world/app/overlays/hud_overlay.dart';
+import 'package:patch_world/app/overlays/campaign_map_overlay.dart';
 import 'package:patch_world/app/overlays/patch_selection_overlay.dart';
 import 'package:patch_world/app/overlays/patch_applied_overlay.dart';
 import 'package:patch_world/app/overlays/pause_overlay.dart';
@@ -82,11 +84,12 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
 
   RoomId get _buildInitialRoom =>
       switch (const String.fromEnvironment('START_ROOM')) {
+        'damage' => RoomId.damageLab,
         'temporal' => RoomId.temporalHall,
         'collision' => RoomId.collisionArchive,
         'optimizer' => RoomId.optimizerCore,
         'survival' => RoomId.survivalArena,
-        _ => RoomId.damageLab,
+        _ => RoomId.bootSector,
       };
 
   @override
@@ -96,16 +99,26 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
       title: 'PATCH//WORLD',
       theme: ThemeData(
         brightness: Brightness.dark,
+        fontFamily: 'PatchWorldCJK',
         scaffoldBackgroundColor: const Color(0xFF05070D),
       ),
       builder: (context, child) => ValueListenableBuilder<GameSettings>(
         valueListenable: _game.settings,
-        builder: (context, settings, _) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(settings.textScale)),
-          child: child!,
-        ),
+        builder: (context, settings, _) {
+          final scaledGame = MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(settings.textScale)),
+            child: child!,
+          );
+          if (!FramePacingProbe.enabled) return scaledGame;
+          return Stack(
+            children: <Widget>[
+              scaledGame,
+              const Positioned(top: 6, right: 6, child: FramePacingProbe()),
+            ],
+          );
+        },
       ),
       home: Scaffold(
         body: Center(
@@ -136,6 +149,8 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
                             TouchControlsOverlay(game: game),
                         OverlayIds.pause: (context, game) =>
                             PauseOverlay(game: game),
+                        OverlayIds.campaignMap: (context, game) =>
+                            CampaignMapOverlay(game: game),
                         OverlayIds.defeat: (context, game) =>
                             DefeatOverlay(game: game),
                         OverlayIds.ending: (context, game) =>

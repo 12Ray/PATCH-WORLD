@@ -539,6 +539,7 @@ final class SurvivalArenaController extends Component
       priority: 80,
       textRenderer: TextPaint(
         style: TextStyle(
+          fontFamily: 'PatchWorldCJK',
           color: alert.color,
           fontSize: 22,
           fontWeight: FontWeight.w900,

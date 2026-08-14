@@ -7,19 +7,26 @@ import 'package:flame/text.dart';
 import 'package:patch_world/game/campaign/damage_lab_floor_state.dart';
 import 'package:patch_world/game/components/boss/overflow_warden_boss_component.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
+import 'package:patch_world/game/components/environment/campaign_door_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
 import 'package:patch_world/game/components/environment/qa_record_terminal_component.dart';
 import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/components/items/item_pedestal_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
+import 'package:patch_world/game/components/presentation/item_discovery_presentation_component.dart';
 import 'package:patch_world/game/items/run_item_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
+import 'package:patch_world/game/rooms/damage_lab_room_status.dart';
+import 'package:patch_world/game/rules/rule_context.dart';
 
 final class RoomOneController extends Component
     with HasGameReference<PatchWorldGame>
-    implements PlatformerRoomGeometry, PlatformerRoomCameraTarget {
+    implements
+        PlatformerRoomGeometry,
+        PlatformerRoomCameraTarget,
+        DamageLabRoomStatus {
   RoomOneController({required this.progress});
 
   static const double cellWidth = 960;
@@ -39,6 +46,7 @@ final class RoomOneController extends Component
   ItemPedestalComponent? _questReward;
   ItemPedestalComponent? _bossReward;
   _PatchExitTerminalComponent? _exitTerminal;
+  CampaignDoorComponent? _hubDoor;
   TextComponent? _bossBanner;
   Vector2 _respawnPoint = Vector2(72, 988);
   int _currentCell = 0;
@@ -61,14 +69,21 @@ final class RoomOneController extends Component
 
   int get overflowCount => _defeatedCount;
   int get defeatedCount => _defeatedCount;
+  @override
   int get clearedEncounterCount => progress.clearedEncounterCount;
+  @override
   int get qaRecordCount => progress.collectedRecordCount;
+  @override
   int get currentCellNumber => (_currentCell + 1).clamp(1, 4);
+  @override
   bool get isCompleted => progress.bossDefeated;
   bool get isBossIntroActive => _bossIntroRemaining > 0;
+  @override
   int? get bossHealth => _bossEncounterStarted ? _boss?.health : null;
+  @override
   int? get bossMaxHealth =>
       _bossEncounterStarted ? _boss?.maximumOverflowHealth : null;
+  @override
   String? get bossPhaseKey => _bossEncounterStarted ? _boss?.phaseId : null;
 
   @override
@@ -100,6 +115,14 @@ final class RoomOneController extends Component
     _buildGeometry();
     await addAll(_surfaces);
     await _addHazardsAndTraversal();
+    final hubDoor = CampaignDoorComponent(
+      position: Vector2(72, 1024),
+      labelLocalizationKey: 'interaction.returnBootSector',
+      onInteract: () => game.travelToCampaignRoom(RoomId.bootSector),
+      accentColor: const Color(0xFF9D8CFF),
+    );
+    _hubDoor = hubDoor;
+    await add(hubDoor);
     await _addEncounters();
     await _addOptionalQuest();
     await _addBossRoom();
@@ -337,6 +360,7 @@ final class RoomOneController extends Component
     final reward = ItemPedestalComponent(
       position: Vector2(2515, 1018),
       item: RunItemId.conduitHeart,
+      rewardTier: ItemRewardTier.quest,
       onCollected: (_) {
         progress.questRewardClaimed = true;
         _questReward = null;
@@ -365,6 +389,7 @@ final class RoomOneController extends Component
       priority: 40,
       textRenderer: TextPaint(
         style: const TextStyle(
+          fontFamily: 'PatchWorldCJK',
           color: Color(0xFFFFD35A),
           fontSize: 28,
           fontWeight: FontWeight.w900,
@@ -393,6 +418,7 @@ final class RoomOneController extends Component
     final reward = ItemPedestalComponent(
       position: Vector2(3450, 1018),
       item: RunItemId.overflowCapacitor,
+      rewardTier: ItemRewardTier.boss,
       onCollected: (_) {
         progress.bossRewardClaimed = true;
         _bossReward = null;
@@ -410,6 +436,7 @@ final class RoomOneController extends Component
   }
 
   bool tryInteract(PlayerComponent player) {
+    if (_hubDoor?.tryEnter(player) ?? false) return true;
     for (final terminal in _recordTerminals.toList()) {
       if (terminal.tryCollect(player)) return true;
     }
@@ -503,6 +530,7 @@ final class _PatchExitTerminalComponent extends PositionComponent
         anchor: Anchor.bottomCenter,
         textRenderer: TextPaint(
           style: const TextStyle(
+            fontFamily: 'PatchWorldCJK',
             color: Color(0xFFFFE39A),
             fontSize: 10,
             fontWeight: FontWeight.w800,

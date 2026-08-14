@@ -6,6 +6,7 @@ import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
 import 'package:patch_world/game/components/projectiles/player_projectile_component.dart';
+import 'package:patch_world/game/components/presentation/boss_arena_presentation_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/rooms/boss_room_controller.dart';
@@ -32,9 +33,15 @@ void main() {
     expect(room.children.whereType<JumpPadComponent>(), hasLength(2));
     expect(room.boss.position, Vector2(960, 330));
     expect(room.terminal.position, Vector2(960, 980));
+    game.resumeEngine();
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(room.isBossIntroActive, isTrue);
+    expect(room.boss.isEncounterActive, isFalse);
+    expect(room.cameraZoomFor(game.world.player.position), greaterThan(1));
+    expect(room.children.whereType<BossNameCardComponent>(), isNotEmpty);
 
     game.world.player.configureLoadout(PlayerWeapon.gun, assistMode: false);
-    game.resumeEngine();
     game.world.player.tryAttack();
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 50));

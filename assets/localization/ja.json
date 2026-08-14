@@ -80,17 +80,32 @@
   "patch.duplicate_fault.sideEffect": "各敵は最初の被弾時にHP1の複製を作ります。",
   "patch.duplicate_fault.tactic": "複製を別の危険物へ誘導してください。",
   "patch.duplicate_fault.risk": "混沌",
+  "room.bootSector": "BOOT SECTOR",
+  "room.damageDashCache": "不安定キャッシュ",
+  "room.damageUpperArchive": "上層アーカイブ",
+  "room.damageTurretControl": "タレット制御室",
+  "room.temporalAscent": "時計仕掛けの上昇路",
+  "room.temporalFracture": "壊れた時間軸",
+  "room.temporalPendulum": "巻き戻し振り子",
+  "room.chronoJailer": "CHRONO JAILER",
+  "room.collisionCompression": "ベクトル圧縮路",
+  "room.collisionFracture": "位相断層",
+  "room.collisionMerge": "極性融合室",
+  "room.kernelChimera": "KERNEL CHIMERA",
   "room.damageLab": "DAMAGE LAB",
   "room.temporalHall": "TEMPORAL HALL",
   "room.collisionArchive": "COLLISION ARCHIVE",
   "room.optimizerCore": "OPTIMIZATION CORE",
   "room.survivalArena": "PATCH//SURVIVE ARENA",
+  "rule.systemStable": "システム経路安定",
   "rule.damageInverted": "攻撃が敵を回復します。",
   "rule.damageNormalized": "ダメージ規則を正常化",
   "rule.timeOnInput": "入力した時だけ時間が進む",
   "rule.collisionMerge": "接触すると敵が融合する",
   "rule.patternAnalysis": "行動パターン解析中",
   "rule.survivalEscalation": "脅威レベル上昇中",
+  "objective.bootSector": "ハブを探索してDAMAGE LABへ入る [L]",
+  "objective.damageSecret": "任意キャッシュを取得してASSEMBLYへ戻る",
   "objective.damageLab": "ROOM 1-{room} · 戦闘室 {cleared}/3 · QA記録 {records}/3",
   "objective.damageLabBoss": "ROOM 1-BOSS · OVERFLOW WARDENを限界まで回復せよ",
   "objective.damageLabExit": "報酬を取得してパッチ端末を起動せよ",
@@ -201,7 +216,7 @@
   "touch.parry": "パリィ",
   "touch.attack": "攻撃",
   "touch.pause": "一時停止",
-  "game.controlsHint": "移動 A/D   ジャンプ W/上キー   攻撃 J   特殊 K/2回押し   インタラクト L   パリィ SHIFT",
+  "game.controlsHint": "移動 A/D   ジャンプ W/上キー   攻撃 J   特殊 K/2回押し   インタラクト L   マップ M   パリィ SHIFT",
   "ending.activePlayers": "アクティブな人間プレイヤー: {count}",
   "hud.bossHealth": "{boss} {phase}  HP {current}/{max}",
   "hud.bossStability": "{perfect}  {stability} {value}/150",
@@ -322,9 +337,38 @@
   "item.conduitHeart.description": "戦闘室クリア時に耐久力を1回復",
   "item.overflowCapacitor.name": "オーバーフロー・キャパシタ",
   "item.overflowCapacitor.description": "コンボ最終攻撃のダメージ+1",
+  "item.dashBuffer.name": "ダッシュ・バッファ",
+  "item.dashBuffer.description": "剣のダッシュ再使用時間を5秒から4秒に短縮",
+  "item.airStack.name": "エア・スタック",
+  "item.airStack.description": "ガントレットの最大耐久力+1",
+  "item.targetingDaemon.name": "ターゲティング・デーモン",
+  "item.targetingDaemon.description": "銃の攻撃間隔を10%短縮",
   "boss.overflowWarden.intro": "OVERFLOW WARDEN // LIMIT BREAK",
-  "interaction.applyPatch": "パッチ適用"
-  ,"quest.timeFragment": "時間の欠片"
+  "interaction.applyPatch": "パッチ適用",
+  "interaction.enterDamageLab": "DAMAGE LABへ入る",
+  "interaction.returnBootSector": "BOOT SECTORへ戻る",
+  "interaction.previousRoom": "前の部屋",
+  "interaction.nextRoom": "次の部屋",
+  "interaction.enterBossRoom": "ボス部屋へ入る",
+  "interaction.enterDashCache": "不安定キャッシュ",
+  "interaction.enterUpperArchive": "上層アーカイブ",
+  "interaction.enterTurretControl": "タレット制御室",
+  "interaction.returnAssembly": "ASSEMBLYへ戻る",
+  "interaction.openMap": "ワールドマップ",
+  "interaction.activateCheckpoint": "チェックポイント同期",
+  "interaction.enterTemporalHall": "TEMPORAL HALLへ入る",
+  "interaction.enterCollisionArchive": "COLLISION ARCHIVEへ入る",
+  "interaction.returnOverflowJunction": "OVERFLOW分岐へ戻る",
+  "interaction.returnHubLift": "BOOT SECTORリフト",
+  "interaction.enterOptimizerCore": "OPTIMIZER COREへ入る",
+  "map.title": "PATCH//WORLD MAP",
+  "map.discoveredCount": "訪問 {visited} · 発見 {revealed}",
+  "map.current": "現在地",
+  "map.visited": "訪問済み",
+  "map.revealed": "発見済み",
+  "map.checkpoint": "チェックポイント",
+  "common.close": "閉じる",
+  "quest.timeFragment": "時間の欠片"
   ,"quest.mergeLog": "融合記録"
   ,"item.echoClock.name": "エコー・クロック"
   ,"item.echoClock.description": "データサージ必要量を6から5に減少"
@@ -336,4 +380,13 @@
   ,"item.collisionPrism.description": "パリィ反撃ダメージ+1"
   ,"boss.chronoJailer.intro": "CHRONO JAILER // TIME LOCK"
   ,"boss.kernelChimera.intro": "KERNEL CHIMERA // FORCED MERGE"
+  ,"itemDiscovery.cache": "キャッシュアイテム獲得"
+  ,"itemDiscovery.questReward": "サブクエスト報酬"
+  ,"itemDiscovery.bossReward": "ボス報酬"
+  ,"boss.coreSignatureAcquired": "コアシグネチャー獲得"
+  ,"boss.optimizerGateUpdated": "OPTIMIZERゲート同期"
+  ,"gate.optimizerCore": "OPTIMIZERゲート"
+  ,"gate.coreProgress": "コアシグネチャー {current}/{required}"
+  ,"boss.optimizer.name": "オプティマイザー"
+  ,"boss.optimizer.intro": "最終検証 // 完全な世界"
 }

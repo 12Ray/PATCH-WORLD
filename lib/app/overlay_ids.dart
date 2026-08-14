@@ -4,6 +4,7 @@ abstract final class OverlayIds {
   static const String hud = 'hud';
   static const String touchControls = 'touchControls';
   static const String pause = 'pause';
+  static const String campaignMap = 'campaignMap';
   static const String patchSelection = 'patchSelection';
   static const String patchApplied = 'patchApplied';
   static const String survivalUpgrade = 'survivalUpgrade';

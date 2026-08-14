@@ -16,6 +16,7 @@ final class PhaseExecutionBurstComponent extends TextComponent {
          priority: 76,
          textRenderer: TextPaint(
            style: const TextStyle(
+             fontFamily: 'PatchWorldCJK',
              color: Color(0xFFFFC857),
              fontSize: 19,
              fontWeight: FontWeight.w900,

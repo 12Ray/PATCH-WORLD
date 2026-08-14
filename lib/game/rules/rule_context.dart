@@ -1,4 +1,5 @@
 enum RoomId {
+  bootSector,
   damageLab,
   temporalHall,
   collisionArchive,

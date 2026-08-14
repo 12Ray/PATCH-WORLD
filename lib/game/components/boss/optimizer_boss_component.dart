@@ -24,6 +24,7 @@ final class OptimizerBossComponent extends CircleComponent
     required super.position,
     required this.onPerfectStateEntered,
     required this.onDefeated,
+    this.startsActive = true,
   }) : super(
          radius: 48,
          anchor: Anchor.center,
@@ -35,6 +36,7 @@ final class OptimizerBossComponent extends CircleComponent
   String get entityId => 'boss.optimizer';
   final void Function() onPerfectStateEntered;
   final void Function() onDefeated;
+  final bool startsActive;
   final StabilityState stability = StabilityState();
   OptimizerPhase phase = OptimizerPhase.analyze;
   int health = 20;
@@ -48,8 +50,15 @@ final class OptimizerBossComponent extends CircleComponent
   List<Sprite>? _overflowFrames;
   bool _artV3AnimationsLoaded = false;
   double _visualTime = 0;
+  late bool _encounterActive = startsActive;
 
   bool get hasArtV3Visual => _visual != null && _artV3AnimationsLoaded;
+  bool get isEncounterActive => _encounterActive;
+
+  void activateEncounter() {
+    _encounterActive = true;
+    _attackTimer = 1.2;
+  }
 
   @override
   Vector2 get duplicatePosition => position;
@@ -175,6 +184,10 @@ final class OptimizerBossComponent extends CircleComponent
             OptimizerPhase.defeated => 0,
           };
     }
+    if (!_encounterActive) {
+      super.update(dt);
+      return;
+    }
     if (phase == OptimizerPhase.overflow ||
         phase == OptimizerPhase.defeated ||
         phase == OptimizerPhase.perfect) {
@@ -287,7 +300,8 @@ final class OptimizerBossComponent extends CircleComponent
 
   @override
   void receiveDamage(int amount) {
-    if (amount <= 0 ||
+    if (!_encounterActive ||
+        amount <= 0 ||
         phase == OptimizerPhase.perfect ||
         phase == OptimizerPhase.overflow ||
         phase == OptimizerPhase.defeated) {

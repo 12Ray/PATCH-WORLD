@@ -80,17 +80,32 @@
   "patch.duplicate_fault.sideEffect": "적은 첫 피격 때 체력 1의 복제체를 하나 만듭니다.",
   "patch.duplicate_fault.tactic": "복제체를 다른 위험 요소로 유도하세요.",
   "patch.duplicate_fault.risk": "혼돈",
+  "room.bootSector": "BOOT SECTOR",
+  "room.damageDashCache": "불안정 캐시",
+  "room.damageUpperArchive": "상층 기록실",
+  "room.damageTurretControl": "포탑 제어실",
+  "room.temporalAscent": "시계장치 상승로",
+  "room.temporalFracture": "파손된 시간선",
+  "room.temporalPendulum": "되감기 진자실",
+  "room.chronoJailer": "CHRONO JAILER",
+  "room.collisionCompression": "벡터 압축로",
+  "room.collisionFracture": "위상 균열지대",
+  "room.collisionMerge": "극성 융합실",
+  "room.kernelChimera": "KERNEL CHIMERA",
   "room.damageLab": "DAMAGE LAB",
   "room.temporalHall": "TEMPORAL HALL",
   "room.collisionArchive": "COLLISION ARCHIVE",
   "room.optimizerCore": "OPTIMIZATION CORE",
   "room.survivalArena": "PATCH//SURVIVE ARENA",
+  "rule.systemStable": "시스템 경로 안정화",
   "rule.damageInverted": "공격이 적을 회복시킵니다.",
   "rule.damageNormalized": "피해 규칙 정상화",
   "rule.timeOnInput": "입력할 때만 시간이 흐릅니다",
   "rule.collisionMerge": "충돌이 적을 융합합니다",
   "rule.patternAnalysis": "행동 패턴 분석 중",
   "rule.survivalEscalation": "위협 예산 상승 중",
+  "objective.bootSector": "허브를 탐색하고 DAMAGE LAB에 진입하세요 [L]",
+  "objective.damageSecret": "선택 캐시를 획득하고 ASSEMBLY로 복귀하세요",
   "objective.damageLab": "ROOM 1-{room} · 전투방 {cleared}/3 · QA 기록 {records}/3",
   "objective.damageLabBoss": "ROOM 1-BOSS · OVERFLOW WARDEN을 한계치까지 치유하세요",
   "objective.damageLabExit": "보상 획득 후 패치 터미널을 작동하세요",
@@ -201,7 +216,7 @@
   "touch.parry": "패리",
   "touch.attack": "공격",
   "touch.pause": "일시정지",
-  "game.controlsHint": "이동 A/D   점프 W/위키   공격 J   특수 K/더블 탭   상호작용 L   패리 SHIFT",
+  "game.controlsHint": "이동 A/D   점프 W/위키   공격 J   특수 K/더블 탭   상호작용 L   지도 M   패리 SHIFT",
   "ending.activePlayers": "활성 인간 플레이어: {count}",
   "hud.bossHealth": "{boss} {phase}  체력 {current}/{max}",
   "hud.bossStability": "{perfect}  {stability} {value}/150",
@@ -322,9 +337,38 @@
   "item.conduitHeart.description": "전투방 클리어 시 무결성 1 회복",
   "item.overflowCapacitor.name": "오버플로 축전기",
   "item.overflowCapacitor.description": "콤보 마지막 공격 피해 +1",
+  "item.dashBuffer.name": "대시 버퍼",
+  "item.dashBuffer.description": "칼 대시 쿨타임이 5초에서 4초로 감소",
+  "item.airStack.name": "에어 스택",
+  "item.airStack.description": "주먹 최대 체력 +1",
+  "item.targetingDaemon.name": "타기팅 데몬",
+  "item.targetingDaemon.description": "총 공격 간격 10% 감소",
   "boss.overflowWarden.intro": "OVERFLOW WARDEN // LIMIT BREAK",
-  "interaction.applyPatch": "패치 적용"
-  ,"quest.timeFragment": "시간 파편"
+  "interaction.applyPatch": "패치 적용",
+  "interaction.enterDamageLab": "DAMAGE LAB 진입",
+  "interaction.returnBootSector": "BOOT SECTOR로 복귀",
+  "interaction.previousRoom": "이전 방",
+  "interaction.nextRoom": "다음 방",
+  "interaction.enterBossRoom": "보스 방 진입",
+  "interaction.enterDashCache": "불안정 캐시",
+  "interaction.enterUpperArchive": "상층 기록실",
+  "interaction.enterTurretControl": "포탑 제어실",
+  "interaction.returnAssembly": "ASSEMBLY로 복귀",
+  "interaction.openMap": "월드맵",
+  "interaction.activateCheckpoint": "체크포인트 동기화",
+  "interaction.enterTemporalHall": "TEMPORAL HALL 진입",
+  "interaction.enterCollisionArchive": "COLLISION ARCHIVE 진입",
+  "interaction.returnOverflowJunction": "OVERFLOW 분기점으로 복귀",
+  "interaction.returnHubLift": "BOOT SECTOR 리프트",
+  "interaction.enterOptimizerCore": "OPTIMIZER CORE 진입",
+  "map.title": "PATCH//WORLD 지도",
+  "map.discoveredCount": "방문 {visited} · 발견 {revealed}",
+  "map.current": "현재 위치",
+  "map.visited": "방문함",
+  "map.revealed": "발견함",
+  "map.checkpoint": "체크포인트",
+  "common.close": "닫기",
+  "quest.timeFragment": "시간 파편"
   ,"quest.mergeLog": "융합 기록"
   ,"item.echoClock.name": "메아리 시계"
   ,"item.echoClock.description": "데이터 서지 발동 요구량 6에서 5로 감소"
@@ -336,4 +380,13 @@
   ,"item.collisionPrism.description": "패링 반격 피해 +1"
   ,"boss.chronoJailer.intro": "CHRONO JAILER // TIME LOCK"
   ,"boss.kernelChimera.intro": "KERNEL CHIMERA // FORCED MERGE"
+  ,"itemDiscovery.cache": "캐시 아이템 획득"
+  ,"itemDiscovery.questReward": "서브 퀘스트 보상"
+  ,"itemDiscovery.bossReward": "보스 보상"
+  ,"boss.coreSignatureAcquired": "코어 서명 획득"
+  ,"boss.optimizerGateUpdated": "OPTIMIZER 관문 동기화"
+  ,"gate.optimizerCore": "OPTIMIZER 관문"
+  ,"gate.coreProgress": "코어 서명 {current}/{required}"
+  ,"boss.optimizer.name": "옵티마이저"
+  ,"boss.optimizer.intro": "최종 검증 // 완벽한 세계"
 }

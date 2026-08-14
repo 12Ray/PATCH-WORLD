@@ -264,6 +264,7 @@ final class PhaseHoundComponent extends RectangleComponent
       priority: 40,
       textRenderer: TextPaint(
         style: TextStyle(
+          fontFamily: 'PatchWorldCJK',
           color: color,
           fontSize: 10,
           fontWeight: FontWeight.w900,

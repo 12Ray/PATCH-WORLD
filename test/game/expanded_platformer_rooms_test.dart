@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
+import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
@@ -59,8 +60,14 @@ void main() {
     game.world.player.position.x = 1500;
     game.world.player.position.y = 540;
     game.update(.016);
+    game.syncCampaignExploration();
     expect(game.camera.viewfinder.position.x, closeTo(1440, .01));
     expect(game.camera.viewfinder.position.y, closeTo(540, 1));
     expect(room.killPlaneY, greaterThan(room.worldSize.y));
+    expect(game.campaignExploration.currentNode, CampaignNodeId.damageAssembly);
+    expect(
+      game.campaignExploration.visitedNodeIds,
+      contains(CampaignNodeId.damageAssembly),
+    );
   });
 }

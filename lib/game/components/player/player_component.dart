@@ -129,8 +129,10 @@ final class PlayerComponent extends RectangleComponent
       isMounted && game.runItems.contains(RunItemId.echoClock) ? 5 : 6;
   double get facingDirection => _facing;
   double get dashCooldownRemaining => _dashCooldown;
+  double get effectiveDashCooldownSeconds =>
+      isMounted && game.runItems.contains(RunItemId.dashBuffer) ? 4 : 5;
   double get dashCooldownProgress =>
-      (_dashCooldown / dashCooldownSeconds).clamp(0, 1);
+      (_dashCooldown / effectiveDashCooldownSeconds).clamp(0, 1);
   int get airJumpsRemaining =>
       selectedWeapon == PlayerWeapon.gauntlet ? _airJumpsRemaining : 0;
   bool get isDashing => _dashRemaining > 0;
@@ -416,7 +418,7 @@ final class PlayerComponent extends RectangleComponent
     _dashDirection = direction;
     _facing = direction;
     _dashRemaining = dashDurationSeconds;
-    _dashCooldown = dashCooldownSeconds;
+    _dashCooldown = effectiveDashCooldownSeconds;
     _dashContactImmunity = dashContactImmunitySeconds;
     if (!_platformerMotion.grounded) _airJumpsRemaining = 0;
     _visual?.flash(const Color(0xFF36E1FF), seconds: 0.10);
@@ -523,9 +525,15 @@ final class PlayerComponent extends RectangleComponent
     _counterWindow = 0;
     final temporalRelayMultiplier =
         game.runItems.contains(RunItemId.temporalRelay) ? .92 : 1.0;
+    final targetingDaemonMultiplier =
+        selectedWeapon == PlayerWeapon.gun &&
+            game.runItems.contains(RunItemId.targetingDaemon)
+        ? .90
+        : 1.0;
     _attackCooldown =
         (counter ? 0.18 : selectedWeapon.baseCooldown) *
-        temporalRelayMultiplier;
+        temporalRelayMultiplier *
+        targetingDaemonMultiplier;
     final isGunRail = selectedWeapon == PlayerWeapon.gun && motionIndex == 4;
     final railFrames = _gunRailFrames;
     if (isGunRail && railFrames != null) {
@@ -830,6 +838,13 @@ final class PlayerComponent extends RectangleComponent
       unawaited(game.audio.playHeal());
       game.publishUiSnapshot(force: true);
     }
+  }
+
+  void increaseMaximumIntegrity(int amount) {
+    if (amount <= 0) return;
+    maxIntegrity += amount;
+    integrity = math.min(maxIntegrity, integrity + amount);
+    if (isMounted) game.publishUiSnapshot(force: true);
   }
 
   @override

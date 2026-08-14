@@ -14,6 +14,7 @@ import 'package:patch_world/game/components/environment/qa_record_terminal_compo
 import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/components/items/item_pedestal_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
+import 'package:patch_world/game/components/presentation/item_discovery_presentation_component.dart';
 import 'package:patch_world/game/items/run_item_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
@@ -261,6 +262,7 @@ abstract class FourCellChapterController extends Component
     final reward = ItemPedestalComponent(
       position: questRewardPosition,
       item: questRewardItem,
+      rewardTier: ItemRewardTier.quest,
       onCollected: (_) {
         progress.questRewardClaimed = true;
         _questReward = null;
@@ -289,6 +291,7 @@ abstract class FourCellChapterController extends Component
       priority: 40,
       textRenderer: TextPaint(
         style: TextStyle(
+          fontFamily: 'PatchWorldCJK',
           color: chapterAccentColor,
           fontSize: 28,
           fontWeight: FontWeight.w900,
@@ -317,6 +320,7 @@ abstract class FourCellChapterController extends Component
     final reward = ItemPedestalComponent(
       position: bossRewardPosition,
       item: bossRewardItem,
+      rewardTier: ItemRewardTier.boss,
       onCollected: (_) {
         progress.bossRewardClaimed = true;
         _bossReward = null;
