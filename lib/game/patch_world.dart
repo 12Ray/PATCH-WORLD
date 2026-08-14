@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
+import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/effects/data_shard_component.dart';
 import 'package:patch_world/game/components/effects/data_surge_ring_component.dart';
@@ -24,10 +25,14 @@ import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/components/projectiles/enemy_projectile_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/boot_sector_controller.dart';
+import 'package:patch_world/game/rooms/damage_lab_node_controller.dart';
+import 'package:patch_world/game/rooms/damage_lab_secret_controller.dart';
 import 'package:patch_world/game/rooms/room_one_controller.dart';
 import 'package:patch_world/game/rooms/boss_room_controller.dart';
 import 'package:patch_world/game/rooms/room_three_controller.dart';
 import 'package:patch_world/game/rooms/room_two_controller.dart';
+import 'package:patch_world/game/rooms/regional_campaign_node_controller.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/game/systems/duplicate_fault_system.dart';
@@ -38,6 +43,7 @@ import 'package:patch_world/game/survival/survival_run_state.dart';
 final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   late final PlayerComponent player;
   Component? _activeRoom;
+  CampaignNodeEntry _activeCampaignEntry = CampaignNodeEntry.west;
   bool _isReady = false;
   final List<SurvivalScorePopupComponent> _scorePopups =
       <SurvivalScorePopupComponent>[];
@@ -107,6 +113,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       position: Vector2(48, 66),
       textRenderer: TextPaint(
         style: const TextStyle(
+          fontFamily: 'PatchWorldCJK',
           color: Color(0xFF9CB0C9),
           fontSize: 14,
           letterSpacing: 1.1,
@@ -127,22 +134,8 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   }
 
   Future<void> loadRoom(RoomId roomId) async {
-    _isReady = false;
-    final existing = _activeRoom;
-    if (existing != null) {
-      if (existing is BossRoomController) existing.disposeLegacyRule();
-      existing.removeFromParent();
-      await existing.removed;
-    }
-    for (final child in children.toList()) {
-      if (child is RetaliationEchoComponent ||
-          child is DataShardComponent ||
-          child is SurvivalScorePopupComponent) {
-        child.removeFromParent();
-      }
-    }
-    _scorePopups.clear();
     final nextRoom = switch (roomId) {
+      RoomId.bootSector => BootSectorController(),
       RoomId.damageLab => RoomOneController(progress: game.damageLabProgress),
       RoomId.temporalHall => RoomTwoController(
         progress: game.temporalHallProgress,
@@ -153,9 +146,76 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       RoomId.optimizerCore => BossRoomController(),
       RoomId.survivalArena => SurvivalArenaController(),
     };
+    _activeCampaignEntry = CampaignNodeEntry.west;
+    await _replaceActiveRoom(nextRoom);
+  }
+
+  Future<void> loadCampaignNode(
+    CampaignNodeId nodeId, {
+    required CampaignNodeEntry entry,
+  }) async {
+    final nextRoom = switch (nodeId) {
+      CampaignNodeId.bootSector => BootSectorController(entry: entry),
+      CampaignNodeId.damageWorkshop ||
+      CampaignNodeId.damageAssembly ||
+      CampaignNodeId.damageOverflow ||
+      CampaignNodeId.overflowWarden => DamageLabNodeController(
+        nodeId: nodeId,
+        entry: entry,
+        progress: game.damageLabProgress,
+      ),
+      CampaignNodeId.damageDashCache ||
+      CampaignNodeId.damageUpperArchive ||
+      CampaignNodeId.damageTurretControl => DamageLabSecretController(
+        nodeId: nodeId,
+        progress: game.damageLabProgress,
+      ),
+      CampaignNodeId.temporalAscent ||
+      CampaignNodeId.temporalFracture ||
+      CampaignNodeId.temporalPendulum ||
+      CampaignNodeId.chronoJailer => RegionalCampaignNodeController(
+        nodeId: nodeId,
+        entry: entry,
+        progress: game.temporalHallProgress,
+      ),
+      CampaignNodeId.collisionCompression ||
+      CampaignNodeId.collisionFracture ||
+      CampaignNodeId.collisionMerge ||
+      CampaignNodeId.kernelChimera => RegionalCampaignNodeController(
+        nodeId: nodeId,
+        entry: entry,
+        progress: game.collisionArchiveProgress,
+      ),
+      CampaignNodeId.optimizerCore => BossRoomController(),
+    };
+    _activeCampaignEntry = entry;
+    await _replaceActiveRoom(nextRoom);
+  }
+
+  Future<void> _replaceActiveRoom(Component nextRoom) async {
+    _isReady = false;
+    final existing = _activeRoom;
+    if (existing != null) {
+      if (existing is BossRoomController) existing.disposeLegacyRule();
+      final removed = existing.removed;
+      existing.removeFromParent();
+      if (existing.isMounted || existing.isRemoving) await removed;
+    }
+    for (final child in children.toList()) {
+      if (child is RetaliationEchoComponent ||
+          child is DataShardComponent ||
+          child is SurvivalScorePopupComponent) {
+        child.removeFromParent();
+      }
+    }
+    _scorePopups.clear();
     _activeRoom = nextRoom;
     await add(nextRoom);
     final spawn = switch (nextRoom) {
+      BootSectorController controller => controller.playerSpawn,
+      DamageLabNodeController controller => controller.playerSpawn,
+      DamageLabSecretController controller => controller.playerSpawn,
+      RegionalCampaignNodeController controller => controller.playerSpawn,
       RoomOneController controller => controller.playerSpawn,
       RoomTwoController controller => controller.playerSpawn,
       RoomThreeController controller => controller.playerSpawn,
@@ -168,11 +228,18 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       ..resetMotionForRoomTransition()
       ..position.setFrom(spawn);
     _isReady = true;
+    game.syncCampaignExploration();
   }
 
   bool tryInteract(PlayerComponent player) {
     final room = _activeRoom;
     return switch (room) {
+      BootSectorController controller => controller.tryInteract(player),
+      DamageLabNodeController controller => controller.tryInteract(player),
+      DamageLabSecretController controller => controller.tryInteract(player),
+      RegionalCampaignNodeController controller => controller.tryInteract(
+        player,
+      ),
       RoomOneController controller => controller.tryInteract(player),
       RoomTwoController controller => controller.tryInteract(player),
       RoomThreeController controller => controller.tryInteract(player),
@@ -250,7 +317,16 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     await room.add(duplicate);
   }
 
-  Future<void> restartCurrentRoom() => loadRoom(game.currentRoom);
+  Future<void> restartCurrentRoom() {
+    final room = _activeRoom;
+    if (room is CampaignNodeRoom) {
+      return loadCampaignNode(
+        (room as CampaignNodeRoom).campaignNodeId,
+        entry: _activeCampaignEntry,
+      );
+    }
+    return loadRoom(game.currentRoom);
+  }
 
   Future<void> spawnPatchPulse(
     Vector2 worldPosition, {

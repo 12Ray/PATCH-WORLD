@@ -13,6 +13,7 @@ final class HoundBreakBurstComponent extends TextComponent {
          priority: 74,
          textRenderer: TextPaint(
            style: const TextStyle(
+             fontFamily: 'PatchWorldCJK',
              color: Color(0xFF45F3A6),
              fontSize: 18,
              fontWeight: FontWeight.w900,

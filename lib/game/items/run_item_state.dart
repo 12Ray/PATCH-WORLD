@@ -5,6 +5,9 @@ enum RunItemId {
   temporalRelay,
   vectorBoots,
   collisionPrism,
+  dashBuffer,
+  airStack,
+  targetingDaemon,
 }
 
 extension RunItemIdPresentation on RunItemId {

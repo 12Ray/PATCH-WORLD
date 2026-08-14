@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
@@ -9,6 +10,7 @@ import 'package:patch_world/game/components/environment/platform_surface_compone
 import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
 import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
+import 'package:patch_world/game/components/presentation/boss_arena_presentation_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rules/anomalies/damage_sign_inverted_rule.dart';
 import 'package:patch_world/game/rules/rule_ids.dart';
@@ -17,7 +19,10 @@ import 'package:patch_world/game/systems/phase_leak_controller.dart';
 
 final class BossRoomController extends Component
     with HasGameReference<PatchWorldGame>
-    implements PlatformerRoomGeometry {
+    implements
+        PlatformerRoomGeometry,
+        PlatformerRoomCameraTarget,
+        PlatformerRoomCameraZoom {
   late final OptimizerBossComponent boss;
   late final LegacyGlitchTerminal terminal;
   final PhaseLeakController _phaseLeak = PhaseLeakController();
@@ -26,6 +31,11 @@ final class BossRoomController extends Component
   double _legacyRemaining = 0;
   double _legacyCooldown = 0;
   bool _legacyActive = false;
+  bool _bossIntroStarted = false;
+  double _bossIntroRemaining = 0;
+  BossNameCardComponent? _bossNameCard;
+
+  bool get isBossIntroActive => _bossIntroRemaining > 0;
 
   @override
   final Vector2 playerSpawn = Vector2(180, 988);
@@ -59,6 +69,13 @@ final class BossRoomController extends Component
     if (playerPosition.x > 620) return Vector2(960, 468);
     return playerSpawn.clone();
   }
+
+  @override
+  Vector2 cameraTargetFor(Vector2 playerPosition) =>
+      isBossIntroActive ? boss.position.clone() : playerPosition.clone();
+
+  @override
+  double cameraZoomFor(Vector2 playerPosition) => isBossIntroActive ? 1.24 : 1;
 
   @override
   Future<void> onLoad() async {
@@ -167,6 +184,7 @@ final class BossRoomController extends Component
       position: Vector2(960, 330),
       onPerfectStateEntered: terminal.enable,
       onDefeated: game.showEnding,
+      startsActive: false,
     );
     await addAll(<Component>[terminal, boss]);
 
@@ -197,6 +215,19 @@ final class BossRoomController extends Component
 
   @override
   void update(double dt) {
+    if (game.world.isReady && !_bossIntroStarted) _startBossIntro();
+    if (_bossIntroRemaining > 0) {
+      _bossIntroRemaining = math.max(
+        0,
+        _bossIntroRemaining - game.clock.realDt,
+      );
+      if (_bossIntroRemaining <= 0) {
+        _bossNameCard?.removeFromParent();
+        _bossNameCard = null;
+        boss.activateEncounter();
+        game.setCinematicInputLocked(false);
+      }
+    }
     final simulationDt = game.clock.simulationDt;
     if (_phaseWalls.isNotEmpty && _phaseLeak.update(simulationDt)) {
       final solid = _phaseLeak.phase != PhaseLeakPhase.open;
@@ -214,6 +245,22 @@ final class BossRoomController extends Component
       }
     }
     super.update(dt);
+  }
+
+  void _startBossIntro() {
+    if (_bossIntroStarted) return;
+    _bossIntroStarted = true;
+    _bossIntroRemaining = 2.8;
+    game.setCinematicInputLocked(true);
+    final card = BossNameCardComponent(
+      center: Vector2(960, 210),
+      title: game.localization.text('boss.optimizer.name'),
+      subtitle: game.localization.text('boss.optimizer.intro'),
+      accentColor: const Color(0xFFFFD35A),
+    );
+    _bossNameCard = card;
+    add(card);
+    game.triggerImpactFeedback();
   }
 
   bool tryInteract(PlayerComponent player) =>
@@ -241,4 +288,10 @@ final class BossRoomController extends Component
 
   void disposeLegacyRule() =>
       game.ruleEngine.removeRule(RuleIds.legacyDamageInverted);
+
+  @override
+  void onRemove() {
+    game.setCinematicInputLocked(false);
+    super.onRemove();
+  }
 }

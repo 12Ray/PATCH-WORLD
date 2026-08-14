@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
+import 'package:patch_world/game/components/presentation/item_discovery_presentation_component.dart';
 import 'package:patch_world/game/items/run_item_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 
@@ -13,10 +15,12 @@ final class ItemPedestalComponent extends PositionComponent
     required super.position,
     required this.item,
     required this.onCollected,
+    this.rewardTier = ItemRewardTier.cache,
   }) : super(size: Vector2(82, 78), anchor: Anchor.bottomCenter, priority: 18);
 
   final RunItemId item;
   final void Function(RunItemId item) onCollected;
+  final ItemRewardTier rewardTier;
   double _clock = 0;
   bool _collected = false;
 
@@ -26,6 +30,13 @@ final class ItemPedestalComponent extends PositionComponent
     onCollected(item);
     game.runItems.acquire(item);
     game.world.player.restoreIntegrity(1);
+    final owner = parent;
+    if (owner != null) {
+      owner.add(
+        ItemDiscoveryPresentationComponent(item: item, rewardTier: rewardTier),
+      );
+    }
+    unawaited(game.audio.playHeal());
     game.publishUiSnapshot(force: true);
     removeFromParent();
     return true;
@@ -88,6 +99,7 @@ final class ItemPedestalComponent extends PositionComponent
         anchor: Anchor.bottomCenter,
         textRenderer: TextPaint(
           style: const TextStyle(
+            fontFamily: 'PatchWorldCJK',
             color: Color(0xFFF3F7FF),
             fontSize: 10,
             fontWeight: FontWeight.w700,

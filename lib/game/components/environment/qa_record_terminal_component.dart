@@ -69,6 +69,7 @@ final class QaRecordTerminalComponent extends PositionComponent
         anchor: Anchor.bottomCenter,
         textRenderer: TextPaint(
           style: const TextStyle(
+            fontFamily: 'PatchWorldCJK',
             color: Color(0xFF9DEFFF),
             fontSize: 9,
             fontWeight: FontWeight.w700,

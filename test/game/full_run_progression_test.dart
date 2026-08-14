@@ -49,12 +49,14 @@ void main() {
     expect(game.completedRun.value?.selectedPatchIds, hasLength(3));
 
     game.returnToTitle();
-    await _waitForRoom(tester, game, RoomId.damageLab);
+    await _waitForRoom(tester, game, RoomId.damageLab, requireRunning: false);
     expect(game.world.activeRoom, isA<RoomOneController>());
     expect(game.runState.selectedPatchIds, isEmpty);
     expect(game.overlays.isActive(OverlayIds.title), isTrue);
+    expect(game.paused, isTrue);
 
     game.startRun();
+    await _waitForRoom(tester, game, RoomId.damageLab);
     game.world.player.takeDamage(5, causeId: 'test.defeat');
     expect(game.paused, isTrue);
     expect(game.defeatSnapshot.value, isNotNull);
@@ -92,14 +94,17 @@ Future<void> _mountGame(WidgetTester tester, PatchWorldGame game) async {
 Future<void> _waitForRoom(
   WidgetTester tester,
   PatchWorldGame game,
-  RoomId target,
-) async {
+  RoomId target, {
+  bool requireRunning = true,
+}) async {
   for (var attempt = 0; attempt < 100; attempt += 1) {
     await tester.pump(const Duration(milliseconds: 16));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 5)),
     );
-    if (game.currentRoom == target && game.world.isReady && !game.paused) {
+    if (game.currentRoom == target &&
+        game.world.isReady &&
+        (!requireRunning || !game.paused)) {
       return;
     }
   }

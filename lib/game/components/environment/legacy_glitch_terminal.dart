@@ -39,6 +39,7 @@ final class LegacyGlitchTerminal extends RectangleComponent
         anchor: Anchor.center,
         textRenderer: TextPaint(
           style: const TextStyle(
+            fontFamily: 'PatchWorldCJK',
             color: Color(0xFFF4F7FF),
             fontSize: 18,
             fontWeight: FontWeight.w900,

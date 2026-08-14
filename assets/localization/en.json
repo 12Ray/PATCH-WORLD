@@ -80,17 +80,32 @@
   "patch.duplicate_fault.sideEffect": "Each enemy creates one 1-HP echo on its first hit.",
   "patch.duplicate_fault.tactic": "Lead echoes into other hazards.",
   "patch.duplicate_fault.risk": "CHAOTIC",
+  "room.bootSector": "BOOT SECTOR",
+  "room.damageDashCache": "UNSTABLE CACHE",
+  "room.damageUpperArchive": "UPPER ARCHIVE",
+  "room.damageTurretControl": "TURRET CONTROL",
+  "room.temporalAscent": "CLOCKWORK ASCENT",
+  "room.temporalFracture": "BROKEN TIMELINE",
+  "room.temporalPendulum": "REWIND PENDULUM",
+  "room.chronoJailer": "CHRONO JAILER",
+  "room.collisionCompression": "VECTOR COMPRESSION",
+  "room.collisionFracture": "PHASE FRACTURE",
+  "room.collisionMerge": "POLARITY MERGE",
+  "room.kernelChimera": "KERNEL CHIMERA",
   "room.damageLab": "DAMAGE LAB",
   "room.temporalHall": "TEMPORAL HALL",
   "room.collisionArchive": "COLLISION ARCHIVE",
   "room.optimizerCore": "OPTIMIZATION CORE",
   "room.survivalArena": "PATCH//SURVIVE ARENA",
+  "rule.systemStable": "SYSTEM ROUTING STABLE",
   "rule.damageInverted": "Attacks heal enemies.",
   "rule.damageNormalized": "DAMAGE NORMALIZED",
   "rule.timeOnInput": "TIME ADVANCES WITH INTENT",
   "rule.collisionMerge": "COLLISION PRODUCES UNITY",
   "rule.patternAnalysis": "PATTERN ANALYSIS ACTIVE",
   "rule.survivalEscalation": "THREAT BUDGET ESCALATING",
+  "objective.bootSector": "EXPLORE THE HUB · ENTER DAMAGE LAB [L]",
+  "objective.damageSecret": "CLAIM THE OPTIONAL CACHE · RETURN TO ASSEMBLY",
   "objective.damageLab": "ROOM 1-{room} · CELLS {cleared}/3 · QA RECORDS {records}/3",
   "objective.damageLabBoss": "ROOM 1-BOSS · HEAL THE OVERFLOW WARDEN PAST ITS LIMIT",
   "objective.damageLabExit": "CLAIM THE REWARD AND ACTIVATE THE PATCH TERMINAL",
@@ -201,7 +216,7 @@
   "touch.parry": "PARRY",
   "touch.attack": "ATK",
   "touch.pause": "Pause",
-  "game.controlsHint": "MOVE A/D   JUMP W/UP   ATTACK J   SPECIAL K/DOUBLE TAP   INTERACT L   PARRY SHIFT",
+  "game.controlsHint": "MOVE A/D   JUMP W/UP   ATTACK J   SPECIAL K/DOUBLE TAP   INTERACT L   MAP M   PARRY SHIFT",
   "ending.activePlayers": "ACTIVE HUMAN PLAYERS: {count}",
   "hud.bossHealth": "{boss} {phase}  HP {current}/{max}",
   "hud.bossStability": "{perfect}  {stability} {value}/150",
@@ -322,9 +337,38 @@
   "item.conduitHeart.description": "Restore 1 integrity after clearing a combat cell",
   "item.overflowCapacitor.name": "OVERFLOW CAPACITOR",
   "item.overflowCapacitor.description": "Final combo attack deals +1 damage",
+  "item.dashBuffer.name": "DASH BUFFER",
+  "item.dashBuffer.description": "Sword dash cooldown is reduced from 5 to 4 seconds",
+  "item.airStack.name": "AIR STACK",
+  "item.airStack.description": "Gauntlet maximum integrity increases by 1",
+  "item.targetingDaemon.name": "TARGETING DAEMON",
+  "item.targetingDaemon.description": "Gun attack interval is reduced by 10%",
   "boss.overflowWarden.intro": "OVERFLOW WARDEN // LIMIT BREAK",
-  "interaction.applyPatch": "APPLY PATCH"
-  ,"quest.timeFragment": "TIME FRAGMENT"
+  "interaction.applyPatch": "APPLY PATCH",
+  "interaction.enterDamageLab": "ENTER DAMAGE LAB",
+  "interaction.returnBootSector": "RETURN TO BOOT SECTOR",
+  "interaction.previousRoom": "PREVIOUS ROOM",
+  "interaction.nextRoom": "NEXT ROOM",
+  "interaction.enterBossRoom": "ENTER BOSS ROOM",
+  "interaction.enterDashCache": "UNSTABLE CACHE",
+  "interaction.enterUpperArchive": "UPPER ARCHIVE",
+  "interaction.enterTurretControl": "TURRET CONTROL",
+  "interaction.returnAssembly": "RETURN TO ASSEMBLY",
+  "interaction.openMap": "WORLD MAP",
+  "interaction.activateCheckpoint": "SYNC CHECKPOINT",
+  "interaction.enterTemporalHall": "ENTER TEMPORAL HALL",
+  "interaction.enterCollisionArchive": "ENTER COLLISION ARCHIVE",
+  "interaction.returnOverflowJunction": "RETURN TO OVERFLOW JUNCTION",
+  "interaction.returnHubLift": "BOOT SECTOR LIFT",
+  "interaction.enterOptimizerCore": "ENTER OPTIMIZER CORE",
+  "map.title": "PATCH//WORLD MAP",
+  "map.discoveredCount": "VISITED {visited} · REVEALED {revealed}",
+  "map.current": "CURRENT",
+  "map.visited": "VISITED",
+  "map.revealed": "REVEALED",
+  "map.checkpoint": "CHECKPOINT",
+  "common.close": "CLOSE",
+  "quest.timeFragment": "TIME FRAGMENT"
   ,"quest.mergeLog": "MERGE LOG"
   ,"item.echoClock.name": "ECHO CLOCK"
   ,"item.echoClock.description": "Data surge threshold is reduced from 6 to 5"
@@ -336,4 +380,13 @@
   ,"item.collisionPrism.description": "Parry counter damage +1"
   ,"boss.chronoJailer.intro": "CHRONO JAILER // TIME LOCK"
   ,"boss.kernelChimera.intro": "KERNEL CHIMERA // FORCED MERGE"
+  ,"itemDiscovery.cache": "CACHE ITEM ACQUIRED"
+  ,"itemDiscovery.questReward": "SUBQUEST REWARD"
+  ,"itemDiscovery.bossReward": "BOSS REWARD"
+  ,"boss.coreSignatureAcquired": "CORE SIGNATURE ACQUIRED"
+  ,"boss.optimizerGateUpdated": "OPTIMIZER GATE SYNCHRONIZED"
+  ,"gate.optimizerCore": "OPTIMIZER GATE"
+  ,"gate.coreProgress": "CORE SIGNATURES {current}/{required}"
+  ,"boss.optimizer.name": "THE OPTIMIZER"
+  ,"boss.optimizer.intro": "FINAL VALIDATION // PERFECT WORLD"
 }

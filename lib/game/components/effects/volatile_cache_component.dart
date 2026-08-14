@@ -90,6 +90,7 @@ final class VolatileCacheComponent extends PositionComponent
               )
             : '${remainingSeconds.ceil()}s',
         style: const TextStyle(
+          fontFamily: 'PatchWorldCJK',
           color: Color(0xFFF4F7FF),
           fontSize: 10,
           fontWeight: FontWeight.w900,

@@ -31,11 +31,15 @@ final class OverflowWardenBossComponent extends PositionComponent
   OverflowWardenBossComponent({
     required super.position,
     required this.onDefeated,
+    this.onPhaseChanged,
+    this.arenaFloorY = 1024,
   }) : healthState = HealthState(max: 18, current: 12, overflowMargin: 6),
        super(size: Vector2(76, 88), anchor: Anchor.center, priority: 17);
 
   final HealthState healthState;
   final VoidCallback onDefeated;
+  final void Function(OverflowWardenPhase phase)? onPhaseChanged;
+  final double arenaFloorY;
   OverflowWardenPhase phase = OverflowWardenPhase.dormant;
 
   SpriteComponent? _visual;
@@ -89,6 +93,7 @@ final class OverflowWardenBossComponent extends PositionComponent
         anchor: Anchor.bottomCenter,
         textRenderer: TextPaint(
           style: const TextStyle(
+            fontFamily: 'PatchWorldCJK',
             color: Color(0xFFFFD35A),
             fontSize: 11,
             fontWeight: FontWeight.w800,
@@ -130,6 +135,7 @@ final class OverflowWardenBossComponent extends PositionComponent
   void beginIntro() {
     if (phase != OverflowWardenPhase.dormant) return;
     phase = OverflowWardenPhase.intro;
+    onPhaseChanged?.call(phase);
     _phaseTimer = 2.8;
     game.publishUiSnapshot(force: true);
   }
@@ -138,6 +144,7 @@ final class OverflowWardenBossComponent extends PositionComponent
     if (phase != OverflowWardenPhase.intro) return;
     phase = OverflowWardenPhase.shielded;
     _attackCooldown = .7;
+    onPhaseChanged?.call(phase);
     game.publishUiSnapshot(force: true);
   }
 
@@ -170,6 +177,7 @@ final class OverflowWardenBossComponent extends PositionComponent
     if (phase != previous) {
       _attackCooldown = .35;
       scale.setAll(1.12);
+      onPhaseChanged?.call(phase);
       game.triggerImpactFeedback();
       game.publishUiSnapshot(force: true);
     }
@@ -178,6 +186,7 @@ final class OverflowWardenBossComponent extends PositionComponent
   void _beginOverflowDefeat() {
     if (_resolved) return;
     phase = OverflowWardenPhase.overflowing;
+    onPhaseChanged?.call(phase);
     _pendingAttack = null;
     _defeatTimer = 1.35;
     game.triggerImpactFeedback();
@@ -322,7 +331,7 @@ final class OverflowWardenBossComponent extends PositionComponent
             _addToOwner(
               owner,
               EnemyDamageVolumeComponent(
-                position: Vector2(position.x + offset, 994),
+                position: Vector2(position.x + offset, arenaFloorY - 30),
                 size: Vector2(64, 60),
                 sourceId: 'enemy.overflowWarden.memoryQuake',
                 activeSeconds: .24,
@@ -357,6 +366,7 @@ final class OverflowWardenBossComponent extends PositionComponent
     if (_resolved) return;
     _resolved = true;
     phase = OverflowWardenPhase.defeated;
+    onPhaseChanged?.call(phase);
     game.world.spawnDataShards(position, count: 8, corrupted: true);
     onDefeated();
     removeFromParent();

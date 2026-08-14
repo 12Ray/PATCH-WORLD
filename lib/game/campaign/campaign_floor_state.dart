@@ -6,6 +6,7 @@ final class CampaignFloorState {
   bool bossDefeated = false;
   bool questRewardClaimed = false;
   bool bossRewardClaimed = false;
+  bool patchApplied = false;
 
   int get clearedEncounterCount => clearedEncounterIds.length;
   int get collectedRecordCount => collectedRecordIds.length;
@@ -26,5 +27,6 @@ final class CampaignFloorState {
     bossDefeated = false;
     questRewardClaimed = false;
     bossRewardClaimed = false;
+    patchApplied = false;
   }
 }

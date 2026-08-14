@@ -52,6 +52,7 @@ final class PatchExitTerminalComponent extends PositionComponent
         anchor: Anchor.bottomCenter,
         textRenderer: TextPaint(
           style: TextStyle(
+            fontFamily: 'PatchWorldCJK',
             color: accentColor,
             fontSize: 10,
             fontWeight: FontWeight.w800,
