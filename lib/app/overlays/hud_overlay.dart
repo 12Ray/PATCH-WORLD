@@ -49,21 +49,34 @@ final class _IntegrityView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final weapon = snapshot.selectedWeapon;
-    final abilityStatus = switch (weapon) {
-      PlayerWeapon.sword when snapshot.dashCooldownRemaining <= 0 =>
-        game.localization.text('hud.dashReady'),
-      PlayerWeapon.sword => game.localization.text(
-        'hud.dashCooldown',
-        parameters: <String, Object>{
-          'seconds': snapshot.dashCooldownRemaining.toStringAsFixed(1),
-        },
-      ),
-      PlayerWeapon.gauntlet when snapshot.airJumpsRemaining > 0 =>
-        game.localization.text('hud.doubleJumpReady'),
-      PlayerWeapon.gauntlet => game.localization.text('hud.doubleJumpSpent'),
-      PlayerWeapon.gun => game.localization.text('hud.rangedPassive'),
-      null => '',
-    };
+    final abilityStatus = game.mode == PatchWorldMode.survival
+        ? snapshot.dashCooldownRemaining <= 0
+              ? game.localization.text('hud.survivalSpecialReady')
+              : game.localization.text(
+                  'hud.survivalSpecialCooldown',
+                  parameters: <String, Object>{
+                    'seconds': snapshot.dashCooldownRemaining.toStringAsFixed(
+                      1,
+                    ),
+                  },
+                )
+        : switch (weapon) {
+            PlayerWeapon.sword when snapshot.dashCooldownRemaining <= 0 =>
+              game.localization.text('hud.dashReady'),
+            PlayerWeapon.sword => game.localization.text(
+              'hud.dashCooldown',
+              parameters: <String, Object>{
+                'seconds': snapshot.dashCooldownRemaining.toStringAsFixed(1),
+              },
+            ),
+            PlayerWeapon.gauntlet when snapshot.airJumpsRemaining > 0 =>
+              game.localization.text('hud.doubleJumpReady'),
+            PlayerWeapon.gauntlet => game.localization.text(
+              'hud.doubleJumpSpent',
+            ),
+            PlayerWeapon.gun => game.localization.text('hud.rangedPassive'),
+            null => '',
+          };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,

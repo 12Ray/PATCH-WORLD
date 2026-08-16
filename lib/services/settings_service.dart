@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:patch_world/services/game_settings.dart';
+import 'package:patch_world/game/campaign/campaign_traversal_ability.dart';
+import 'package:patch_world/game/survival/survival_balance_report.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final class SettingsService {
@@ -54,4 +58,62 @@ final class SettingsService {
 
   Future<void> saveBestSurvivalTime(double seconds) =>
       _store.setDouble('bestSurvivalTime', seconds);
+
+  Future<Set<CampaignTraversalAbility>> loadSurvivalAbilityUnlocks() async {
+    final names = await _store.getStringList('survivalAbilityUnlocks');
+    if (names == null) return <CampaignTraversalAbility>{};
+    return names
+        .map((name) {
+          for (final ability in CampaignTraversalAbility.values) {
+            if (ability.name == name) return ability;
+          }
+          return null;
+        })
+        .whereType<CampaignTraversalAbility>()
+        .toSet();
+  }
+
+  Future<void> saveSurvivalAbilityUnlocks(
+    Set<CampaignTraversalAbility> abilities,
+  ) => _store.setStringList(
+    'survivalAbilityUnlocks',
+    abilities.map((ability) => ability.name).toList(growable: false)..sort(),
+  );
+
+  Future<List<SurvivalPlaytestRecord>> loadSurvivalPlaytestRecords() async {
+    final encoded = await _store.getStringList('survivalPlaytestRecords');
+    if (encoded == null) return <SurvivalPlaytestRecord>[];
+    final records = <SurvivalPlaytestRecord>[];
+    for (final value in encoded) {
+      try {
+        final decoded = jsonDecode(value);
+        if (decoded is! Map) continue;
+        records.add(
+          SurvivalPlaytestRecord.fromJson(Map<String, Object?>.from(decoded)),
+        );
+      } catch (_) {
+        // A single stale or partially written run must not discard valid runs.
+      }
+    }
+    final start = records.length > SurvivalBalanceReport.maximumStoredRuns
+        ? records.length - SurvivalBalanceReport.maximumStoredRuns
+        : 0;
+    return records.sublist(start);
+  }
+
+  Future<void> saveSurvivalPlaytestRecords(
+    Iterable<SurvivalPlaytestRecord> records,
+  ) {
+    final allRecords = records.toList(growable: false);
+    final start = allRecords.length > SurvivalBalanceReport.maximumStoredRuns
+        ? allRecords.length - SurvivalBalanceReport.maximumStoredRuns
+        : 0;
+    return _store.setStringList(
+      'survivalPlaytestRecords',
+      allRecords
+          .sublist(start)
+          .map((record) => jsonEncode(record.toJson()))
+          .toList(growable: false),
+    );
+  }
 }

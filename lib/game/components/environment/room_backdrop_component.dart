@@ -102,6 +102,11 @@ final class RoomBackdropComponent extends PositionComponent
       }
       return;
     }
+    if (style == RoomBackdropStyle.survival) {
+      _drawSurvivalArena(canvas);
+      _drawWorldBorder(canvas);
+      return;
+    }
     _drawPanels(canvas);
     final sectionCount = (size.x / PatchWorldGame.logicalWidth).ceil();
     for (var section = 0; section < sectionCount; section += 1) {
@@ -117,10 +122,14 @@ final class RoomBackdropComponent extends PositionComponent
         case RoomBackdropStyle.optimizer:
           _drawOptimizerCore(canvas);
         case RoomBackdropStyle.survival:
-          _drawSurvivalArena(canvas);
+          break;
       }
       canvas.restore();
     }
+    _drawWorldBorder(canvas);
+  }
+
+  void _drawWorldBorder(Canvas canvas) {
     canvas.drawRect(
       Rect.fromLTWH(24, 24, size.x - 48, size.y - 48),
       Paint()
@@ -320,30 +329,87 @@ final class RoomBackdropComponent extends PositionComponent
   }
 
   void _drawSurvivalArena(Canvas canvas) {
-    const center = Offset(
-      PatchWorldGame.logicalWidth / 2,
-      PatchWorldGame.logicalHeight / 2,
+    final bounds = size.toRect();
+    canvas.drawRect(
+      bounds,
+      Paint()
+        ..shader = Gradient.linear(
+          bounds.topLeft,
+          bounds.bottomRight,
+          const <Color>[
+            Color(0xFF07111F),
+            Color(0xFF0A1626),
+            Color(0xFF080E1A),
+          ],
+          const <double>[0, .52, 1],
+        ),
     );
-    for (var index = 0; index < 12; index += 1) {
-      final angle = index * math.pi / 6 + _time * 0.08;
+    const grid = 120.0;
+    for (var x = grid; x < size.x; x += grid) {
       canvas.drawLine(
-        center + Offset(math.cos(angle), math.sin(angle)) * 90,
-        center + Offset(math.cos(angle), math.sin(angle)) * 420,
+        Offset(x, 0),
+        Offset(x, size.y),
         Paint()
-          ..strokeWidth = index.isEven ? 2 : 1
-          ..color = index.isEven
-              ? const Color(0x3336E1FF)
-              : const Color(0x2EFF4FD8),
+          ..strokeWidth = x % (grid * 4) == 0 ? 1.4 : .7
+          ..color = const Color(0x142F6B8A),
       );
     }
+    for (var y = grid; y < size.y; y += grid) {
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.x, y),
+        Paint()
+          ..strokeWidth = y % (grid * 4) == 0 ? 1.4 : .7
+          ..color = const Color(0x142F6B8A),
+      );
+    }
+
+    final halfWidth = size.x / 2;
+    final halfHeight = size.y / 2;
+    final regionRects = <(Rect, Color)>[
+      (
+        Rect.fromLTWH(28, 28, halfWidth - 108, halfHeight - 108),
+        const Color(0xFF45F3A6),
+      ),
+      (
+        Rect.fromLTWH(halfWidth + 80, 28, halfWidth - 108, halfHeight - 108),
+        const Color(0xFF36E1FF),
+      ),
+      (
+        Rect.fromLTWH(28, halfHeight + 80, halfWidth - 108, halfHeight - 108),
+        const Color(0xFFFF4FD8),
+      ),
+      (
+        Rect.fromLTWH(
+          halfWidth + 80,
+          halfHeight + 80,
+          halfWidth - 108,
+          halfHeight - 108,
+        ),
+        const Color(0xFFFFC857),
+      ),
+    ];
+    for (final (rect, color) in regionRects) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(72)),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = color.withValues(alpha: .10),
+      );
+    }
+
+    final center = Offset(halfWidth, halfHeight);
+    final pulse = (math.sin(_time * 1.4) + 1) / 2;
     canvas.drawCircle(
       center,
-      88 + math.sin(_time * 1.8) * 8,
+      92 + pulse * 10,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..color = const Color(0x6636E1FF),
+        ..strokeWidth = 2
+        ..color = const Color(0x4036E1FF),
     );
+    canvas.drawCircle(center, 26, Paint()..color = const Color(0x182CF2C8));
   }
 
   void _drawConduit(

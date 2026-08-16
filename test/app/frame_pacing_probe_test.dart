@@ -12,7 +12,17 @@ void main() {
     expect(summary.medianMs, closeTo(16.667, .001));
     expect(summary.p95Ms, closeTo(16.667, .001));
     expect(summary.severeFramePercent, 0);
-    expect(summary.passesReleaseTarget, isTrue);
+    expect(summary.passesTarget(FramePacingTarget.windows), isTrue);
+    expect(summary.passesTarget(FramePacingTarget.web), isTrue);
+  });
+
+  test('30 Hz samples pass Web but fail the Windows 60 Hz target', () {
+    final summary = FramePacingSummary.fromMilliseconds(
+      List<double>.filled(900, 33.333),
+    );
+
+    expect(summary.passesTarget(FramePacingTarget.windows), isFalse);
+    expect(summary.passesTarget(FramePacingTarget.web), isTrue);
   });
 
   test('stutter above the one-percent severe-frame budget fails', () {
@@ -23,6 +33,7 @@ void main() {
     final summary = FramePacingSummary.fromMilliseconds(samples);
 
     expect(summary.severeFramePercent, 2);
-    expect(summary.passesReleaseTarget, isFalse);
+    expect(summary.passesTarget(FramePacingTarget.windows), isFalse);
+    expect(summary.passesTarget(FramePacingTarget.web), isFalse);
   });
 }

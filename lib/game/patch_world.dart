@@ -14,8 +14,12 @@ import 'package:patch_world/game/components/effects/hound_break_burst_component.
 import 'package:patch_world/game/components/effects/phase_execution_burst_component.dart';
 import 'package:patch_world/game/components/effects/retaliation_echo_component.dart';
 import 'package:patch_world/game/components/effects/friendly_error_burst_component.dart';
+import 'package:patch_world/game/components/effects/optimizer_volley_telegraph_component.dart';
+import 'package:patch_world/game/components/effects/prediction_strike_component.dart';
+import 'package:patch_world/game/components/effects/temporal_storm_component.dart';
 import 'package:patch_world/game/components/effects/time_freeze_overlay_component.dart';
 import 'package:patch_world/game/components/effects/survival_score_popup_component.dart';
+import 'package:patch_world/game/components/effects/weapon_impact_burst_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
@@ -41,15 +45,54 @@ import 'package:patch_world/game/systems/survival_crowd_separation.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
 
 final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
+  static const int maximumCombatEffects = 96;
+
   late final PlayerComponent player;
   Component? _activeRoom;
   CampaignNodeEntry _activeCampaignEntry = CampaignNodeEntry.west;
   bool _isReady = false;
   final List<SurvivalScorePopupComponent> _scorePopups =
       <SurvivalScorePopupComponent>[];
+  int _pendingCombatEffects = 0;
 
   bool get isReady => _isReady;
   Component? get activeRoom => _activeRoom;
+  int get activeCombatEffectCount {
+    final room = _activeRoom;
+    return children.where(_isBudgetedCombatEffect).length +
+        (room?.children.where(_isBudgetedCombatEffect).length ?? 0);
+  }
+
+  bool get canSpawnCombatEffect =>
+      activeCombatEffectCount + _pendingCombatEffects < maximumCombatEffects;
+
+  bool _isBudgetedCombatEffect(Component component) =>
+      component is PatchPulseComponent ||
+      component is DataShardComponent ||
+      component is DataSurgeRingComponent ||
+      component is CriticalFlowRingComponent ||
+      component is PerfectDodgeBurstComponent ||
+      component is HoundBreakBurstComponent ||
+      component is PhaseExecutionBurstComponent ||
+      component is RetaliationEchoComponent ||
+      component is FriendlyErrorBurstComponent ||
+      component is SurvivalScorePopupComponent ||
+      component is WeaponImpactBurstComponent ||
+      component is PredictionStrikeComponent ||
+      component is OptimizerVolleyTelegraphComponent ||
+      component is TemporalStormComponent;
+
+  Future<bool> tryAddCombatEffect(Component effect, {Component? host}) async {
+    if (!canSpawnCombatEffect) return false;
+    _pendingCombatEffects += 1;
+    try {
+      await (host ?? this).add(effect);
+      return true;
+    } finally {
+      _pendingCombatEffects -= 1;
+    }
+  }
+
   Iterable<PositionComponent> get activeCombatTargets sync* {
     final room = _activeRoom;
     if (room == null) return;
@@ -331,7 +374,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     int damage = 1,
     double radiusMultiplier = 1,
   }) async {
-    await add(
+    await tryAddCombatEffect(
       PatchPulseComponent(
         position: worldPosition.clone(),
         damage: damage,
@@ -347,52 +390,69 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     bool alternatingCorruption = true,
   }) {
     for (var index = 0; index < count; index += 1) {
+      if (!canSpawnCombatEffect) break;
       final angle = (index / count) * math.pi * 2 + (corrupted ? 0.35 : 0);
-      add(
-        DataShardComponent(
-          position: worldPosition.clone(),
-          scatterDirection: Vector2(math.cos(angle), math.sin(angle)),
-          isCorrupted: corrupted || (alternatingCorruption && index.isOdd),
+      unawaited(
+        tryAddCombatEffect(
+          DataShardComponent(
+            position: worldPosition.clone(),
+            scatterDirection: Vector2(math.cos(angle), math.sin(angle)),
+            isCorrupted: corrupted || (alternatingCorruption && index.isOdd),
+          ),
         ),
       );
     }
   }
 
   void spawnDataSurgeRing(Vector2 worldPosition) {
-    add(DataSurgeRingComponent(position: worldPosition.clone()));
+    unawaited(
+      tryAddCombatEffect(
+        DataSurgeRingComponent(position: worldPosition.clone()),
+      ),
+    );
   }
 
   void spawnCriticalFlowRing(Vector2 worldPosition) {
-    add(CriticalFlowRingComponent(position: worldPosition.clone()));
+    unawaited(
+      tryAddCombatEffect(
+        CriticalFlowRingComponent(position: worldPosition.clone()),
+      ),
+    );
   }
 
   void spawnPerfectDodgeBurst(Vector2 worldPosition, {required int score}) {
-    add(
-      PerfectDodgeBurstComponent(
-        position: worldPosition.clone(),
-        score: score,
-        label: game.localization.text('effect.perfectDodge'),
+    unawaited(
+      tryAddCombatEffect(
+        PerfectDodgeBurstComponent(
+          position: worldPosition.clone(),
+          score: score,
+          label: game.localization.text('effect.perfectDodge'),
+        ),
       ),
     );
   }
 
   void spawnHoundBreakBurst(Vector2 worldPosition, {required int score}) {
-    add(
-      HoundBreakBurstComponent(
-        position: worldPosition.clone() + Vector2(0, -18),
-        score: score,
-        label: game.localization.text('effect.houndBreak'),
+    unawaited(
+      tryAddCombatEffect(
+        HoundBreakBurstComponent(
+          position: worldPosition.clone() + Vector2(0, -18),
+          score: score,
+          label: game.localization.text('effect.houndBreak'),
+        ),
       ),
     );
   }
 
   void spawnPhaseExecutionBurst(Vector2 worldPosition, {required int score}) {
-    add(
-      PhaseExecutionBurstComponent(
-        position: worldPosition.clone() + Vector2(0, -20),
-        score: score,
-        label: game.localization.text('effect.phaseExecution'),
-        dataLabel: game.localization.text('hud.data'),
+    unawaited(
+      tryAddCombatEffect(
+        PhaseExecutionBurstComponent(
+          position: worldPosition.clone() + Vector2(0, -20),
+          score: score,
+          label: game.localization.text('effect.phaseExecution'),
+          dataLabel: game.localization.text('hud.data'),
+        ),
       ),
     );
   }
@@ -404,6 +464,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     bool miniBoss = false,
   }) {
     if (game.mode != PatchWorldMode.survival || score <= 0) return;
+    if (!canSpawnCombatEffect) return;
     _scorePopups.removeWhere((popup) => popup.isExpired || popup.isRemoving);
     while (_scorePopups.length >= 16) {
       _scorePopups.removeAt(0).removeFromParent();
@@ -418,7 +479,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
           : SurvivalScorePopupKind.normal,
     );
     _scorePopups.add(popup);
-    add(popup);
+    unawaited(tryAddCombatEffect(popup));
   }
 
   Future<void> spawnRetaliationEcho(Vector2 worldPosition, int tier) async {
@@ -426,7 +487,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       growable: false,
     );
     if (echoes.length >= 3) echoes.first.removeFromParent();
-    await add(
+    await tryAddCombatEffect(
       RetaliationEchoComponent(
         position: worldPosition,
         pullsTargets: tier >= 2,
@@ -442,7 +503,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     required double radius,
     String? excludedEntityId,
   }) async {
-    await add(
+    await tryAddCombatEffect(
       FriendlyErrorBurstComponent(
         position: worldPosition,
         damage: damage,

@@ -21,7 +21,11 @@ final class WeaponSelectionOverlay extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   Text(
-                    game.localization.text('weaponSelection.title'),
+                    game.localization.text(
+                      game.weaponSelectionForSurvival
+                          ? 'survivalWeaponSelection.title'
+                          : 'weaponSelection.title',
+                    ),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Color(0xFF36E1FF),
@@ -32,7 +36,11 @@ final class WeaponSelectionOverlay extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    game.localization.text('weaponSelection.subtitle'),
+                    game.localization.text(
+                      game.weaponSelectionForSurvival
+                          ? 'survivalWeaponSelection.subtitle'
+                          : 'weaponSelection.subtitle',
+                    ),
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Color(0xFFA9B4C8)),
                   ),
@@ -129,6 +137,21 @@ final class _WeaponCard extends StatelessWidget {
               value: game.localization.text('$key.difficulty'),
             ),
             const SizedBox(height: 12),
+            if (game.weaponSelectionForSurvival) ...<Widget>[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  game.localization.text('survivalWeaponSelection.buildHint'),
+                  style: TextStyle(
+                    color: accent,
+                    height: 1.35,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             Align(
               alignment: Alignment.centerLeft,
               child: Text(

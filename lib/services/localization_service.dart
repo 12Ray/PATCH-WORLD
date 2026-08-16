@@ -89,6 +89,19 @@ final class LocalizationService {
         },
       );
     }
+    if (causeId.startsWith('boss.')) {
+      final parts = causeId.split('.');
+      final bossId = parts.length > 1 ? parts[1] : '';
+      final bossName = text('survivalBoss.$bossId');
+      return text(
+        'cause.boss.generic',
+        parameters: <String, Object>{
+          'boss': bossName.startsWith('[')
+              ? text('cause.enemy.unknown')
+              : bossName,
+        },
+      );
+    }
     if (causeId.startsWith('hazard.')) return text('cause.hazard.generic');
     if (causeId.startsWith('patch.')) return text('cause.patch.generic');
     return text('cause.unknown');

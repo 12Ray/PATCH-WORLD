@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "framesPerBoss": 8,
+  "frameRoles": [
+    "idle",
+    "locomotionA",
+    "locomotionB",
+    "entrance",
+    "telegraph",
+    "active",
+    "phaseTransition",
+    "death"
+  ],
+  "bosses": {
+    "foundryOverseer": {
+      "asset": "foundry-overseer.webp",
+      "displaySize": [118, 118]
+    },
+    "temporalRegent": {
+      "asset": "temporal-regent.webp",
+      "displaySize": [118, 118]
+    },
+    "collisionBehemoth": {
+      "asset": "collision-behemoth.webp",
+      "displaySize": [124, 118]
+    },
+    "nexusCore": {
+      "asset": "nexus-core.webp",
+      "displaySize": [142, 142]
+    }
+  }
+}

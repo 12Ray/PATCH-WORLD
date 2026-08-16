@@ -1,7 +1,9 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:patch_world/game/components/effects/player_strike_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/wall_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -17,6 +19,10 @@ final class PlayerProjectileComponent extends CircleComponent
     this.damage = 1,
     this.lifetimeSeconds = 2.4,
     this.projectileColor = const Color(0xFF36E1FF),
+    this.maxHits = 1,
+    this.ricochetRadians = 0,
+    this.blastRadius = 0,
+    this.blastDamage = 0,
     double radius = 6,
   }) : super(
          radius: radius,
@@ -30,7 +36,12 @@ final class PlayerProjectileComponent extends CircleComponent
   final int damage;
   final double lifetimeSeconds;
   final Color projectileColor;
+  final int maxHits;
+  final double ricochetRadians;
+  final double blastRadius;
+  final int blastDamage;
   late double _remaining = lifetimeSeconds;
+  int _hits = 0;
   final Set<CombatTarget> _hitTargets = <CombatTarget>{};
 
   @override
@@ -96,7 +107,35 @@ final class PlayerProjectileComponent extends CircleComponent
         sourceId: sourceId,
         amount: damage,
       );
-      removeFromParent();
+      game.triggerPlayerWeaponImpactFeedback(
+        sourceId: sourceId,
+        position: other.position,
+        direction: velocity,
+        damage: damage,
+      );
+      if (blastRadius > 0 && blastDamage > 0) {
+        game.world.add(
+          PlayerStrikeComponent(
+            position: other.position.clone(),
+            size: Vector2.all(blastRadius * 2),
+            sourceId: '$sourceId.explosion',
+            damage: blastDamage,
+            activeSeconds: .10,
+            strikeColor: projectileColor.withValues(alpha: .62),
+          ),
+        );
+      }
+      _hits += 1;
+      if (_hits >= maxHits) {
+        removeFromParent();
+      } else if (ricochetRadians != 0) {
+        final turn = _hits.isOdd ? ricochetRadians : -ricochetRadians;
+        final cosine = math.cos(turn);
+        final sine = math.sin(turn);
+        final nextX = velocity.x * cosine - velocity.y * sine;
+        final nextY = velocity.x * sine + velocity.y * cosine;
+        velocity.setValues(nextX, nextY);
+      }
     } else if (other is WallComponent ||
         (other is PhaseWallComponent && other.isSolid)) {
       removeFromParent();

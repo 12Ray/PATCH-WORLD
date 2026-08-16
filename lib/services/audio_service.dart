@@ -156,6 +156,13 @@ final class AudioService {
         PlayerWeapon.gun => heavy ? 'gunRail' : 'gun',
       }, volume: heavy ? 0.88 : 0.74);
 
+  Future<void> playWeaponImpact(PlayerWeapon weapon, {bool heavy = false}) =>
+      _playPooled(switch (weapon) {
+        PlayerWeapon.sword => 'sword',
+        PlayerWeapon.gauntlet => 'gauntlet',
+        PlayerWeapon.gun => heavy ? 'gunRail' : 'gun',
+      }, volume: heavy ? .62 : .42);
+
   Future<void> playPlatformBreak() =>
       _playOneShot('sfx/platform_break.wav', volume: 0.72);
 

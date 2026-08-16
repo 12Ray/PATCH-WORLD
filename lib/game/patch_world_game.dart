@@ -11,11 +11,13 @@ import 'package:flutter/widgets.dart';
 import 'package:patch_world/app/overlay_ids.dart';
 import 'package:patch_world/game/campaign/campaign_exploration_state.dart';
 import 'package:patch_world/game/campaign/campaign_floor_state.dart';
+import 'package:patch_world/game/campaign/campaign_traversal_ability.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/damage_lab_floor_state.dart';
 import 'package:patch_world/game/builds/weapon_build_state.dart';
 import 'package:patch_world/game/combat/combat_entity_budget.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
+import 'package:patch_world/game/components/effects/weapon_impact_burst_component.dart';
 import 'package:patch_world/game/core/input_controller.dart';
 import 'package:patch_world/game/core/game_clock.dart';
 import 'package:patch_world/game/core/run_state.dart';
@@ -40,10 +42,14 @@ import 'package:patch_world/game/systems/duplicate_fault_system.dart';
 import 'package:patch_world/game/systems/patch_effects_system.dart';
 import 'package:patch_world/game/systems/player_pattern_tracker.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
+import 'package:patch_world/game/survival/survival_balance.dart';
+import 'package:patch_world/game/survival/survival_balance_report.dart';
 import 'package:patch_world/game/survival/survival_patch_modifiers.dart';
 import 'package:patch_world/game/survival/survival_patch_fusions.dart';
 import 'package:patch_world/game/survival/survival_playtest_telemetry.dart';
+import 'package:patch_world/game/survival/survival_items.dart';
 import 'package:patch_world/game/survival/survival_upgrade_request.dart';
+import 'package:patch_world/game/survival/survival_weapon_build.dart';
 import 'package:patch_world/services/audio_service.dart';
 import 'package:patch_world/services/game_settings.dart';
 import 'package:patch_world/services/localization_service.dart';
@@ -128,6 +134,13 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     'sprites/art_v3/boss/optimizer-predict.png',
     'sprites/art_v3/boss/optimizer-perfect.png',
     'sprites/art_v3/boss/optimizer-overflow.png',
+    'sprites/survival_v1/enemies/rift-stalker.webp',
+    'sprites/survival_v1/enemies/arc-warden.webp',
+    'sprites/survival_v1/enemies/mine-layer.webp',
+    'sprites/survival_v1/bosses/foundry-overseer.webp',
+    'sprites/survival_v1/bosses/temporal-regent.webp',
+    'sprites/survival_v1/bosses/collision-behemoth.webp',
+    'sprites/survival_v1/bosses/nexus-core.webp',
   ];
   static const int survivalQaStartSecond = int.fromEnvironment(
     'SURVIVAL_START_SECOND',
@@ -165,6 +178,18 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     'SURVIVAL_QA_PHASE_EXECUTION_DEMO',
     defaultValue: false,
   );
+  static const bool survivalQaItemRewardDemo = bool.fromEnvironment(
+    'SURVIVAL_QA_ITEM_REWARD_DEMO',
+    defaultValue: false,
+  );
+  static const bool survivalQaEnemyArtDemo = bool.fromEnvironment(
+    'SURVIVAL_QA_ENEMY_ART_DEMO',
+    defaultValue: false,
+  );
+  static const bool survivalQaAutoAttack = bool.fromEnvironment(
+    'SURVIVAL_QA_AUTO_ATTACK',
+    defaultValue: false,
+  );
   static const List<String> _runOverlayIds = <String>[
     OverlayIds.weaponSelection,
     OverlayIds.hud,
@@ -175,6 +200,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     OverlayIds.patchSelection,
     OverlayIds.patchApplied,
     OverlayIds.survivalUpgrade,
+    OverlayIds.survivalWeaponUpgrade,
+    OverlayIds.survivalItemReward,
     OverlayIds.survivalResult,
     OverlayIds.defeat,
     OverlayIds.runSummary,
@@ -197,6 +224,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   final RunItemState runItems = RunItemState();
   final WeaponBuildState weaponBuild = WeaponBuildState();
   final SurvivalRunState survivalRun = SurvivalRunState();
+  final SurvivalWeaponBuildState survivalWeaponBuild =
+      SurvivalWeaponBuildState();
+  final SurvivalItemBuildState survivalItems = SurvivalItemBuildState();
+  final Set<CampaignTraversalAbility> survivalMetaAbilities =
+      <CampaignTraversalAbility>{};
   final RuleEngine ruleEngine = RuleEngine();
   final GameClock clock = GameClock();
   final CombatEntityBudget combatEntityBudget = CombatEntityBudget();
@@ -216,6 +248,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       ValueNotifier<SurvivalResultSnapshot?>(null);
   final List<SurvivalResultSnapshot> survivalSessionHistory =
       <SurvivalResultSnapshot>[];
+  final List<SurvivalPlaytestRecord> survivalPlaytestHistory =
+      <SurvivalPlaytestRecord>[];
   final ValueNotifier<RunSummary?> completedRun = ValueNotifier<RunSummary?>(
     null,
   );
@@ -231,6 +265,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   PatchSelectionRequest? pendingPatchSelection;
   WeaponBuildSelectionRequest? pendingWeaponBuildSelection;
   SurvivalUpgradeRequest? pendingSurvivalUpgrade;
+  SurvivalWeaponUpgradeRequest? pendingSurvivalWeaponUpgrade;
+  SurvivalItemRewardRequest? pendingSurvivalItemReward;
+  final List<SurvivalItemRewardSource> _queuedSurvivalItemRewards =
+      <SurvivalItemRewardSource>[];
   bool _roomTransitionInProgress = false;
   double _uiPublishAccumulator = 0;
   bool _roomRestartRequested = false;
@@ -242,18 +280,23 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   double bestSurvivalTime = 0;
   double _screenShakeRemaining = 0;
   double _screenShakePhase = 0;
+  double _screenShakeIntensity = 1;
   double _combatSlowMotionRemaining = 0;
   double _combatSlowMotionScale = 1;
+  double _weaponImpactFeedbackCooldown = 0;
+  double _survivalQaAutoAttackRemaining = 0;
   double _horizontalCameraLead = 0;
   final Vector2 _cameraFollowPosition = Vector2(480, 270);
   Component? _cameraFollowRoom;
   String _settingsReturnOverlay = OverlayIds.pause;
   String _creditsReturnOverlay = OverlayIds.title;
   PlayerWeapon? _selectedRunWeapon;
+  bool _weaponSelectionForSurvival = false;
   bool _cinematicInputLocked = false;
   bool _returnToTitleInProgress = false;
 
   PlayerWeapon? get selectedRunWeapon => _selectedRunWeapon;
+  bool get weaponSelectionForSurvival => _weaponSelectionForSurvival;
   bool get isRoomTransitionInProgress => _roomTransitionInProgress;
 
   RoomId get _campaignEntryRoom =>
@@ -290,6 +333,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       bestScore = await settingsService.loadBestScore();
       bestSurvivalScore = await settingsService.loadBestSurvivalScore();
       bestSurvivalTime = await settingsService.loadBestSurvivalTime();
+      survivalMetaAbilities
+        ..clear()
+        ..addAll(await settingsService.loadSurvivalAbilityUnlocks());
+      survivalPlaytestHistory
+        ..clear()
+        ..addAll(await settingsService.loadSurvivalPlaytestRecords());
     } catch (_) {
       loadedSettings = const GameSettings();
     }
@@ -360,12 +409,19 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     input.syncPressedKeys(keysPressed);
     if (event is KeyDownEvent) {
       unawaited(audio.unlockFromUserGesture());
+      final choiceIndex = survivalChoiceIndexForKey(event.logicalKey);
+      if (choiceIndex != null && hasPendingSurvivalChoice) {
+        selectPendingSurvivalChoiceAt(choiceIndex);
+        return KeyEventResult.handled;
+      }
       input.handleKeyDown(event.logicalKey);
       if (event.logicalKey == LogicalKeyboardKey.keyM &&
           mode == PatchWorldMode.campaign &&
           world.isReady &&
           pendingPatchSelection == null &&
-          pendingWeaponBuildSelection == null) {
+          pendingWeaponBuildSelection == null &&
+          pendingSurvivalUpgrade == null &&
+          pendingSurvivalWeaponUpgrade == null) {
         _toggleCampaignMap();
         return KeyEventResult.handled;
       }
@@ -384,7 +440,51 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     return KeyEventResult.handled;
   }
 
+  bool get hasPendingSurvivalChoice =>
+      pendingSurvivalUpgrade != null ||
+      pendingSurvivalWeaponUpgrade != null ||
+      pendingSurvivalItemReward != null;
+
+  static int? survivalChoiceIndexForKey(LogicalKeyboardKey key) {
+    if (key == LogicalKeyboardKey.keyJ) return 0;
+    if (key == LogicalKeyboardKey.keyK) return 1;
+    if (key == LogicalKeyboardKey.keyL) return 2;
+    return null;
+  }
+
+  bool selectPendingSurvivalChoiceAt(int index) {
+    if (index < 0) return false;
+    final patchRequest = pendingSurvivalUpgrade;
+    if (patchRequest != null) {
+      if (index >= patchRequest.choices.length) return false;
+      selectSurvivalUpgrade(patchRequest.choices[index].id);
+      return true;
+    }
+    final weaponRequest = pendingSurvivalWeaponUpgrade;
+    if (weaponRequest != null) {
+      if (index >= weaponRequest.choices.length) return false;
+      selectSurvivalWeaponUpgrade(weaponRequest.choices[index]);
+      return true;
+    }
+    final itemRequest = pendingSurvivalItemReward;
+    if (itemRequest != null) {
+      if (index >= itemRequest.choices.length) return false;
+      selectSurvivalItem(itemRequest.choices[index]);
+      return true;
+    }
+    return false;
+  }
+
   void openWeaponSelection() {
+    _weaponSelectionForSurvival = false;
+    input.clearAll();
+    overlays.remove(OverlayIds.title);
+    overlays.add(OverlayIds.weaponSelection);
+    pauseEngine();
+  }
+
+  void openSurvivalWeaponSelection() {
+    _weaponSelectionForSurvival = true;
     input.clearAll();
     overlays.remove(OverlayIds.title);
     overlays.add(OverlayIds.weaponSelection);
@@ -400,6 +500,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     _selectedRunWeapon = weapon;
     weaponBuild.reset();
     overlays.remove(OverlayIds.weaponSelection);
+    if (_weaponSelectionForSurvival) {
+      await _startSurvivalRun(weapon);
+      return;
+    }
     await _startCampaignRun(weapon);
   }
 
@@ -443,15 +547,18 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     );
   }
 
-  void startSurvivalRun() => unawaited(_startSurvivalRun());
+  void startSurvivalRun([PlayerWeapon? weapon]) => unawaited(
+    _startSurvivalRun(weapon ?? _selectedRunWeapon ?? PlayerWeapon.sword),
+  );
 
-  Future<void> _startSurvivalRun() async {
+  Future<void> _startSurvivalRun(PlayerWeapon weapon) async {
     await ready();
     unawaited(audio.unlockFromUserGesture());
     mode = PatchWorldMode.survival;
-    _selectedRunWeapon = null;
+    _selectedRunWeapon = weapon;
+    _weaponSelectionForSurvival = true;
     world.player.configureLoadout(
-      PlayerWeapon.sword,
+      weapon,
       assistMode: settings.value.assistMode,
     );
     runState.reset();
@@ -461,7 +568,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     collisionArchiveProgress.reset();
     runItems.reset();
     weaponBuild.reset();
+    survivalWeaponBuild.reset();
+    survivalItems.reset();
     survivalRun.reset();
+    pendingSurvivalItemReward = null;
+    _queuedSurvivalItemRewards.clear();
     if (survivalQaStartCombo > 0) {
       survivalRun.seedComboForQa(survivalQaStartCombo);
     }
@@ -481,6 +592,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     // A survival run must always receive a fresh director timeline. This also
     // keeps QA start-second builds from replaying every earlier milestone.
     await world.loadRoom(currentRoom);
+    if (survivalQaItemRewardDemo) {
+      queueSurvivalItemReward(SurvivalItemRewardSource.regionBoss);
+    }
     if (survivalQaPerfectDodgeDemo) {
       recordSurvivalPerfectDodge(world.player.position.clone());
     }
@@ -557,6 +671,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
     final activeRoom = world.activeRoom;
     if (activeRoom is SurvivalArenaController) {
+      activeRoom.registerRegionEventKill();
       if (criticalFlowTriggered) {
         activeRoom.showCriticalFlow();
       } else {
@@ -604,9 +719,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     return gainedScore;
   }
 
-  void recordSurvivalHit() {
+  void recordSurvivalHit({String causeId = 'unknown', int amount = 1}) {
     if (mode != PatchWorldMode.survival) return;
-    survivalRun.recordHit();
+    survivalRun.recordHit(causeId: causeId, amount: amount);
     publishUiSnapshot(force: true);
   }
 
@@ -657,16 +772,33 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     final activeRoom = world.activeRoom;
     if (activeRoom is SurvivalArenaController) {
       activeRoom.showPatchPowerDemo(
-        '${localization.text('hud.dataSurge')} // PULSE +1',
+        '${localization.text('hud.dataSurge')} // '
+        '${localization.text('survivalAlert.weaponDamageBonus')}',
       );
     }
     publishUiSnapshot(force: true);
   }
 
-  SurvivalSessionSummary get survivalSessionSummary =>
-      SurvivalSessionSummary.fromPatchRuns(
-        survivalSessionHistory.map((result) => result.patchTiers.keys.toSet()),
-      );
+  SurvivalSessionSummary get survivalSessionSummary {
+    final persistedEntries = survivalPlaytestHistory.map(
+      (record) => SurvivalSessionEntry(
+        patchIds: record.patchIds,
+        weapon: record.weapon,
+      ),
+    );
+    final inMemoryEntries = survivalSessionHistory.map(
+      (result) => SurvivalSessionEntry(
+        patchIds: result.patchTiers.keys.toSet(),
+        weapon: result.selectedWeapon,
+      ),
+    );
+    return SurvivalSessionSummary.fromEntries(
+      survivalPlaytestHistory.isEmpty ? inMemoryEntries : persistedEntries,
+    );
+  }
+
+  SurvivalBalanceReport get survivalBalanceReport =>
+      SurvivalBalanceReport.fromRecords(survivalPlaytestHistory);
 
   bool _openSurvivalUpgrade() {
     while (survivalRun.hasPendingUpgrade) {
@@ -770,10 +902,124 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         activeRoom.showPatchPowerDemo(patch.title);
       }
     }
+    if (request.level % 3 == 0 && _openSurvivalWeaponUpgrade(request.level)) {
+      overlays.remove(OverlayIds.survivalUpgrade);
+      return true;
+    }
     if (_openSurvivalUpgrade()) return true;
+    if (_openNextSurvivalItemReward()) {
+      overlays.remove(OverlayIds.survivalUpgrade);
+      return true;
+    }
     overlays.remove(OverlayIds.survivalUpgrade);
     resumeEngine();
     return false;
+  }
+
+  bool _openSurvivalWeaponUpgrade(int level) {
+    final weapon = _selectedRunWeapon ?? world.player.selectedWeapon;
+    final choices = survivalWeaponBuild.choicesFor(weapon);
+    if (choices.isEmpty) return false;
+    pendingSurvivalWeaponUpgrade = SurvivalWeaponUpgradeRequest(
+      level: level,
+      choices: choices,
+    );
+    input.clearAll();
+    pauseEngine();
+    overlays.add(OverlayIds.survivalWeaponUpgrade);
+    return true;
+  }
+
+  bool selectSurvivalWeaponUpgrade(SurvivalWeaponUpgradeId id) {
+    final request = pendingSurvivalWeaponUpgrade;
+    if (request == null || !request.choices.contains(id)) return false;
+    final nextTier = survivalWeaponBuild.upgrade(id);
+    pendingSurvivalWeaponUpgrade = null;
+    overlays.remove(OverlayIds.survivalWeaponUpgrade);
+    final activeRoom = world.activeRoom;
+    if (activeRoom is SurvivalArenaController) {
+      activeRoom.showWeaponBuildOnline(
+        localization.text('${id.id}.title'),
+        tier: nextTier,
+      );
+    }
+    publishUiSnapshot(force: true);
+    if (_openSurvivalUpgrade()) return true;
+    if (_openNextSurvivalItemReward()) return true;
+    resumeEngine();
+    return false;
+  }
+
+  void queueSurvivalItemReward(SurvivalItemRewardSource source) {
+    if (mode != PatchWorldMode.survival || survivalResult.value != null) return;
+    _queuedSurvivalItemRewards.add(source);
+    _openNextSurvivalItemReward();
+  }
+
+  bool _openNextSurvivalItemReward() {
+    if (mode != PatchWorldMode.survival ||
+        survivalResult.value != null ||
+        pendingSurvivalUpgrade != null ||
+        pendingSurvivalWeaponUpgrade != null ||
+        pendingSurvivalItemReward != null) {
+      return false;
+    }
+    final weapon = _selectedRunWeapon ?? world.player.selectedWeapon;
+    while (_queuedSurvivalItemRewards.isNotEmpty) {
+      final source = _queuedSurvivalItemRewards.removeAt(0);
+      final choices = survivalItems.choices(
+        weapon: weapon,
+        unlockedAbilities: survivalMetaAbilities,
+      );
+      survivalItems.advanceReward();
+      if (choices.isEmpty) {
+        survivalRun.bonusScore += 500;
+        continue;
+      }
+      pendingSurvivalItemReward = SurvivalItemRewardRequest(
+        source: source,
+        choices: choices,
+      );
+      input.clearAll();
+      pauseEngine();
+      overlays.add(OverlayIds.survivalItemReward);
+      publishUiSnapshot(force: true);
+      return true;
+    }
+    return false;
+  }
+
+  bool selectSurvivalItem(SurvivalItemId id) {
+    final request = pendingSurvivalItemReward;
+    if (request == null || !request.choices.contains(id)) return false;
+    final synergiesBefore = survivalItems.activeSynergyTiers.values.fold<int>(
+      0,
+      (total, tier) => total + tier,
+    );
+    if (!survivalItems.acquire(id)) return false;
+    final synergiesAfter = survivalItems.activeSynergyTiers.values.fold<int>(
+      0,
+      (total, tier) => total + tier,
+    );
+    survivalRun.recordSurvivalItemAcquired(
+      newSynergies: math.max(0, synergiesAfter - synergiesBefore),
+    );
+    pendingSurvivalItemReward = null;
+    overlays.remove(OverlayIds.survivalItemReward);
+    final activeRoom = world.activeRoom;
+    if (activeRoom is SurvivalArenaController) {
+      activeRoom.showWeaponBuildOnline(
+        localization.text(
+          '${SurvivalItemCatalog.definition(id).localizationPrefix}.title',
+        ),
+        tier: survivalItems.items.length,
+      );
+    }
+    publishUiSnapshot(force: true);
+    if (_openSurvivalUpgrade()) return true;
+    if (_openNextSurvivalItemReward()) return true;
+    resumeEngine();
+    return true;
   }
 
   void queuePointerAttack() {
@@ -826,11 +1072,65 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
 
   void clearTouchMovement() => input.clearVirtualMovement();
 
-  void triggerImpactFeedback() {
+  void triggerImpactFeedback({double intensity = 1}) {
     if (settings.value.screenShake == ScreenShakeSetting.off) return;
     _screenShakeRemaining =
         settings.value.screenShake == ScreenShakeSetting.reduced ? 0.08 : 0.14;
     _screenShakePhase = 0;
+    _screenShakeIntensity = intensity.clamp(.35, 1.8).toDouble();
+  }
+
+  void triggerPlayerWeaponImpactFeedback({
+    required String sourceId,
+    required Vector2 position,
+    required Vector2 direction,
+    required int damage,
+  }) {
+    if (mode != PatchWorldMode.survival || !world.isReady) return;
+    final weapon = switch (sourceId) {
+      final id when id.contains('.sword.') => PlayerWeapon.sword,
+      final id when id.contains('.gauntlet.') => PlayerWeapon.gauntlet,
+      final id when id.contains('.gun.') => PlayerWeapon.gun,
+      _ => null,
+    };
+    if (weapon == null) return;
+    final heavy =
+        damage >= 3 ||
+        sourceId.contains('Counter') ||
+        sourceId.contains('groundSlam') ||
+        sourceId.contains('quakeCore') ||
+        sourceId.contains('protocolVolley');
+    unawaited(
+      world.tryAddCombatEffect(
+        WeaponImpactBurstComponent(
+          position: position.clone(),
+          weapon: weapon,
+          direction: direction,
+          heavy: heavy,
+        ),
+      ),
+    );
+    if (_weaponImpactFeedbackCooldown > 0) return;
+    _weaponImpactFeedbackCooldown = .035;
+    final intensity = switch (weapon) {
+      PlayerWeapon.sword => heavy ? 1.15 : .78,
+      PlayerWeapon.gauntlet => heavy ? 1.5 : 1.0,
+      PlayerWeapon.gun => heavy ? .95 : .58,
+    };
+    triggerImpactFeedback(intensity: intensity);
+    triggerCombatSlowMotion(
+      duration: switch (weapon) {
+        PlayerWeapon.sword => heavy ? .065 : .042,
+        PlayerWeapon.gauntlet => heavy ? .085 : .058,
+        PlayerWeapon.gun => heavy ? .045 : .024,
+      },
+      scale: switch (weapon) {
+        PlayerWeapon.sword => .22,
+        PlayerWeapon.gauntlet => .12,
+        PlayerWeapon.gun => .38,
+      },
+    );
+    unawaited(audio.playWeaponImpact(weapon, heavy: heavy));
   }
 
   void triggerCombatSlowMotion({double duration = .38, double scale = .28}) {
@@ -934,14 +1234,15 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       _cameraFollowPosition.setValues(desiredCenterX, desiredCenterY);
     }
     if (_screenShakeRemaining <= 0) {
+      _screenShakeIntensity = 1;
       camera.viewfinder.position = _cameraFollowPosition.clone();
       return;
     }
     _screenShakeRemaining = math.max(0, _screenShakeRemaining - dt);
     _screenShakePhase += dt * 95;
-    final amplitude = settings.value.screenShake == ScreenShakeSetting.reduced
-        ? 1.5
-        : 3.2;
+    final amplitude =
+        (settings.value.screenShake == ScreenShakeSetting.reduced ? 1.5 : 3.2) *
+        _screenShakeIntensity;
     camera.viewfinder.position = Vector2(
       _cameraFollowPosition.x + math.sin(_screenShakePhase) * amplitude,
       _cameraFollowPosition.y + math.cos(_screenShakePhase * 1.7) * amplitude,
@@ -971,6 +1272,17 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       return;
     }
     input.advance(dt);
+    if (survivalQaAutoAttack && mode == PatchWorldMode.survival) {
+      _survivalQaAutoAttackRemaining -= dt;
+      if (_survivalQaAutoAttackRemaining <= 0) {
+        _survivalQaAutoAttackRemaining = .08;
+        input.queueAttack();
+      }
+    }
+    _weaponImpactFeedbackCooldown = math.max(
+      0,
+      _weaponImpactFeedbackCooldown - dt.clamp(0, 1 / 15),
+    );
     final movement = _cinematicInputLocked
         ? Vector2.zero()
         : input.movementAxis;
@@ -1471,6 +1783,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       pendingPatchSelection = null;
       pendingWeaponBuildSelection = null;
       pendingSurvivalUpgrade = null;
+      pendingSurvivalWeaponUpgrade = null;
+      pendingSurvivalItemReward = null;
+      _queuedSurvivalItemRewards.clear();
       for (final overlayId in _runOverlayIds) {
         overlays.remove(overlayId);
       }
@@ -1481,6 +1796,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       collisionArchiveProgress.reset();
       runItems.reset();
       weaponBuild.reset();
+      survivalWeaponBuild.reset();
+      survivalItems.reset();
       runMetrics.reset();
       completedRun.value = null;
       survivalResult.value = null;
@@ -1657,7 +1974,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
 
   void handlePlayerDefeat({required String causeId}) {
     if (mode == PatchWorldMode.survival) {
-      _handleSurvivalDefeat();
+      _handleSurvivalDefeat(causeId);
       return;
     }
     if (defeatSnapshot.value != null) return;
@@ -1677,7 +1994,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     );
   }
 
-  void _handleSurvivalDefeat() {
+  void _handleSurvivalDefeat(String causeId) {
     if (survivalResult.value != null) return;
     final score = survivalRun.score;
     final elapsedSeconds = survivalRun.elapsedSeconds;
@@ -1695,15 +2012,37 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       survivalRun,
       isBestScore: isBestScore,
       isBestTime: isBestTime,
+      selectedWeapon: _selectedRunWeapon ?? world.player.selectedWeapon,
+      weaponBuildTiers: survivalWeaponBuild.tiers.map(
+        (id, tier) => MapEntry<String, int>(id.id, tier),
+      ),
+      itemIds: survivalItems.items.map((id) => id.name).toList(growable: false),
+      itemSynergyTiers: survivalItems.activeSynergyTiers.map(
+        (tag, tier) => MapEntry<String, int>(tag.name, tier),
+      ),
+      deathCauseId: causeId,
     );
     survivalSessionHistory.add(result);
     if (survivalSessionHistory.length > 5) {
       survivalSessionHistory.removeAt(0);
     }
+    survivalPlaytestHistory.add(SurvivalPlaytestRecord.fromResult(result));
+    if (survivalPlaytestHistory.length >
+        SurvivalBalanceReport.maximumStoredRuns) {
+      survivalPlaytestHistory.removeAt(0);
+    }
+    unawaited(
+      settingsService.saveSurvivalPlaytestRecords(survivalPlaytestHistory),
+    );
     survivalResult.value = result;
     input.clearAll();
     pendingSurvivalUpgrade = null;
+    pendingSurvivalWeaponUpgrade = null;
+    pendingSurvivalItemReward = null;
+    _queuedSurvivalItemRewards.clear();
     overlays.remove(OverlayIds.survivalUpgrade);
+    overlays.remove(OverlayIds.survivalWeaponUpgrade);
+    overlays.remove(OverlayIds.survivalItemReward);
     pauseEngine();
     overlays.add(OverlayIds.survivalResult);
   }
@@ -1719,7 +2058,15 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     survivalResult.value = null;
     runState.reset();
     survivalRun.reset();
+    survivalWeaponBuild.reset();
+    survivalItems.reset();
     pendingSurvivalUpgrade = null;
+    pendingSurvivalWeaponUpgrade = null;
+    pendingSurvivalItemReward = null;
+    _queuedSurvivalItemRewards.clear();
+    overlays.remove(OverlayIds.survivalUpgrade);
+    overlays.remove(OverlayIds.survivalWeaponUpgrade);
+    overlays.remove(OverlayIds.survivalItemReward);
     ruleEngine.setRules(const <GameRule>[]);
     if (retainedPatchId != null) {
       final patch = SurvivalUpgradeCatalog.all.singleWhere(
@@ -1757,9 +2104,16 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     resumeEngine();
     if (mode == PatchWorldMode.survival) {
       survivalRun.reset();
+      survivalWeaponBuild.reset();
+      survivalItems.reset();
       runState.reset();
       pendingSurvivalUpgrade = null;
+      pendingSurvivalWeaponUpgrade = null;
+      pendingSurvivalItemReward = null;
+      _queuedSurvivalItemRewards.clear();
       overlays.remove(OverlayIds.survivalUpgrade);
+      overlays.remove(OverlayIds.survivalWeaponUpgrade);
+      overlays.remove(OverlayIds.survivalItemReward);
     }
     final checkpointNode = campaignExploration.checkpointNodeId;
     if (mode == PatchWorldMode.campaign && checkpointNode != null) {
@@ -2006,16 +2360,26 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           'defeated' => localization.text('objective.optimizerOverflow'),
           _ => localization.text('objective.optimizerDamage'),
         },
-        RoomId.survivalArena => localization.text(
-          'objective.survivalArena',
-          parameters: <String, Object>{
-            'time': survivalRun.elapsedSeconds.floor(),
-            'kills': survivalRun.kills,
-            'score': survivalRun.score,
-          },
-        ),
+        RoomId.survivalArena =>
+          survivalRoom?.survivalObjectiveLabel ??
+              localization.text(
+                'objective.survivalArena',
+                parameters: <String, Object>{
+                  'time': survivalRun.elapsedSeconds.floor(),
+                  'kills': survivalRun.kills,
+                  'score': survivalRun.score,
+                  'stage': localization.text(
+                    SurvivalDifficultyStage.boot.localizationKey,
+                  ),
+                },
+              ),
       },
       selectedPatchIds: runState.selectedPatchIds,
+      selectedWeapon: world.player.selectedWeapon,
+      dashCooldownRemaining: mode == PatchWorldMode.survival
+          ? world.player.survivalSpecialCooldownRemaining
+          : world.player.dashCooldownRemaining,
+      airJumpsRemaining: world.player.airJumpsRemaining,
       survivalLevel: mode == PatchWorldMode.survival ? survivalRun.level : null,
       survivalExperience: mode == PatchWorldMode.survival
           ? survivalRun.experience
@@ -2122,6 +2486,14 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       campaignExploration
         ..collectCoreSignature(CampaignRegion.collisionArchive)
         ..unlockShortcut(CampaignWorldGraph.collisionHubLiftId);
+    }
+    final newSurvivalUnlocks = campaignExploration.unlockedTraversalAbilities
+        .difference(survivalMetaAbilities);
+    if (newSurvivalUnlocks.isNotEmpty) {
+      survivalMetaAbilities.addAll(newSurvivalUnlocks);
+      unawaited(
+        settingsService.saveSurvivalAbilityUnlocks(survivalMetaAbilities),
+      );
     }
   }
 

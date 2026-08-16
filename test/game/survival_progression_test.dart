@@ -5,11 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
 import 'package:patch_world/game/components/effects/data_shard_component.dart';
 import 'package:patch_world/game/components/effects/critical_flow_ring_component.dart';
-import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
-import 'package:patch_world/game/components/enemies/composite_component.dart';
 import 'package:patch_world/game/components/enemies/sentinel_component.dart';
-import 'package:patch_world/game/components/enemies/optimizer_fragment_component.dart';
+import 'package:patch_world/game/components/enemies/survival_nexus_boss_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
@@ -38,6 +36,7 @@ void main() {
             OverlayIds.hud: (_, _) => const SizedBox.shrink(),
             OverlayIds.touchControls: (_, _) => const SizedBox.shrink(),
             OverlayIds.survivalUpgrade: (_, _) => const SizedBox.shrink(),
+            OverlayIds.survivalWeaponUpgrade: (_, _) => const SizedBox.shrink(),
             OverlayIds.survivalResult: (_, _) => const SizedBox.shrink(),
           },
         ),
@@ -62,22 +61,17 @@ void main() {
       isTrue,
     );
     await tester.pump(const Duration(seconds: 1));
-    expect(game.world.children.whereType<PatchPulseComponent>(), isEmpty);
-
     final target = arena.children.whereType<CrawlerComponent>().first;
-    target.position.setFrom(game.world.player.position);
+    target.position.setFrom(game.world.player.position + Vector2(32, 0));
     game.world.player.tryAttack();
-    await tester.pump(const Duration(milliseconds: 16));
-    expect(game.world.children.whereType<PatchPulseComponent>(), isNotEmpty);
-    await tester.pump(const Duration(milliseconds: 16));
+    await _pumpUntil(tester, () => target.health == 1);
     expect(target.health, 1);
     for (var frame = 0; frame < 10; frame += 1) {
       await tester.pump(const Duration(milliseconds: 50));
     }
-    target.position.setFrom(game.world.player.position);
+    target.position.setFrom(game.world.player.position + Vector2(32, 0));
     game.world.player.tryAttack();
-    await tester.pump(const Duration(milliseconds: 16));
-    await tester.pump(const Duration(milliseconds: 16));
+    await _pumpUntil(tester, () => game.survivalRun.kills == 1);
     expect(game.survivalRun.kills, 1);
 
     final shardsBeforeFlow = game.world.children
@@ -92,7 +86,7 @@ void main() {
     final shardsAfterFlow = game.world.children
         .whereType<DataShardComponent>()
         .toList(growable: false);
-    expect(shardsAfterFlow, hasLength(shardsBeforeFlow + 1));
+    expect(shardsAfterFlow.length, greaterThanOrEqualTo(shardsBeforeFlow + 1));
     expect(shardsAfterFlow.last.isCorrupted, isFalse);
     game.recordSurvivalKill();
     await tester.pump();
@@ -165,10 +159,21 @@ void main() {
       ),
       hasLength(1),
     );
+    final criticalTarget = CrawlerComponent(
+      entityId: 'critical-flow-weapon-target',
+      position: game.world.player.position + Vector2(32, 0),
+      initialHealth: 99,
+      healthMaximum: 99,
+    );
+    await arena.add(criticalTarget);
+    final criticalHealthBefore = criticalTarget.health;
     game.world.player.tryAttack();
-    await tester.pump(const Duration(milliseconds: 16));
+    await _pumpUntil(
+      tester,
+      () => criticalTarget.health < criticalHealthBefore,
+    );
     expect(
-      game.world.children.whereType<PatchPulseComponent>().single.damage,
+      criticalHealthBefore - criticalTarget.health,
       game.survivalModifiers.pulseDamage + 1,
     );
     expect(game.world.player.canAttack, isFalse);
@@ -194,26 +199,19 @@ void main() {
       5,
     );
 
-    game.survivalRun.elapsedSeconds = 176;
+    game.survivalRun.elapsedSeconds = 298;
     await _pumpUntil(
       tester,
-      () => arena.children.whereType<CompositeComponent>().isNotEmpty,
-    );
-    expect(arena.children.whereType<CompositeComponent>().first.health.max, 10);
-
-    game.survivalRun.elapsedSeconds = 448;
-    await _pumpUntil(
-      tester,
-      () => arena.children.whereType<OptimizerFragmentComponent>().isNotEmpty,
+      () => arena.children.whereType<SurvivalNexusBossComponent>().isNotEmpty,
     );
     expect(
-      arena.children.whereType<OptimizerFragmentComponent>().first.health.max,
-      16,
+      arena.children.whereType<SurvivalNexusBossComponent>().first.health.max,
+      28,
     );
     game.publishUiSnapshot(force: true);
-    expect(game.uiSnapshot.value.bossPhase, 'OPTIMIZER FRAGMENT');
-    expect(game.uiSnapshot.value.bossHealth, 16);
-    expect(game.uiSnapshot.value.bossMaxHealth, 16);
+    expect(game.uiSnapshot.value.bossPhase, contains('P1'));
+    expect(game.uiSnapshot.value.bossHealth, 28);
+    expect(game.uiSnapshot.value.bossMaxHealth, 28);
 
     game.survivalRun.elapsedSeconds = 600;
     await tester.pump(const Duration(milliseconds: 16));

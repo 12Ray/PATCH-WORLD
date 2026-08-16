@@ -8,14 +8,22 @@ final class PredictionStrikeComponent extends CircleComponent
   PredictionStrikeComponent({
     required super.position,
     this.warningSeconds = 0.8,
+    this.sourceId = 'boss.optimizer.prediction',
+    this.damage = 1,
+    this.dangerColor = const Color(0xFFFF4FD8),
+    this.strikeRadius = 48,
   }) : super(
-         radius: 48,
+         radius: strikeRadius,
          anchor: Anchor.center,
          paint: Paint()..color = const Color(0x00000000),
          priority: 24,
        );
 
   final double warningSeconds;
+  final String sourceId;
+  final int damage;
+  final Color dangerColor;
+  final double strikeRadius;
   late double _remaining = warningSeconds;
   double _progress = 0;
   bool _resolved = false;
@@ -32,7 +40,7 @@ final class PredictionStrikeComponent extends CircleComponent
     if (_remaining <= 0) {
       _resolved = true;
       if (position.distanceTo(game.world.player.position) <= radius) {
-        game.world.player.takeDamage(1, causeId: 'boss.optimizer.prediction');
+        game.world.player.takeDamage(damage, causeId: sourceId);
       }
       removeFromParent();
     }
@@ -42,7 +50,7 @@ final class PredictionStrikeComponent extends CircleComponent
   @override
   void render(Canvas canvas) {
     final center = Offset(radius, radius);
-    final danger = Color.fromRGBO(255, 79, 216, 0.22 + _progress * 0.65);
+    final danger = dangerColor.withValues(alpha: 0.22 + _progress * 0.65);
     canvas.drawCircle(
       center,
       radius * (1.35 - _progress * 0.35),

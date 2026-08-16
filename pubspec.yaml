@@ -76,6 +76,8 @@ flutter:
     - assets/images/sprites/art_v3/enemies/
     - assets/images/sprites/art_v3/environment/
     - assets/images/sprites/art_v3/boss/
+    - assets/images/sprites/survival_v1/enemies/
+    - assets/images/sprites/survival_v1/bosses/
     - assets/tiles/
     - assets/tiles/maps/
     - assets/audio/

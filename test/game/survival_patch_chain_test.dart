@@ -28,6 +28,7 @@ void main() {
             OverlayIds.hud: (_, _) => const SizedBox.shrink(),
             OverlayIds.touchControls: (_, _) => const SizedBox.shrink(),
             OverlayIds.survivalUpgrade: (_, _) => const SizedBox.shrink(),
+            OverlayIds.survivalWeaponUpgrade: (_, _) => const SizedBox.shrink(),
             OverlayIds.survivalResult: (_, _) => const SizedBox.shrink(),
           },
         ),
@@ -57,12 +58,18 @@ void main() {
     expect(game.paused, isTrue);
 
     final secondPatch = game.pendingSurvivalUpgrade!.choices.first;
-    expect(game.selectSurvivalUpgrade(secondPatch.id), isFalse);
+    expect(game.selectSurvivalUpgrade(secondPatch.id), isTrue);
     await tester.pump();
     expect(game.pendingSurvivalUpgrade, isNull);
+    expect(game.pendingSurvivalWeaponUpgrade, isNotNull);
+    final weaponUpgrade = game.pendingSurvivalWeaponUpgrade!.choices.first;
+    expect(game.selectSurvivalWeaponUpgrade(weaponUpgrade), isFalse);
+    await tester.pump();
+    expect(game.pendingSurvivalWeaponUpgrade, isNull);
     expect(game.paused, isFalse);
     expect(game.survivalRun.patchTier(firstPatch.id), 1);
     expect(game.survivalRun.patchTier(secondPatch.id), 1);
+    expect(game.survivalWeaponBuild.tier(weaponUpgrade), 1);
   });
 }
 

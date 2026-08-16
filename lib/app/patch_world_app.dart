@@ -17,6 +17,8 @@ import 'package:patch_world/app/overlays/touch_controls_overlay.dart';
 import 'package:patch_world/app/overlays/weapon_selection_overlay.dart';
 import 'package:patch_world/app/overlays/weapon_build_selection_overlay.dart';
 import 'package:patch_world/app/overlays/survival_upgrade_overlay.dart';
+import 'package:patch_world/app/overlays/survival_weapon_upgrade_overlay.dart';
+import 'package:patch_world/app/overlays/survival_item_reward_overlay.dart';
 import 'package:patch_world/app/overlays/survival_result_overlay.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
@@ -216,6 +218,10 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
                             PatchAppliedOverlay(game: game),
                         OverlayIds.survivalUpgrade: (context, game) =>
                             SurvivalUpgradeOverlay(game: game),
+                        OverlayIds.survivalWeaponUpgrade: (context, game) =>
+                            SurvivalWeaponUpgradeOverlay(game: game),
+                        OverlayIds.survivalItemReward: (context, game) =>
+                            SurvivalItemRewardOverlay(game: game),
                         OverlayIds.survivalResult: (context, game) =>
                             SurvivalResultOverlay(game: game),
                       },

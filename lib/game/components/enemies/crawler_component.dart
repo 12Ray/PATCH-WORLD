@@ -12,6 +12,8 @@ import 'package:patch_world/game/systems/combat_system.dart';
 import 'package:patch_world/game/systems/duplicate_fault_system.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
 
+enum SurvivalCrawlerAttackState { chase, telegraph, recovery }
+
 final class CrawlerComponent extends RectangleComponent
     with CollisionCallbacks, HasGameReference<PatchWorldGame>
     implements CombatTarget, DuplicateSource {
@@ -37,6 +39,10 @@ final class CrawlerComponent extends RectangleComponent
   static const double survivalContactRadius = 26;
   static const double survivalSeparationRadius = 56;
   static const double survivalSeparationSpeed = 100;
+  static const double survivalBiteTriggerRange = 48;
+  static const double survivalBiteDamageRange = 52;
+  static const double survivalBiteTelegraphSeconds = 0.46;
+  static const double survivalBiteRecoverySeconds = 0.82;
   static const int maxHealth = 3;
   static const double overflowDelaySeconds = 0.42;
 
@@ -55,6 +61,9 @@ final class CrawlerComponent extends RectangleComponent
   double _overflowTimer = 0;
   bool _mergeConsumed = false;
   bool _duplicateClaimed = false;
+  SurvivalCrawlerAttackState _survivalAttackState =
+      SurvivalCrawlerAttackState.chase;
+  double _survivalAttackTimer = 0;
   EntitySpriteVisual? _visual;
   List<Sprite>? _healFrames;
   List<Sprite>? _overflowFrames;
@@ -63,6 +72,8 @@ final class CrawlerComponent extends RectangleComponent
   bool get isDefeated => healthState.isDefeated;
   bool get isOverflowing => _overflowStarted;
   bool get canMerge => mergeShielded && !_mergeConsumed && !isRemoving;
+  SurvivalCrawlerAttackState get survivalAttackState => _survivalAttackState;
+  double get survivalAttackTimer => _survivalAttackTimer;
 
   @override
   Vector2 get duplicatePosition => position;
@@ -228,12 +239,16 @@ final class CrawlerComponent extends RectangleComponent
       final contactRadius = isSurvival ? survivalContactRadius : 4.0;
       final velocity = Vector2.zero();
       final distance = toPlayer.length;
-      if (distance > contactRadius + 2) {
+      final canMove = !isSurvival || _updateSurvivalBite(distance, enemyDt);
+      if (canMove && distance > contactRadius + 2) {
         velocity.add(toPlayer / distance * (moveSpeed * speedMultiplier));
-      } else if (isSurvival && distance < contactRadius - 2 && distance > 0) {
+      } else if (canMove &&
+          isSurvival &&
+          distance < contactRadius - 2 &&
+          distance > 0) {
         velocity.add(toPlayer / distance * (-moveSpeed * 0.45));
       }
-      if (isSurvival) {
+      if (isSurvival && canMove) {
         velocity.add(
           game.world.survivalCrowdSteering(
                 entityId: entityId,
@@ -252,6 +267,37 @@ final class CrawlerComponent extends RectangleComponent
       }
     }
     super.update(dt);
+  }
+
+  /// Returns whether normal chase movement may run this frame.
+  bool _updateSurvivalBite(double distanceToPlayer, double dt) {
+    switch (_survivalAttackState) {
+      case SurvivalCrawlerAttackState.chase:
+        if (distanceToPlayer > survivalBiteTriggerRange) return true;
+        _survivalAttackState = SurvivalCrawlerAttackState.telegraph;
+        _survivalAttackTimer = survivalBiteTelegraphSeconds;
+        _visual?.setAnimationPlaying(false);
+        _visual?.setStateTint(const Color(0xFFFFC857));
+        _visual?.squash(seconds: survivalBiteTelegraphSeconds);
+        return false;
+      case SurvivalCrawlerAttackState.telegraph:
+        _survivalAttackTimer = math.max(0, _survivalAttackTimer - dt);
+        if (_survivalAttackTimer > 0) return false;
+        if (distanceToPlayer <= survivalBiteDamageRange) {
+          game.world.player.takeDamage(1, causeId: 'enemy.crawler.bite');
+        }
+        _survivalAttackState = SurvivalCrawlerAttackState.recovery;
+        _survivalAttackTimer = survivalBiteRecoverySeconds;
+        _visual?.setStateTint(const Color(0xFF7E7394));
+        _visual?.squash(seconds: 0.18);
+        return false;
+      case SurvivalCrawlerAttackState.recovery:
+        _survivalAttackTimer = math.max(0, _survivalAttackTimer - dt);
+        if (_survivalAttackTimer > 0) return false;
+        _survivalAttackState = SurvivalCrawlerAttackState.chase;
+        _visual?.setStateTint(null);
+        return true;
+    }
   }
 
   @override
@@ -278,6 +324,27 @@ final class CrawlerComponent extends RectangleComponent
   @override
   void render(Canvas canvas) {
     super.render(canvas);
+    if (_survivalAttackState == SurvivalCrawlerAttackState.telegraph) {
+      final progress = (1 - _survivalAttackTimer / survivalBiteTelegraphSeconds)
+          .clamp(0.0, 1.0);
+      final center = Offset(width / 2, height / 2);
+      canvas.drawCircle(
+        center,
+        survivalBiteDamageRange - progress * 7,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2 + progress * 2
+          ..color = Color.fromRGBO(255, 200, 87, 0.38 + progress * 0.58),
+      );
+      canvas.drawCircle(
+        center,
+        7 + progress * 10,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = const Color(0xFFFF6464),
+      );
+    }
     const barHeight = 4.0;
     final maxRatio = healthState.max / healthState.overflowThreshold;
     final currentRatio = healthState.normalizedForOverflowBar;

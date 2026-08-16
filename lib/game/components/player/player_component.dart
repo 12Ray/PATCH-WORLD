@@ -24,6 +24,7 @@ import 'package:patch_world/game/items/run_item_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
+import 'package:patch_world/game/survival/survival_balance.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
 import 'package:patch_world/services/game_settings.dart';
 
@@ -34,17 +35,17 @@ final class _PendingWeaponImpact {
     required this.motionIndex,
     required this.counter,
     required this.gunRail,
-    required this.facing,
+    required Vector2 direction,
     required this.airborne,
     required this.dashEmpowered,
-  });
+  }) : direction = direction.clone();
 
   double remaining;
   final PlayerWeapon weapon;
   final int motionIndex;
   final bool counter;
   final bool gunRail;
-  final double facing;
+  final Vector2 direction;
   final bool airborne;
   final bool dashEmpowered;
 }
@@ -72,6 +73,7 @@ final class PlayerComponent extends RectangleComponent
 
   final Vector2 spawnPosition;
   final Vector2 _movementInput = Vector2.zero();
+  final Vector2 _aimDirection = Vector2(1, 0);
   final Vector2 _previousPosition = Vector2.zero();
   final PlatformerMotion _platformerMotion = PlatformerMotion();
   bool _jumpHeld = false;
@@ -121,6 +123,7 @@ final class PlayerComponent extends RectangleComponent
   double _dashContactImmunity = 0;
   double _dashEmpowerWindow = 0;
   double _dashDirection = 1;
+  double _survivalSpecialCooldown = 0;
   int _airJumpsRemaining = 1;
   int _traversalAirDashesRemaining = 1;
   double _wallContactDirection = 0;
@@ -139,6 +142,7 @@ final class PlayerComponent extends RectangleComponent
       isMounted && game.runItems.contains(RunItemId.echoClock) ? 5 : 6;
   double get facingDirection => _facing;
   double get dashCooldownRemaining => _dashCooldown;
+  double get survivalSpecialCooldownRemaining => _survivalSpecialCooldown;
   double get effectiveDashCooldownSeconds => isMounted
       ? (game.runItems.swordDashCooldownSeconds -
                 game.weaponBuild.swordDashCooldownReduction)
@@ -336,6 +340,11 @@ final class PlayerComponent extends RectangleComponent
 
   void setMovementInput(Vector2 input) {
     _movementInput.setFrom(input);
+    if (input.length2 > 0.01 &&
+        isMounted &&
+        game.mode == PatchWorldMode.survival) {
+      _aimDirection.setFrom(input.normalized());
+    }
   }
 
   void setJumpHeld(bool value) => _jumpHeld = value;
@@ -418,6 +427,10 @@ final class PlayerComponent extends RectangleComponent
       game.mode == PatchWorldMode.campaign &&
       game.world.activeRoom is PlatformerRoomGeometry;
 
+  bool get _usesWeaponCombat =>
+      _usesPlatformerMovement ||
+      (isMounted && game.mode == PatchWorldMode.survival);
+
   void selectWeapon(PlayerWeapon weapon) {
     if (selectedWeapon == weapon) return;
     selectedWeapon = weapon;
@@ -447,6 +460,7 @@ final class PlayerComponent extends RectangleComponent
     _dashCooldown = 0;
     _dashContactImmunity = 0;
     _dashEmpowerWindow = 0;
+    _survivalSpecialCooldown = 0;
     if (isMounted) game.publishUiSnapshot(force: true);
   }
 
@@ -485,6 +499,9 @@ final class PlayerComponent extends RectangleComponent
   }
 
   bool trySpecialAbility(double requestedDirection) {
+    if (isMounted && game.mode == PatchWorldMode.survival) {
+      return _trySurvivalSpecial();
+    }
     switch (selectedWeapon) {
       case PlayerWeapon.sword:
         return tryDash(requestedDirection);
@@ -497,6 +514,117 @@ final class PlayerComponent extends RectangleComponent
       case PlayerWeapon.gun:
         return tryTraversalAirDash(requestedDirection);
     }
+  }
+
+  bool _trySurvivalSpecial() {
+    if (_survivalSpecialCooldown > 0 || isRemoving) return false;
+    final direction = _aimDirection.length2 == 0
+        ? Vector2(_facing, 0)
+        : _aimDirection.normalized();
+    _survivalSpecialCooldown =
+        game.survivalWeaponBuild.specialCooldownFor(selectedWeapon) *
+        game.survivalItems.specialCooldownMultiplierFor(selectedWeapon);
+    switch (selectedWeapon) {
+      case PlayerWeapon.sword:
+        final distance =
+            game.survivalWeaponBuild.swordSpecialDistance +
+            game.survivalItems.swordSpecialDistanceBonus;
+        final start = position.clone();
+        position += direction * distance;
+        _clampToLogicalWorld();
+        final travelled = position.distanceTo(start);
+        game.world.add(
+          PlayerStrikeComponent(
+            position: (start + position) / 2,
+            size: Vector2(travelled + 62, 68),
+            rotation: math.atan2(direction.y, direction.x),
+            sourceId: 'player.sword.survival.riftDash',
+            damage:
+                game.survivalWeaponBuild.swordSpecialDamage +
+                game.survivalItems.swordSpecialDamageBonus,
+            activeSeconds: 0.18,
+            strikeColor: const Color(0xAA36E1FF),
+          ),
+        );
+        _visual?.actionLunge(
+          direction: direction.x.abs() < .05 ? _facing : direction.x.sign,
+          seconds: .16,
+          travel: 24,
+        );
+        final frames = _swordDashFrames;
+        if (frames != null) {
+          _playAbilityMotion(frames, weapon: PlayerWeapon.sword);
+        }
+        game.patchEffects.onPlayerDashed();
+        unawaited(game.audio.playSwordDash());
+      case PlayerWeapon.gauntlet:
+        final radius =
+            game.survivalWeaponBuild.gauntletQuakeRadius +
+            game.survivalItems.gauntletQuakeRadiusBonus;
+        game.world.add(
+          PlayerStrikeComponent(
+            position: position.clone(),
+            size: Vector2.all(radius * 2),
+            sourceId: 'player.gauntlet.survival.quakeCore',
+            damage:
+                game.survivalWeaponBuild.gauntletQuakeDamage +
+                game.survivalItems.gauntletQuakeDamageBonus,
+            activeSeconds: .24,
+            strikeColor: const Color(0xAAFF4FD8),
+          ),
+        );
+        final frames = _gauntletDoubleJumpFrames;
+        if (frames != null) {
+          _playAbilityMotion(frames, weapon: PlayerWeapon.gauntlet);
+        }
+        _visual?.squash(seconds: .20);
+        unawaited(
+          game.audio.playWeaponAttack(PlayerWeapon.gauntlet, heavy: true),
+        );
+      case PlayerWeapon.gun:
+        final bonusShots =
+            game.survivalWeaponBuild.gunBonusShots +
+            game.survivalItems.gunBonusShots;
+        final shots = 5 + bonusShots * 2;
+        for (var index = 0; index < shots; index += 1) {
+          final spread = (index - (shots - 1) / 2) * .13;
+          final shotDirection = _rotated(direction, spread);
+          game.world.add(
+            PlayerProjectileComponent(
+              position: position + direction * 24,
+              velocity:
+                  shotDirection *
+                  (430 *
+                      game.survivalWeaponBuild.gunProjectileSpeedMultiplier *
+                      game.survivalItems.gunProjectileSpeedMultiplier),
+              sourceId: 'player.gun.survival.protocolVolley',
+              damage: 2,
+              projectileColor: const Color(0xFFFFC857),
+              radius: 7,
+              maxHits:
+                  game.survivalWeaponBuild.gunMaxHits +
+                  game.survivalItems.gunBonusHits,
+              ricochetRadians:
+                  game.survivalWeaponBuild.gunRicochetRadians +
+                  game.survivalItems.gunRicochetRadians,
+              blastRadius: game.survivalItems.explosionRadiusFor(
+                PlayerWeapon.gun,
+                heavy: true,
+              ),
+              blastDamage: game.survivalItems.explosionDamage,
+            ),
+          );
+        }
+        final frames = _gunRailFrames;
+        if (frames != null) {
+          _playAbilityMotion(frames, weapon: PlayerWeapon.gun);
+        }
+        unawaited(game.audio.playWeaponAttack(PlayerWeapon.gun, heavy: true));
+    }
+    _visual?.flash(const Color(0xFFFFFFFF), seconds: .14);
+    game.triggerImpactFeedback();
+    game.publishUiSnapshot(force: true);
+    return true;
   }
 
   bool tryTraversalAirDash(double requestedDirection) {
@@ -532,7 +660,7 @@ final class PlayerComponent extends RectangleComponent
       return;
     }
 
-    if (_usesPlatformerMovement) {
+    if (_usesWeaponCombat) {
       _tryWeaponAttack();
       return;
     }
@@ -611,7 +739,7 @@ final class PlayerComponent extends RectangleComponent
 
   void _tryWeaponAttack() {
     final counter = _counterWindow > 0;
-    final airborne = !isGrounded;
+    final airborne = _usesPlatformerMovement && !isGrounded;
     final dashEmpowered =
         selectedWeapon == PlayerWeapon.sword && _dashEmpowerWindow > 0;
     if (dashEmpowered) _dashEmpowerWindow = 0;
@@ -619,10 +747,24 @@ final class PlayerComponent extends RectangleComponent
     _weaponComboStep = counter ? 0 : (_weaponComboStep + 1) % 6;
     _weaponComboReset = 0.85;
     _counterWindow = 0;
+    final survivalCooldownMultiplier = game.mode == PatchWorldMode.survival
+        ? SurvivalWeaponBaseline.forWeapon(
+                selectedWeapon,
+              ).attackCooldownMultiplier *
+              game.survivalModifiers.pulseCooldownMultiplier *
+              game.survivalRun.overclockCooldownMultiplier *
+              game.survivalRun.dataSurgeCooldownMultiplier *
+              game.survivalRun.criticalFlowCooldownMultiplier *
+              game.survivalWeaponBuild.attackCooldownMultiplierFor(
+                selectedWeapon,
+              ) *
+              game.survivalItems.attackCooldownMultiplierFor(selectedWeapon)
+        : 1.0;
     _attackCooldown =
         (counter ? 0.18 : selectedWeapon.baseCooldown) *
         game.runItems.attackCooldownMultiplierFor(selectedWeapon) *
-        game.weaponBuild.attackCooldownMultiplierFor(selectedWeapon);
+        game.weaponBuild.attackCooldownMultiplierFor(selectedWeapon) *
+        survivalCooldownMultiplier;
     final isGunRail = selectedWeapon == PlayerWeapon.gun && motionIndex == 4;
     final railFrames = _gunRailFrames;
     if (isGunRail && railFrames != null) {
@@ -642,8 +784,13 @@ final class PlayerComponent extends RectangleComponent
         fallbackFps: counter ? 16 : 13,
       );
     }
+    final attackDirection = game.mode == PatchWorldMode.survival
+        ? _aimDirection.normalized()
+        : Vector2(_facing, 0);
     _visual?.actionLunge(
-      direction: _facing,
+      direction: attackDirection.x.abs() < .05
+          ? _facing
+          : attackDirection.x.sign,
       seconds: counter ? .28 : .22,
       travel: switch (selectedWeapon) {
         PlayerWeapon.sword => counter ? 16 : 10,
@@ -666,7 +813,7 @@ final class PlayerComponent extends RectangleComponent
         motionIndex: motionIndex,
         counter: counter,
         gunRail: isGunRail,
-        facing: _facing,
+        direction: attackDirection,
         airborne: airborne,
         dashEmpowered: dashEmpowered,
       ),
@@ -678,7 +825,8 @@ final class PlayerComponent extends RectangleComponent
     final motionIndex = impact.motionIndex;
     final counter = impact.counter;
     final isGunRail = impact.gunRail;
-    final facing = impact.facing;
+    final direction = impact.direction;
+    final rotation = math.atan2(direction.y, direction.x);
     final buildDamageBonus = game.weaponBuild.damageBonusFor(
       weapon: weapon,
       motionIndex: motionIndex,
@@ -691,11 +839,48 @@ final class PlayerComponent extends RectangleComponent
         (motionIndex == 6 && game.runItems.contains(RunItemId.overflowCapacitor)
             ? 1
             : 0) +
-        game.runItems.weaponDamageBonusFor(weapon, motionIndex);
+        game.runItems.weaponDamageBonusFor(weapon, motionIndex) +
+        (game.mode == PatchWorldMode.survival
+            ? game.survivalItems.damageBonusFor(
+                weapon,
+                motionIndex: motionIndex,
+                counter: counter,
+              )
+            : 0);
+    final survivalModifiers = game.mode == PatchWorldMode.survival
+        ? game.survivalModifiers
+        : null;
+    final ventDamageBonus =
+        survivalModifiers?.motionVentEnabled == true &&
+            game.patchEffects.consumeMotionVentCharge()
+        ? 2
+        : 0;
+    final frameDamageBonus =
+        game.mode == PatchWorldMode.survival &&
+            game.survivalRun.frameOverclockActive
+        ? survivalModifiers?.frameOverclockDamageBonus ?? 0
+        : 0;
+    final redlineDamageBonus =
+        game.mode == PatchWorldMode.survival && game.survivalRun.overclockActive
+        ? survivalModifiers?.redlineDamageBonus ?? 0
+        : 0;
+    final survivalDamageBonus = game.mode == PatchWorldMode.survival
+        ? (survivalModifiers!.pulseDamage - 1) +
+              ventDamageBonus +
+              frameDamageBonus +
+              redlineDamageBonus +
+              game.survivalRun.dataSurgeDamageBonus +
+              game.survivalRun.criticalFlowDamageBonus +
+              game.survivalWeaponBuild.damageBonusFor(
+                weapon,
+                motionIndex: motionIndex,
+              )
+        : 0;
     final damage = counter
         ? 3 +
               (game.runItems.contains(RunItemId.collisionPrism) ? 1 : 0) +
-              buildDamageBonus
+              buildDamageBonus +
+              survivalDamageBonus
         : switch (weapon) {
                 PlayerWeapon.sword =>
                   motionIndex == 4 || motionIndex == 6 ? 2 : 1,
@@ -703,13 +888,20 @@ final class PlayerComponent extends RectangleComponent
                 PlayerWeapon.gun => motionIndex == 4 ? 2 : 1,
               } +
               itemDamageBonus +
-              buildDamageBonus;
+              buildDamageBonus +
+              survivalDamageBonus;
     switch (weapon) {
       case PlayerWeapon.sword:
         game.world.add(
           PlayerStrikeComponent(
-            position: position + Vector2(facing * 38, -2),
-            size: Vector2(counter ? 112 : 72, counter ? 58 : 42),
+            position: position + direction * 38,
+            size:
+                Vector2(counter ? 112 : 72, counter ? 58 : 42) *
+                (game.mode == PatchWorldMode.survival
+                    ? game.survivalWeaponBuild.swordReachMultiplier *
+                          game.survivalItems.swordReachMultiplier
+                    : 1),
+            rotation: rotation,
             sourceId: counter
                 ? 'player.sword.parryCounter'
                 : 'player.sword.combo.$motionIndex',
@@ -724,8 +916,14 @@ final class PlayerComponent extends RectangleComponent
         if (motionIndex == 6 || counter) {
           game.world.add(
             PlayerStrikeComponent(
-              position: position + Vector2(facing * 24, 12),
-              size: Vector2(counter ? 104 : 82, counter ? 72 : 54),
+              position: position + direction * 24,
+              size:
+                  Vector2(counter ? 104 : 82, counter ? 72 : 54) *
+                  (game.mode == PatchWorldMode.survival
+                      ? game.survivalWeaponBuild.gauntletReachMultiplier *
+                            game.survivalItems.gauntletReachMultiplier
+                      : 1),
+              rotation: rotation,
               sourceId: counter
                   ? 'player.gauntlet.parryCounter'
                   : 'player.gauntlet.groundSlam',
@@ -739,8 +937,14 @@ final class PlayerComponent extends RectangleComponent
         } else {
           game.world.add(
             PlayerStrikeComponent(
-              position: position + Vector2(facing * 29, 0),
-              size: Vector2(52, 38),
+              position: position + direction * 29,
+              size:
+                  Vector2(52, 38) *
+                  (game.mode == PatchWorldMode.survival
+                      ? game.survivalWeaponBuild.gauntletReachMultiplier *
+                            game.survivalItems.gauntletReachMultiplier
+                      : 1),
+              rotation: rotation,
               sourceId: 'player.gauntlet.combo.$motionIndex',
               damage: damage,
               activeSeconds: 0.11,
@@ -749,13 +953,27 @@ final class PlayerComponent extends RectangleComponent
           );
         }
       case PlayerWeapon.gun:
-        final shots = counter ? 3 : (motionIndex == 3 ? 3 : 1);
+        final bonusShots = game.mode == PatchWorldMode.survival
+            ? game.survivalWeaponBuild.gunBonusShots +
+                  game.survivalItems.gunBonusShots
+            : 0;
+        final shots = counter
+            ? 3 + bonusShots
+            : (motionIndex == 3 ? 3 : 1) + bonusShots;
         for (var index = 0; index < shots; index += 1) {
           final spread = (index - (shots - 1) / 2) * 0.12;
           game.world.add(
             PlayerProjectileComponent(
-              position: position + Vector2(facing * 26, -3),
-              velocity: Vector2(facing * (counter ? 460 : 360), spread * 360),
+              position: position + direction * 26,
+              velocity:
+                  _rotated(direction, spread) *
+                  ((counter ? 460 : 360) *
+                      (game.mode == PatchWorldMode.survival
+                          ? game
+                                    .survivalWeaponBuild
+                                    .gunProjectileSpeedMultiplier *
+                                game.survivalItems.gunProjectileSpeedMultiplier
+                          : 1)),
               sourceId: counter
                   ? 'player.gun.parryCounter'
                   : 'player.gun.combo.$motionIndex',
@@ -766,9 +984,45 @@ final class PlayerComponent extends RectangleComponent
                   ? const Color(0xFFFF4FD8)
                   : const Color(0xFF36E1FF),
               radius: counter ? 8 : 6,
+              maxHits: game.mode == PatchWorldMode.survival
+                  ? game.survivalWeaponBuild.gunMaxHits +
+                        game.survivalItems.gunBonusHits
+                  : 1,
+              ricochetRadians: game.mode == PatchWorldMode.survival
+                  ? game.survivalWeaponBuild.gunRicochetRadians +
+                        game.survivalItems.gunRicochetRadians
+                  : 0,
+              blastRadius: game.mode == PatchWorldMode.survival
+                  ? game.survivalItems.explosionRadiusFor(
+                      PlayerWeapon.gun,
+                      heavy: counter || isGunRail,
+                    )
+                  : 0,
+              blastDamage: game.mode == PatchWorldMode.survival
+                  ? game.survivalItems.explosionDamage
+                  : 0,
             ),
           );
         }
+    }
+    if (game.mode == PatchWorldMode.survival && weapon != PlayerWeapon.gun) {
+      final heavy = counter || motionIndex == 6;
+      final blastRadius = game.survivalItems.explosionRadiusFor(
+        weapon,
+        heavy: heavy,
+      );
+      if (blastRadius > 0) {
+        game.world.add(
+          PlayerStrikeComponent(
+            position: position + direction * 36,
+            size: Vector2.all(blastRadius * 2),
+            sourceId: 'player.${weapon.name}.itemExplosion',
+            damage: game.survivalItems.explosionDamage,
+            activeSeconds: .10,
+            strikeColor: const Color(0x88FFC857),
+          ),
+        );
+      }
     }
     game.patchEffects.onPatchPulseEmitted(position.clone());
     unawaited(
@@ -779,10 +1033,25 @@ final class PlayerComponent extends RectangleComponent
     );
   }
 
+  Vector2 _rotated(Vector2 direction, double radians) {
+    final cosine = math.cos(radians);
+    final sine = math.sin(radians);
+    return Vector2(
+      direction.x * cosine - direction.y * sine,
+      direction.x * sine + direction.y * cosine,
+    );
+  }
+
   void tryParry() {
-    if (!canParry || !_usesPlatformerMovement) return;
-    _parryWindow = parryWindowSeconds;
-    _parryRecovery = parryRecoverySeconds;
+    if (!canParry || !_usesWeaponCombat) return;
+    final itemWindowMultiplier = game.mode == PatchWorldMode.survival
+        ? game.survivalItems.parryWindowMultiplier
+        : 1.0;
+    final itemRecoveryMultiplier = game.mode == PatchWorldMode.survival
+        ? game.survivalItems.parryRecoveryMultiplier
+        : 1.0;
+    _parryWindow = parryWindowSeconds * itemWindowMultiplier;
+    _parryRecovery = parryRecoverySeconds * itemRecoveryMultiplier;
     _playCombatMotion(
       PlayerCombatAnimation.parry,
       fallbackIndex: 7,
@@ -807,6 +1076,11 @@ final class PlayerComponent extends RectangleComponent
     );
     _visual?.flash(const Color(0xFFFFD35A), seconds: 0.22);
     _visual?.squash(seconds: 0.16);
+    if (isMounted &&
+        game.mode == PatchWorldMode.survival &&
+        game.survivalItems.recordPerfectParryAndShouldHeal()) {
+      restoreIntegrity(1);
+    }
     if (isMounted) {
       game.triggerImpactFeedback();
       unawaited(game.audio.playHeal());
@@ -887,7 +1161,7 @@ final class PlayerComponent extends RectangleComponent
     integrity = math.max(0, integrity - amount);
     if (isMounted) game.runMetrics.recordDamage(appliedDamage);
     if (isMounted && game.mode == PatchWorldMode.survival) {
-      game.recordSurvivalHit();
+      game.recordSurvivalHit(causeId: causeId, amount: appliedDamage);
     }
     if (isMounted) {
       unawaited(game.audio.playDamage());
@@ -967,6 +1241,7 @@ final class PlayerComponent extends RectangleComponent
     _dashCooldown = math.max(0, _dashCooldown - statusDt);
     _dashContactImmunity = math.max(0, _dashContactImmunity - statusDt);
     _dashEmpowerWindow = math.max(0, _dashEmpowerWindow - statusDt);
+    _survivalSpecialCooldown = math.max(0, _survivalSpecialCooldown - statusDt);
     if (_weaponComboReset <= 0) _weaponComboStep = 0;
 
     _previousPosition.setFrom(position);
@@ -992,6 +1267,11 @@ final class PlayerComponent extends RectangleComponent
       _clampToLogicalWorld();
     }
     if (_movementInput.x.abs() > 0.05) _facing = _movementInput.x.sign;
+    if (isMounted &&
+        game.mode == PatchWorldMode.survival &&
+        _movementInput.length2 > .01) {
+      _aimDirection.setFrom(_movementInput.normalized());
+    }
     _visual?.faceMovement(_movementInput);
     _syncMovementAnimation();
     _updateDamageBlink();
@@ -1097,7 +1377,8 @@ final class PlayerComponent extends RectangleComponent
     if (!force && state == _activeMovementAnimation) return;
     final List<Sprite>? frames;
     final double fps;
-    if (game.mode == PatchWorldMode.campaign) {
+    if (game.mode == PatchWorldMode.campaign ||
+        game.mode == PatchWorldMode.survival) {
       frames =
           _weaponLocomotionFrames[selectedWeapon]?[state] ??
           (state == PlayerAnimationState.idle ? _idleFrames : _moveFrames);
@@ -1134,11 +1415,15 @@ final class PlayerComponent extends RectangleComponent
   void _clampToLogicalWorld() {
     final halfWidth = size.x / 2;
     final halfHeight = size.y / 2;
+    final activeRoom = isMounted ? game.world.activeRoom : null;
+    final worldSize = activeRoom is PlatformerRoomGeometry
+        ? (activeRoom as PlatformerRoomGeometry).worldSize
+        : Vector2(PatchWorldGame.logicalWidth, PatchWorldGame.logicalHeight);
     position.x = position.x
-        .clamp(halfWidth, PatchWorldGame.logicalWidth - halfWidth)
+        .clamp(halfWidth, worldSize.x - halfWidth)
         .toDouble();
     position.y = position.y
-        .clamp(halfHeight, PatchWorldGame.logicalHeight - halfHeight)
+        .clamp(halfHeight, worldSize.y - halfHeight)
         .toDouble();
   }
 
@@ -1175,7 +1460,7 @@ final class PlayerComponent extends RectangleComponent
       super.onCollisionStart(intersectionPoints, other);
       return;
     }
-    if (other is CrawlerComponent) {
+    if (other is CrawlerComponent && game.mode != PatchWorldMode.survival) {
       takeDamage(1, causeId: 'enemy.crawler.contact');
     } else if (other is PlatformerEnemyComponent && other.dealsContactDamage) {
       takeDamage(1, causeId: 'enemy.${other.archetype.name}.contact');

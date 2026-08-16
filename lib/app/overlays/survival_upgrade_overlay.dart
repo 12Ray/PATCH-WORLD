@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:patch_world/app/overlays/choice_shortcut_badge.dart';
 import 'package:patch_world/game/core/run_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/survival/survival_patch_fusions.dart';
@@ -114,11 +115,14 @@ final class _SurvivalUpgradeOverlayState extends State<SurvivalUpgradeOverlay> {
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final cards = request.choices
+                          .asMap()
+                          .entries
                           .map(
-                            (patch) => _UpgradeCard(
+                            (entry) => _UpgradeCard(
                               game: game,
-                              patch: patch,
-                              onSelected: () => _selectPatch(patch.id),
+                              patch: entry.value,
+                              shortcutIndex: entry.key,
+                              onSelected: () => _selectPatch(entry.value.id),
                             ),
                           )
                           .toList(growable: false);
@@ -170,11 +174,13 @@ final class _UpgradeCard extends StatelessWidget {
   const _UpgradeCard({
     required this.game,
     required this.patch,
+    required this.shortcutIndex,
     required this.onSelected,
   });
 
   final PatchWorldGame game;
   final PatchDefinition patch;
+  final int shortcutIndex;
   final VoidCallback onSelected;
 
   @override
@@ -205,14 +211,23 @@ final class _UpgradeCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(
-                '${_localized('risk', patch.riskLabel)}  //  '
-                '${game.localization.text('survivalUpgrade.tier', parameters: <String, Object>{'tier': nextTier})}',
-                style: const TextStyle(
-                  color: Color(0xFFFFC857),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      '${_localized('risk', patch.riskLabel)}  //  '
+                      '${game.localization.text('survivalUpgrade.tier', parameters: <String, Object>{'tier': nextTier})}',
+                      style: const TextStyle(
+                        color: Color(0xFFFFC857),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceShortcutBadge(index: shortcutIndex),
+                ],
               ),
               const SizedBox(height: 8),
               Text(
