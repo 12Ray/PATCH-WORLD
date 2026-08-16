@@ -141,7 +141,7 @@ void main() {
         expect(backdrop.size, Vector2(1920, 1080));
         expect(
           backdrop.environmentAsset,
-          'assets/images/rooms/damage-lab-environment-v3.png',
+          'assets/images/rooms/damage-lab-environment-v3.webp',
         );
         expect(
           room.children.whereType<CampaignRepairStationComponent>(),
@@ -210,7 +210,8 @@ void main() {
         final room = game.world.activeRoom! as DamageLabNodeController;
         _expectExpandedBackdropRoom(
           room,
-          environmentAsset: 'assets/images/rooms/damage-lab-maintenance-v1.png',
+          environmentAsset:
+              'assets/images/rooms/damage-lab-maintenance-v1.webp',
           expectedSpawn: Vector2(140, 529),
           backDoorPosition: Vector2(105, 565),
           forwardDoorPosition: Vector2(1815, 565),
@@ -250,7 +251,7 @@ void main() {
         final room = game.world.activeRoom! as DamageLabNodeController;
         _expectExpandedBackdropRoom(
           room,
-          environmentAsset: 'assets/images/rooms/damage-lab-hazard-v1.png',
+          environmentAsset: 'assets/images/rooms/damage-lab-hazard-v1.webp',
           expectedSpawn: Vector2(140, 614),
           backDoorPosition: Vector2(105, 650),
           forwardDoorPosition: Vector2(1815, 650),

@@ -57,11 +57,11 @@ final class DamageLabNodeController extends Component
   static const double _expandedRoomWidth = 1920;
   static const double _expandedRoomHeight = 1080;
   static const String _workshopEnvironmentAsset =
-      'assets/images/rooms/damage-lab-environment-v3.png';
+      'assets/images/rooms/damage-lab-environment-v3.webp';
   static const String _assemblyEnvironmentAsset =
-      'assets/images/rooms/damage-lab-maintenance-v1.png';
+      'assets/images/rooms/damage-lab-maintenance-v1.webp';
   static const String _overflowEnvironmentAsset =
-      'assets/images/rooms/damage-lab-hazard-v1.png';
+      'assets/images/rooms/damage-lab-hazard-v1.webp';
 
   /// Collision geometry traced from the authored 1920x1080 Damage Lab v3
   /// backdrop. Broad central landings form the universal west-to-east route;

@@ -7,18 +7,18 @@ void main() {
   testWidgets('campaign environment images decode', (tester) async {
     await tester.runAsync(() async {
       for (final path in <String>[
-        'assets/images/rooms/damage-lab-environment-v3.png',
-        'assets/images/rooms/damage-lab-maintenance-v1.png',
-        'assets/images/rooms/damage-lab-hazard-v1.png',
+        'assets/images/rooms/damage-lab-environment-v3.webp',
+        'assets/images/rooms/damage-lab-maintenance-v1.webp',
+        'assets/images/rooms/damage-lab-hazard-v1.webp',
         'assets/images/rooms/damage-lab-environment-v2.png',
         'assets/images/rooms/temporal-hall-environment-v2.png',
-        'assets/images/rooms/temporal-ascent-v1.png',
-        'assets/images/rooms/temporal-fracture-v1.png',
-        'assets/images/rooms/temporal-pendulum-v1.png',
+        'assets/images/rooms/temporal-ascent-v1.webp',
+        'assets/images/rooms/temporal-fracture-v1.webp',
+        'assets/images/rooms/temporal-pendulum-v1.webp',
         'assets/images/rooms/collision-archive-environment-v2.png',
-        'assets/images/rooms/collision-compression-v1.png',
-        'assets/images/rooms/collision-fracture-v1.png',
-        'assets/images/rooms/collision-merge-v1.png',
+        'assets/images/rooms/collision-compression-v1.webp',
+        'assets/images/rooms/collision-fracture-v1.webp',
+        'assets/images/rooms/collision-merge-v1.webp',
         'assets/images/rooms/optimizer-core-environment-v2.png',
       ]) {
         final data = await rootBundle.load(path);

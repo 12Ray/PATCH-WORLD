@@ -49,17 +49,17 @@ final class RegionalCampaignNodeController extends Component
   static const double _expandedRoomWidth = 1920;
   static const double _expandedRoomHeight = 1080;
   static const String _temporalAscentEnvironmentAsset =
-      'assets/images/rooms/temporal-ascent-v1.png';
+      'assets/images/rooms/temporal-ascent-v1.webp';
   static const String _temporalFractureEnvironmentAsset =
-      'assets/images/rooms/temporal-fracture-v1.png';
+      'assets/images/rooms/temporal-fracture-v1.webp';
   static const String _temporalPendulumEnvironmentAsset =
-      'assets/images/rooms/temporal-pendulum-v1.png';
+      'assets/images/rooms/temporal-pendulum-v1.webp';
   static const String _collisionCompressionEnvironmentAsset =
-      'assets/images/rooms/collision-compression-v1.png';
+      'assets/images/rooms/collision-compression-v1.webp';
   static const String _collisionFractureEnvironmentAsset =
-      'assets/images/rooms/collision-fracture-v1.png';
+      'assets/images/rooms/collision-fracture-v1.webp';
   static const String _collisionMergeEnvironmentAsset =
-      'assets/images/rooms/collision-merge-v1.png';
+      'assets/images/rooms/collision-merge-v1.webp';
 
   /// ROOM 2-1: the mandatory route rises in 75px steps from the lower-west
   /// airlock to the upper-east airlock. The high gallery and maintenance

@@ -64,7 +64,7 @@ void main() {
           <(CampaignNodeId, String, List<PlatformerEnemyArchetype>)>[
             (
               CampaignNodeId.temporalAscent,
-              'assets/images/rooms/temporal-ascent-v1.png',
+              'assets/images/rooms/temporal-ascent-v1.webp',
               <PlatformerEnemyArchetype>[
                 PlatformerEnemyArchetype.tickRunner,
                 PlatformerEnemyArchetype.echoBat,
@@ -74,7 +74,7 @@ void main() {
             ),
             (
               CampaignNodeId.temporalFracture,
-              'assets/images/rooms/temporal-fracture-v1.png',
+              'assets/images/rooms/temporal-fracture-v1.webp',
               <PlatformerEnemyArchetype>[
                 PlatformerEnemyArchetype.delaySniper,
                 PlatformerEnemyArchetype.tickRunner,
@@ -84,7 +84,7 @@ void main() {
             ),
             (
               CampaignNodeId.temporalPendulum,
-              'assets/images/rooms/temporal-pendulum-v1.png',
+              'assets/images/rooms/temporal-pendulum-v1.webp',
               <PlatformerEnemyArchetype>[
                 PlatformerEnemyArchetype.rewindSkater,
                 PlatformerEnemyArchetype.echoBat,
@@ -154,7 +154,7 @@ void main() {
           <(CampaignNodeId, String, List<PlatformerEnemyArchetype>)>[
             (
               CampaignNodeId.collisionCompression,
-              'assets/images/rooms/collision-compression-v1.png',
+              'assets/images/rooms/collision-compression-v1.webp',
               <PlatformerEnemyArchetype>[
                 PlatformerEnemyArchetype.vectorRam,
                 PlatformerEnemyArchetype.polarityDrone,
@@ -164,7 +164,7 @@ void main() {
             ),
             (
               CampaignNodeId.collisionFracture,
-              'assets/images/rooms/collision-fracture-v1.png',
+              'assets/images/rooms/collision-fracture-v1.webp',
               <PlatformerEnemyArchetype>[
                 PlatformerEnemyArchetype.phaseMimic,
                 PlatformerEnemyArchetype.vectorRam,
@@ -174,7 +174,7 @@ void main() {
             ),
             (
               CampaignNodeId.collisionMerge,
-              'assets/images/rooms/collision-merge-v1.png',
+              'assets/images/rooms/collision-merge-v1.webp',
               <PlatformerEnemyArchetype>[
                 PlatformerEnemyArchetype.shardLobber,
                 PlatformerEnemyArchetype.polarityDrone,
@@ -256,7 +256,7 @@ void main() {
     _expectMountedExpandedTemporalRoom(
       game,
       nodeId: CampaignNodeId.temporalAscent,
-      environmentAsset: 'assets/images/rooms/temporal-ascent-v1.png',
+      environmentAsset: 'assets/images/rooms/temporal-ascent-v1.webp',
     );
     await _defeatActiveEncounter(
       tester,
@@ -277,7 +277,7 @@ void main() {
     _expectMountedExpandedTemporalRoom(
       game,
       nodeId: CampaignNodeId.temporalFracture,
-      environmentAsset: 'assets/images/rooms/temporal-fracture-v1.png',
+      environmentAsset: 'assets/images/rooms/temporal-fracture-v1.webp',
     );
     await _defeatActiveEncounter(
       tester,
@@ -298,7 +298,7 @@ void main() {
     _expectMountedExpandedTemporalRoom(
       game,
       nodeId: CampaignNodeId.temporalPendulum,
-      environmentAsset: 'assets/images/rooms/temporal-pendulum-v1.png',
+      environmentAsset: 'assets/images/rooms/temporal-pendulum-v1.webp',
     );
     await _defeatActiveEncounter(
       tester,
@@ -382,7 +382,7 @@ void main() {
     _expectMountedExpandedCollisionRoom(
       game,
       nodeId: CampaignNodeId.collisionCompression,
-      environmentAsset: 'assets/images/rooms/collision-compression-v1.png',
+      environmentAsset: 'assets/images/rooms/collision-compression-v1.webp',
     );
     await _defeatActiveEncounter(
       tester,
@@ -403,7 +403,7 @@ void main() {
     _expectMountedExpandedCollisionRoom(
       game,
       nodeId: CampaignNodeId.collisionFracture,
-      environmentAsset: 'assets/images/rooms/collision-fracture-v1.png',
+      environmentAsset: 'assets/images/rooms/collision-fracture-v1.webp',
     );
     await _defeatActiveEncounter(
       tester,
@@ -424,7 +424,7 @@ void main() {
     _expectMountedExpandedCollisionRoom(
       game,
       nodeId: CampaignNodeId.collisionMerge,
-      environmentAsset: 'assets/images/rooms/collision-merge-v1.png',
+      environmentAsset: 'assets/images/rooms/collision-merge-v1.webp',
     );
     await _defeatActiveEncounter(
       tester,
