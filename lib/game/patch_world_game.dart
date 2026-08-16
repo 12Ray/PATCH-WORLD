@@ -13,6 +13,8 @@ import 'package:patch_world/game/campaign/campaign_exploration_state.dart';
 import 'package:patch_world/game/campaign/campaign_floor_state.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/damage_lab_floor_state.dart';
+import 'package:patch_world/game/builds/weapon_build_state.dart';
+import 'package:patch_world/game/combat/combat_entity_budget.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/core/input_controller.dart';
 import 'package:patch_world/game/core/game_clock.dart';
@@ -67,6 +69,66 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
 
   static const double logicalWidth = 960;
   static const double logicalHeight = 540;
+  static const List<String> campaignPrewarmAssetPaths = <String>[
+    'rooms/damage-lab-environment-v3.png',
+    'rooms/damage-lab-maintenance-v1.png',
+    'rooms/damage-lab-hazard-v1.png',
+    'rooms/temporal-ascent-v1.png',
+    'rooms/temporal-fracture-v1.png',
+    'rooms/temporal-pendulum-v1.png',
+    'rooms/collision-compression-v1.png',
+    'rooms/collision-fracture-v1.png',
+    'rooms/collision-merge-v1.png',
+    'sprites/combat_v2/enemies/patch-mite.png',
+    'sprites/combat_v2/enemies/checksum-hopper.png',
+    'sprites/combat_v2/enemies/pulse-turret.png',
+    'sprites/combat_v2/enemies/repair-leech.png',
+    'sprites/combat_v2/enemies/overflow-warden.png',
+    'sprites/combat_v2/enemies/tick-runner.png',
+    'sprites/combat_v2/enemies/echo-bat.png',
+    'sprites/combat_v2/enemies/delay-sniper.png',
+    'sprites/combat_v2/enemies/rewind-skater.png',
+    'sprites/combat_v2/enemies/chrono-jailer.png',
+    'sprites/combat_v2/enemies/vector-ram.png',
+    'sprites/combat_v2/enemies/polarity-drone.png',
+    'sprites/combat_v2/enemies/phase-mimic.png',
+    'sprites/combat_v2/enemies/shard-lobber.png',
+    'sprites/combat_v2/enemies/kernel-chimera.png',
+    'sprites/art_v3/enemies/patch-mite.png',
+    'sprites/art_v3/enemies/checksum-hopper.png',
+    'sprites/art_v3/enemies/pulse-turret.png',
+    'sprites/art_v3/enemies/repair-leech.png',
+    'sprites/art_v3/enemies/overflow-warden.png',
+    'sprites/art_v3/enemies/tick-runner.png',
+    'sprites/art_v3/enemies/echo-bat.png',
+    'sprites/art_v3/enemies/delay-sniper.png',
+    'sprites/art_v3/enemies/rewind-skater.png',
+    'sprites/art_v3/enemies/chrono-jailer.png',
+    'sprites/art_v3/enemies/vector-ram.png',
+    'sprites/art_v3/enemies/polarity-drone.png',
+    'sprites/art_v3/enemies/phase-mimic.png',
+    'sprites/art_v3/enemies/shard-lobber.png',
+    'sprites/art_v3/enemies/kernel-chimera.png',
+    'sprites/combat_v2/projectiles/patch-mite.png',
+    'sprites/combat_v2/projectiles/checksum-hopper.png',
+    'sprites/combat_v2/projectiles/pulse-turret.png',
+    'sprites/combat_v2/projectiles/repair-leech.png',
+    'sprites/combat_v2/projectiles/overflow-warden.png',
+    'sprites/combat_v2/projectiles/tick-runner.png',
+    'sprites/combat_v2/projectiles/echo-bat.png',
+    'sprites/combat_v2/projectiles/delay-sniper.png',
+    'sprites/combat_v2/projectiles/rewind-skater.png',
+    'sprites/combat_v2/projectiles/chrono-jailer.png',
+    'sprites/combat_v2/projectiles/vector-ram.png',
+    'sprites/combat_v2/projectiles/polarity-drone.png',
+    'sprites/combat_v2/projectiles/phase-mimic.png',
+    'sprites/combat_v2/projectiles/shard-lobber.png',
+    'sprites/combat_v2/projectiles/kernel-chimera.png',
+    'sprites/art_v3/boss/optimizer-analyze.png',
+    'sprites/art_v3/boss/optimizer-predict.png',
+    'sprites/art_v3/boss/optimizer-perfect.png',
+    'sprites/art_v3/boss/optimizer-overflow.png',
+  ];
   static const int survivalQaStartSecond = int.fromEnvironment(
     'SURVIVAL_START_SECOND',
     defaultValue: 0,
@@ -109,6 +171,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     OverlayIds.touchControls,
     OverlayIds.pause,
     OverlayIds.campaignMap,
+    OverlayIds.buildSelection,
     OverlayIds.patchSelection,
     OverlayIds.patchApplied,
     OverlayIds.survivalUpgrade,
@@ -132,9 +195,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   final CampaignFloorState temporalHallProgress = CampaignFloorState();
   final CampaignFloorState collisionArchiveProgress = CampaignFloorState();
   final RunItemState runItems = RunItemState();
+  final WeaponBuildState weaponBuild = WeaponBuildState();
   final SurvivalRunState survivalRun = SurvivalRunState();
   final RuleEngine ruleEngine = RuleEngine();
   final GameClock clock = GameClock();
+  final CombatEntityBudget combatEntityBudget = CombatEntityBudget();
   final PlayerPatternTracker patternTracker = PlayerPatternTracker();
   final AudioService audio = AudioService();
   final LocalizationService localization = LocalizationService();
@@ -164,6 +229,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   RoomId currentRoom;
   PatchWorldMode mode;
   PatchSelectionRequest? pendingPatchSelection;
+  WeaponBuildSelectionRequest? pendingWeaponBuildSelection;
   SurvivalUpgradeRequest? pendingSurvivalUpgrade;
   bool _roomTransitionInProgress = false;
   double _uiPublishAccumulator = 0;
@@ -176,6 +242,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   double bestSurvivalTime = 0;
   double _screenShakeRemaining = 0;
   double _screenShakePhase = 0;
+  double _combatSlowMotionRemaining = 0;
+  double _combatSlowMotionScale = 1;
+  double _horizontalCameraLead = 0;
+  final Vector2 _cameraFollowPosition = Vector2(480, 270);
+  Component? _cameraFollowRoom;
   String _settingsReturnOverlay = OverlayIds.pause;
   String _creditsReturnOverlay = OverlayIds.title;
   PlayerWeapon? _selectedRunWeapon;
@@ -273,6 +344,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     );
     enemyTempo = EnemyTempoSystem(runState: runState);
     await super.onLoad();
+    unawaited(_prewarmCampaignArt());
     publishUiSnapshot(force: true);
     pauseEngine();
   }
@@ -292,13 +364,15 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       if (event.logicalKey == LogicalKeyboardKey.keyM &&
           mode == PatchWorldMode.campaign &&
           world.isReady &&
-          pendingPatchSelection == null) {
+          pendingPatchSelection == null &&
+          pendingWeaponBuildSelection == null) {
         _toggleCampaignMap();
         return KeyEventResult.handled;
       }
       if ((event.logicalKey == LogicalKeyboardKey.escape ||
               event.logicalKey == LogicalKeyboardKey.keyP) &&
-          pendingPatchSelection == null) {
+          pendingPatchSelection == null &&
+          pendingWeaponBuildSelection == null) {
         if (overlays.isActive(OverlayIds.campaignMap)) {
           closeCampaignMap();
           return KeyEventResult.handled;
@@ -324,6 +398,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
 
   Future<void> selectStartingWeapon(PlayerWeapon weapon) async {
     _selectedRunWeapon = weapon;
+    weaponBuild.reset();
     overlays.remove(OverlayIds.weaponSelection);
     await _startCampaignRun(weapon);
   }
@@ -355,6 +430,19 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     syncCampaignExploration();
   }
 
+  Future<void> _prewarmCampaignArt() async {
+    await Future.wait(
+      campaignPrewarmAssetPaths.map((assetPath) async {
+        try {
+          await images.load(assetPath);
+        } catch (_) {
+          // Procedural fallbacks keep the run playable if optional art is
+          // missing. Successful images stay cached for hitch-free first use.
+        }
+      }),
+    );
+  }
+
   void startSurvivalRun() => unawaited(_startSurvivalRun());
 
   Future<void> _startSurvivalRun() async {
@@ -372,6 +460,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     temporalHallProgress.reset();
     collisionArchiveProgress.reset();
     runItems.reset();
+    weaponBuild.reset();
     survivalRun.reset();
     if (survivalQaStartCombo > 0) {
       survivalRun.seedComboForQa(survivalQaStartCombo);
@@ -690,7 +779,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   void queuePointerAttack() {
     if (!paused &&
         !_roomTransitionInProgress &&
-        pendingPatchSelection == null) {
+        pendingPatchSelection == null &&
+        pendingWeaponBuildSelection == null) {
       input.queueAttack();
     }
   }
@@ -700,7 +790,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   void queueTouchParry() {
     if (!paused &&
         !_roomTransitionInProgress &&
-        pendingPatchSelection == null) {
+        pendingPatchSelection == null &&
+        pendingWeaponBuildSelection == null) {
       input.queueParry();
     }
   }
@@ -709,6 +800,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     if (!paused &&
         !_roomTransitionInProgress &&
         pendingPatchSelection == null &&
+        pendingWeaponBuildSelection == null &&
         world.isReady) {
       input.queueDash(world.player.facingDirection);
     }
@@ -717,7 +809,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   void queueTouchInteract() {
     if (!paused &&
         !_roomTransitionInProgress &&
-        pendingPatchSelection == null) {
+        pendingPatchSelection == null &&
+        pendingWeaponBuildSelection == null) {
       input.queueInteract();
     }
   }
@@ -725,7 +818,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   void setTouchMovement(double x, double y) {
     if (!paused &&
         !_roomTransitionInProgress &&
-        pendingPatchSelection == null) {
+        pendingPatchSelection == null &&
+        pendingWeaponBuildSelection == null) {
       input.setVirtualMovement(x, y);
     }
   }
@@ -739,6 +833,17 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     _screenShakePhase = 0;
   }
 
+  void triggerCombatSlowMotion({double duration = .38, double scale = .28}) {
+    _combatSlowMotionRemaining = math.max(
+      _combatSlowMotionRemaining,
+      duration.clamp(0, 1.2).toDouble(),
+    );
+    _combatSlowMotionScale = math.min(
+      _combatSlowMotionScale,
+      scale.clamp(.1, 1).toDouble(),
+    );
+  }
+
   void _updateScreenShake(double dt) {
     final activeRoom = world.activeRoom;
     final platformRoom = activeRoom is PlatformerRoomGeometry
@@ -750,12 +855,27 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       ),
       _ => world.player.position,
     };
+    final desiredHorizontalLead = switch (activeRoom) {
+      PlatformerRoomCameraLead room =>
+        room.horizontalCameraLead * world.player.facingDirection,
+      _ => 0.0,
+    };
+    final cameraLeadBlend = 1 - math.exp(-dt * 4.2);
+    _horizontalCameraLead +=
+        (desiredHorizontalLead - _horizontalCameraLead) * cameraLeadBlend;
+    if ((_horizontalCameraLead - desiredHorizontalLead).abs() < .05) {
+      _horizontalCameraLead = desiredHorizontalLead;
+    }
+    final composedCameraTarget = Vector2(
+      cameraTarget.x + _horizontalCameraLead,
+      cameraTarget.y,
+    );
     final targetZoom = switch (activeRoom) {
       PlatformerRoomCameraZoom room => room.cameraZoomFor(
         world.player.position,
       ),
       _ => 1.0,
-    }.clamp(1.0, 1.4).toDouble();
+    }.clamp(0.9, 1.4).toDouble();
     final zoomBlend = 1 - math.exp(-dt * 5.5);
     final nextZoom =
         camera.viewfinder.zoom +
@@ -765,28 +885,56 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         : nextZoom;
     final halfVisibleWidth = logicalWidth / (camera.viewfinder.zoom * 2);
     final halfVisibleHeight = logicalHeight / (camera.viewfinder.zoom * 2);
-    final centerX = platformRoom != null
+    final desiredCenterX = platformRoom != null
         ? platformRoom.worldSize.x <= halfVisibleWidth * 2
               ? platformRoom.worldSize.x / 2
-              : cameraTarget.x
+              : composedCameraTarget.x
                     .clamp(
                       halfVisibleWidth,
                       platformRoom.worldSize.x - halfVisibleWidth,
                     )
                     .toDouble()
         : logicalWidth / 2;
-    final centerY = platformRoom != null
+    final desiredCenterY = platformRoom != null
         ? platformRoom.worldSize.y <= halfVisibleHeight * 2
               ? platformRoom.worldSize.y / 2
-              : cameraTarget.y
+              : composedCameraTarget.y
                     .clamp(
                       halfVisibleHeight,
                       platformRoom.worldSize.y - halfVisibleHeight,
                     )
                     .toDouble()
         : logicalHeight / 2;
+    final followPolicy = activeRoom is PlatformerRoomCameraFollow
+        ? activeRoom as PlatformerRoomCameraFollow
+        : null;
+    if (!identical(_cameraFollowRoom, activeRoom)) {
+      _cameraFollowRoom = activeRoom;
+      _cameraFollowPosition.setValues(desiredCenterX, desiredCenterY);
+    } else if (followPolicy != null) {
+      final deadZoneCenterX = _cameraCenterOutsideDeadZone(
+        current: _cameraFollowPosition.x,
+        target: desiredCenterX,
+        radius: followPolicy.horizontalCameraDeadZone,
+      );
+      final deadZoneCenterY = _cameraCenterOutsideDeadZone(
+        current: _cameraFollowPosition.y,
+        target: desiredCenterY,
+        radius: followPolicy.verticalCameraDeadZone,
+      );
+      final followBlend =
+          1 - math.exp(-dt * followPolicy.cameraFollowResponsiveness);
+      _cameraFollowPosition.setValues(
+        _cameraFollowPosition.x +
+            (deadZoneCenterX - _cameraFollowPosition.x) * followBlend,
+        _cameraFollowPosition.y +
+            (deadZoneCenterY - _cameraFollowPosition.y) * followBlend,
+      );
+    } else {
+      _cameraFollowPosition.setValues(desiredCenterX, desiredCenterY);
+    }
     if (_screenShakeRemaining <= 0) {
-      camera.viewfinder.position = Vector2(centerX, centerY);
+      camera.viewfinder.position = _cameraFollowPosition.clone();
       return;
     }
     _screenShakeRemaining = math.max(0, _screenShakeRemaining - dt);
@@ -795,9 +943,20 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         ? 1.5
         : 3.2;
     camera.viewfinder.position = Vector2(
-      centerX + math.sin(_screenShakePhase) * amplitude,
-      centerY + math.cos(_screenShakePhase * 1.7) * amplitude,
+      _cameraFollowPosition.x + math.sin(_screenShakePhase) * amplitude,
+      _cameraFollowPosition.y + math.cos(_screenShakePhase * 1.7) * amplitude,
     );
+  }
+
+  double _cameraCenterOutsideDeadZone({
+    required double current,
+    required double target,
+    required double radius,
+  }) {
+    if (radius <= 0) return target;
+    if (target < current - radius) return target + radius;
+    if (target > current + radius) return target - radius;
+    return current;
   }
 
   @override
@@ -824,6 +983,14 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         ? survivalQaTimeScale
         : 1.0;
     enemyTempo.update(dt);
+    final combatTimeScale = _combatSlowMotionRemaining > 0
+        ? _combatSlowMotionScale
+        : 1.0;
+    _combatSlowMotionRemaining = math.max(
+      0,
+      _combatSlowMotionRemaining - dt.clamp(0, 1 / 15),
+    );
+    if (_combatSlowMotionRemaining <= 0) _combatSlowMotionScale = 1;
     if (mode == PatchWorldMode.survival &&
         survivalModifiers.frameOverclockOnBurstEnd &&
         enemyTempo.didFrameBurstEnd) {
@@ -838,6 +1005,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           survivalTempo *
           survivalQaTempo *
           (settings.value.assistMode ? 0.85 : 1),
+      simulationSpeedMultiplier: combatTimeScale,
     );
     runMetrics.update(clock.realDt);
     world.player.setMovementInput(movement);
@@ -847,14 +1015,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
     if (!_cinematicInputLocked) {
       if (input.consumeDashDirection() case final double direction) {
-        switch (world.player.selectedWeapon) {
-          case PlayerWeapon.sword:
-            world.player.tryDash(direction);
-          case PlayerWeapon.gauntlet:
-            world.player.queueJump();
-          case PlayerWeapon.gun:
-            break;
-        }
+        world.player.trySpecialAbility(direction);
       }
     }
     patternTracker.update(clock.realDt);
@@ -893,7 +1054,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void openRoomOnePatchSelection() {
-    if (pendingPatchSelection != null) {
+    if (pendingPatchSelection != null || pendingWeaponBuildSelection != null) {
       return;
     }
     pendingPatchSelection = const PatchSelectionRequest(
@@ -903,6 +1064,43 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     input.clearAll();
     pauseEngine();
     overlays.add(OverlayIds.patchSelection);
+  }
+
+  void openRoomOneBuildSelection(int encounterId) {
+    if (mode != PatchWorldMode.campaign ||
+        encounterId < 0 ||
+        encounterId > 2 ||
+        pendingWeaponBuildSelection != null ||
+        pendingPatchSelection != null ||
+        damageLabProgress.claimedBuildRewardIds.contains(encounterId)) {
+      return;
+    }
+    final weapon = _selectedRunWeapon ?? world.player.selectedWeapon;
+    final choices = WeaponBuildCatalog.choicesFor(weapon)
+        .where((upgrade) => weaponBuild.canUpgrade(upgrade, weapon))
+        .toList(growable: false);
+    if (choices.isEmpty) return;
+    pendingWeaponBuildSelection = WeaponBuildSelectionRequest(
+      encounterId: encounterId,
+      weapon: weapon,
+      choices: choices,
+    );
+    input.clearAll();
+    pauseEngine();
+    overlays.add(OverlayIds.buildSelection);
+  }
+
+  bool selectRoomOneBuildUpgrade(WeaponBuildUpgradeId upgradeId) {
+    final request = pendingWeaponBuildSelection;
+    if (request == null || !request.choices.contains(upgradeId)) return false;
+    if (!weaponBuild.upgrade(upgradeId, request.weapon)) return false;
+    damageLabProgress.claimedBuildRewardIds.add(request.encounterId);
+    pendingWeaponBuildSelection = null;
+    overlays.remove(OverlayIds.buildSelection);
+    input.clearAll();
+    publishUiSnapshot(force: true);
+    resumeEngine();
+    return true;
   }
 
   void selectPatch(String patchId) {
@@ -1160,7 +1358,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void openRoomTwoPatchSelection() {
-    if (pendingPatchSelection != null) return;
+    if (pendingPatchSelection != null || pendingWeaponBuildSelection != null) {
+      return;
+    }
     pendingPatchSelection = const PatchSelectionRequest(
       roomId: 'temporal-hall',
       choices: PatchCatalog.roomTwoChoices,
@@ -1171,7 +1371,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void openRoomThreePatchSelection() {
-    if (pendingPatchSelection != null) return;
+    if (pendingPatchSelection != null || pendingWeaponBuildSelection != null) {
+      return;
+    }
     pendingPatchSelection = const PatchSelectionRequest(
       roomId: 'collision-archive',
       choices: PatchCatalog.roomThreeChoices,
@@ -1198,6 +1400,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       selectedWeapon: mode == PatchWorldMode.campaign
           ? world.player.selectedWeapon
           : null,
+      weaponBuildTiers: weaponBuild.tiers.map(
+        (upgrade, tier) => MapEntry(upgrade.name, tier),
+      ),
       dashCooldownRemaining: world.player.dashCooldownRemaining,
       airJumpsRemaining: world.player.airJumpsRemaining,
       endingId: endingId,
@@ -1222,6 +1427,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     temporalHallProgress.reset();
     collisionArchiveProgress.reset();
     runItems.reset();
+    weaponBuild.reset();
     runMetrics.reset();
     completedRun.value = null;
     _consecutiveRoomDeaths = 0;
@@ -1263,6 +1469,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       patchNotice.value = null;
       defeatSnapshot.value = null;
       pendingPatchSelection = null;
+      pendingWeaponBuildSelection = null;
       pendingSurvivalUpgrade = null;
       for (final overlayId in _runOverlayIds) {
         overlays.remove(overlayId);
@@ -1273,6 +1480,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       temporalHallProgress.reset();
       collisionArchiveProgress.reset();
       runItems.reset();
+      weaponBuild.reset();
       runMetrics.reset();
       completedRun.value = null;
       survivalResult.value = null;
@@ -1297,7 +1505,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void openPauseMenu() {
-    if (paused || pendingPatchSelection != null) {
+    if (paused ||
+        pendingPatchSelection != null ||
+        pendingWeaponBuildSelection != null) {
       return;
     }
     input.clearAll();
@@ -1648,6 +1858,15 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         CampaignNodeId.temporalFracture => localization.text(
           'room.temporalFracture',
         ),
+        CampaignNodeId.temporalDashRift => localization.text(
+          'room.temporalDashRift',
+        ),
+        CampaignNodeId.temporalUpperLoop => localization.text(
+          'room.temporalUpperLoop',
+        ),
+        CampaignNodeId.temporalRelayControl => localization.text(
+          'room.temporalRelayControl',
+        ),
         CampaignNodeId.temporalPendulum => localization.text(
           'room.temporalPendulum',
         ),
@@ -1657,6 +1876,15 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         ),
         CampaignNodeId.collisionFracture => localization.text(
           'room.collisionFracture',
+        ),
+        CampaignNodeId.collisionVectorCache => localization.text(
+          'room.collisionVectorCache',
+        ),
+        CampaignNodeId.collisionUpperMatrix => localization.text(
+          'room.collisionUpperMatrix',
+        ),
+        CampaignNodeId.collisionPrismControl => localization.text(
+          'room.collisionPrismControl',
         ),
         CampaignNodeId.collisionMerge => localization.text(
           'room.collisionMerge',
@@ -1703,56 +1931,70 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
             },
           ),
         },
-        RoomId.temporalHall => localization.text(
-          (regionalTemporalRoom?.isCompleted ??
-                      temporalHallRoom?.isCompleted) ==
-                  true
-              ? 'objective.temporalHallExit'
-              : (regionalTemporalRoom?.currentCellNumber ??
-                        temporalHallRoom?.currentCellNumber) ==
-                    4
-              ? 'objective.temporalHallBoss'
-              : 'objective.temporalHall',
-          parameters: <String, Object>{
-            'room':
-                regionalTemporalRoom?.currentCellNumber ??
-                temporalHallRoom?.currentCellNumber ??
-                1,
-            'cleared':
-                regionalTemporalRoom?.clearedEncounterCount ??
-                temporalHallRoom?.clearedEncounterCount ??
-                0,
-            'records':
-                regionalTemporalRoom?.recordCount ??
-                temporalHallRoom?.recordCount ??
-                0,
-          },
-        ),
-        RoomId.collisionArchive => localization.text(
-          (regionalCollisionRoom?.isCompleted ??
-                      collisionArchiveRoom?.isCompleted) ==
-                  true
-              ? 'objective.collisionArchiveExit'
-              : (regionalCollisionRoom?.currentCellNumber ??
-                        collisionArchiveRoom?.currentCellNumber) ==
-                    4
-              ? 'objective.collisionArchiveBoss'
-              : 'objective.collisionArchive',
-          parameters: <String, Object>{
-            'room':
-                regionalCollisionRoom?.currentCellNumber ??
-                collisionArchiveRoom?.currentCellNumber ??
-                1,
-            'cleared':
-                regionalCollisionRoom?.clearedEncounterCount ??
-                collisionArchiveRoom?.clearedEncounterCount ??
-                0,
-            'records':
-                regionalCollisionRoom?.recordCount ??
-                collisionArchiveRoom?.recordCount ??
-                0,
-          },
-        ),
+        RoomId.temporalHall => switch (activeCampaignNode) {
+          CampaignNodeId.temporalDashRift ||
+          CampaignNodeId.temporalUpperLoop ||
+          CampaignNodeId.temporalRelayControl => localization.text(
+            'objective.temporalSecret',
+          ),
+          _ => localization.text(
+            (regionalTemporalRoom?.isCompleted ??
+                        temporalHallRoom?.isCompleted) ==
+                    true
+                ? 'objective.temporalHallExit'
+                : (regionalTemporalRoom?.currentCellNumber ??
+                          temporalHallRoom?.currentCellNumber) ==
+                      4
+                ? 'objective.temporalHallBoss'
+                : 'objective.temporalHall',
+            parameters: <String, Object>{
+              'room':
+                  regionalTemporalRoom?.currentCellNumber ??
+                  temporalHallRoom?.currentCellNumber ??
+                  1,
+              'cleared':
+                  regionalTemporalRoom?.clearedEncounterCount ??
+                  temporalHallRoom?.clearedEncounterCount ??
+                  0,
+              'records':
+                  regionalTemporalRoom?.recordCount ??
+                  temporalHallRoom?.recordCount ??
+                  0,
+            },
+          ),
+        },
+        RoomId.collisionArchive => switch (activeCampaignNode) {
+          CampaignNodeId.collisionVectorCache ||
+          CampaignNodeId.collisionUpperMatrix ||
+          CampaignNodeId.collisionPrismControl => localization.text(
+            'objective.collisionSecret',
+          ),
+          _ => localization.text(
+            (regionalCollisionRoom?.isCompleted ??
+                        collisionArchiveRoom?.isCompleted) ==
+                    true
+                ? 'objective.collisionArchiveExit'
+                : (regionalCollisionRoom?.currentCellNumber ??
+                          collisionArchiveRoom?.currentCellNumber) ==
+                      4
+                ? 'objective.collisionArchiveBoss'
+                : 'objective.collisionArchive',
+            parameters: <String, Object>{
+              'room':
+                  regionalCollisionRoom?.currentCellNumber ??
+                  collisionArchiveRoom?.currentCellNumber ??
+                  1,
+              'cleared':
+                  regionalCollisionRoom?.clearedEncounterCount ??
+                  collisionArchiveRoom?.clearedEncounterCount ??
+                  0,
+              'records':
+                  regionalCollisionRoom?.recordCount ??
+                  collisionArchiveRoom?.recordCount ??
+                  0,
+            },
+          ),
+        },
         RoomId.optimizerCore => switch (boss?.phase.name) {
           'perfect' => localization.text(
             'objective.optimizerPerfect',

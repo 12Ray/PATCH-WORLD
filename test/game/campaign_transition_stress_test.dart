@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
+import 'package:patch_world/game/builds/weapon_build_state.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
@@ -101,6 +102,12 @@ void main() {
         enemy.receiveDamage(99);
       }
       await tester.pump(const Duration(milliseconds: 80));
+      expect(game.pendingWeaponBuildSelection, isNotNull);
+      expect(
+        game.selectRoomOneBuildUpgrade(WeaponBuildUpgradeId.swordDashCircuit),
+        isTrue,
+      );
+      await tester.pump(const Duration(milliseconds: 32));
 
       final firstForwardDoor = workshop.children
           .whereType<CampaignDoorComponent>()
@@ -118,7 +125,11 @@ void main() {
         reason: 'A door may queue only one transition while it is active.',
       );
       await _waitForNode(tester, game, CampaignNodeId.damageAssembly);
-      expect(game.world.player.position.x, closeTo(166, .01));
+      final assembly = game.world.activeRoom! as DamageLabNodeController;
+      expect(
+        game.world.player.position.x,
+        closeTo(assembly.playerSpawn.x, .01),
+      );
 
       for (var cycle = 0; cycle < 8; cycle += 1) {
         await _useDoor(
@@ -127,14 +138,22 @@ void main() {
           'interaction.previousRoom',
           CampaignNodeId.damageWorkshop,
         );
-        expect(game.world.player.position.x, closeTo(794, .01));
+        final workshop = game.world.activeRoom! as DamageLabNodeController;
+        expect(
+          game.world.player.position.x,
+          closeTo(workshop.playerSpawn.x, .01),
+        );
         await _useDoor(
           tester,
           game,
           'interaction.nextRoom',
           CampaignNodeId.damageAssembly,
         );
-        expect(game.world.player.position.x, closeTo(166, .01));
+        final assembly = game.world.activeRoom! as DamageLabNodeController;
+        expect(
+          game.world.player.position.x,
+          closeTo(assembly.playerSpawn.x, .01),
+        );
         expect(game.isRoomTransitionInProgress, isFalse);
       }
 
@@ -167,6 +186,7 @@ Future<void> _mountGame(WidgetTester tester, PatchWorldGame game) async {
         overlayBuilderMap: <String, OverlayWidgetBuilder<PatchWorldGame>>{
           OverlayIds.title: (_, _) => const SizedBox.shrink(),
           OverlayIds.hud: (_, _) => const SizedBox.shrink(),
+          OverlayIds.buildSelection: (_, _) => const SizedBox.shrink(),
           OverlayIds.touchControls: (_, _) => const SizedBox.shrink(),
         },
       ),

@@ -86,10 +86,16 @@
   "room.damageTurretControl": "タレット制御室",
   "room.temporalAscent": "時計仕掛けの上昇路",
   "room.temporalFracture": "壊れた時間軸",
+  "room.temporalDashRift": "時間亀裂",
+  "room.temporalUpperLoop": "上層ループ",
+  "room.temporalRelayControl": "リレー制御室",
   "room.temporalPendulum": "巻き戻し振り子",
   "room.chronoJailer": "CHRONO JAILER",
   "room.collisionCompression": "ベクトル圧縮路",
   "room.collisionFracture": "位相断層",
+  "room.collisionVectorCache": "ベクターキャッシュ",
+  "room.collisionUpperMatrix": "上層マトリクス",
+  "room.collisionPrismControl": "プリズム制御室",
   "room.collisionMerge": "極性融合室",
   "room.kernelChimera": "KERNEL CHIMERA",
   "room.damageLab": "DAMAGE LAB",
@@ -112,9 +118,11 @@
   "objective.temporalHall": "ROOM 2-{room} · 戦闘室 {cleared}/3 · 時間の欠片 {records}/3",
   "objective.temporalHallBoss": "ROOM 2-BOSS · CHRONO JAILERを撃破せよ",
   "objective.temporalHallExit": "報酬を取得して時間パッチ端末を起動せよ",
+  "objective.temporalSecret": "時間遺物を取得して壊れた時間軸へ戻る",
   "objective.collisionArchive": "ROOM 3-{room} · 戦闘室 {cleared}/3 · 融合記録 {records}/3",
   "objective.collisionArchiveBoss": "ROOM 3-BOSS · KERNEL CHIMERAを撃破せよ",
   "objective.collisionArchiveExit": "報酬を取得して衝突パッチ端末を起動せよ",
+  "objective.collisionSecret": "衝突遺物を取得して位相断層へ戻る",
   "objective.optimizerDamage": "目標: THE OPTIMIZERがPERFECT段階に入るまで攻撃",
   "objective.optimizerPerfect": "目標: 端末(E)を起動後、6秒以内にパルス4回 · 安定度 {stability}/150",
   "objective.optimizerOverflow": "CORE OVERFLOW · エンディングを計算中",
@@ -343,6 +351,18 @@
   "item.airStack.description": "ガントレットの最大耐久力+1",
   "item.targetingDaemon.name": "ターゲティング・デーモン",
   "item.targetingDaemon.description": "銃の攻撃間隔を10%短縮",
+  "item.chronalBuffer.name": "クロナル・バッファ",
+  "item.chronalBuffer.description": "剣ダッシュのクールダウンをさらに0.5秒短縮",
+  "item.echoSpring.name": "エコー・スプリング",
+  "item.echoSpring.description": "ガントレットのダブルジャンプ威力を82%から92%に強化",
+  "item.predictiveScope.name": "プレディクティブ・スコープ",
+  "item.predictiveScope.description": "銃の攻撃間隔をさらに7%短縮",
+  "item.vectorEdge.name": "ベクター・エッジ",
+  "item.vectorEdge.description": "剣の強攻撃コンボダメージ+1",
+  "item.impactLattice.name": "インパクト・ラティス",
+  "item.impactLattice.description": "ガントレットの強攻撃コンボダメージ+1",
+  "item.splitChamber.name": "スプリット・チャンバー",
+  "item.splitChamber.description": "銃のレール射撃ダメージ+1",
   "boss.overflowWarden.intro": "OVERFLOW WARDEN // LIMIT BREAK",
   "interaction.applyPatch": "パッチ適用",
   "interaction.enterDamageLab": "DAMAGE LABへ入る",
@@ -356,10 +376,22 @@
   "interaction.returnAssembly": "ASSEMBLYへ戻る",
   "interaction.openMap": "ワールドマップ",
   "interaction.activateCheckpoint": "チェックポイント同期",
+  "interaction.terrainPulse": "地形パルス起動",
+  "interaction.repairStation": "整合性を修復",
+  "interaction.resolveEvent": "武器連動イベント実行",
   "interaction.enterTemporalHall": "TEMPORAL HALLへ入る",
   "interaction.enterCollisionArchive": "COLLISION ARCHIVEへ入る",
+  "interaction.enterTemporalDashRift": "時間亀裂へ入る",
+  "interaction.enterTemporalUpperLoop": "上層ループへ入る",
+  "interaction.enterTemporalRelayControl": "リレー制御室へ入る",
+  "interaction.enterCollisionVectorCache": "ベクターキャッシュへ入る",
+  "interaction.enterCollisionUpperMatrix": "上層マトリクスへ入る",
+  "interaction.enterCollisionPrismControl": "プリズム制御室へ入る",
+  "interaction.returnTemporalFracture": "壊れた時間軸へ戻る",
+  "interaction.returnCollisionFracture": "位相断層へ戻る",
   "interaction.returnOverflowJunction": "OVERFLOW分岐へ戻る",
   "interaction.returnHubLift": "BOOT SECTORリフト",
+  "interaction.useMaintenanceShortcut": "リフトの近道",
   "interaction.enterOptimizerCore": "OPTIMIZER COREへ入る",
   "map.title": "PATCH//WORLD MAP",
   "map.discoveredCount": "訪問 {visited} · 発見 {revealed}",
@@ -367,6 +399,14 @@
   "map.visited": "訪問済み",
   "map.revealed": "発見済み",
   "map.checkpoint": "チェックポイント",
+  "map.locked": "ロック経路",
+  "map.abilities": "探索能力",
+  "ability.wallJump.name": "壁蹴り",
+  "ability.wallJump.description": "空中で壁を蹴り、反対方向へジャンプ",
+  "ability.airDash.name": "空中ダッシュ",
+  "ability.airDash.description": "武器アクション後、空中でKを入力",
+  "ability.terrainPulse.name": "地形パルス",
+  "ability.terrainPulse.description": "パルスノード付近でLを押し、任意経路を復元",
   "common.close": "閉じる",
   "quest.timeFragment": "時間の欠片"
   ,"quest.mergeLog": "融合記録"
@@ -389,4 +429,31 @@
   ,"gate.coreProgress": "コアシグネチャー {current}/{required}"
   ,"boss.optimizer.name": "オプティマイザー"
   ,"boss.optimizer.intro": "最終検証 // 完全な世界"
+  ,"buildSelection.title": "戦闘ビルド強化"
+  ,"buildSelection.subtitle": "モジュールを1つ選択。同じ系統でTier 3、組み合わせればハイブリッドビルドになります。"
+  ,"buildSelection.mobility": "機動"
+  ,"buildSelection.counter": "反撃"
+  ,"buildSelection.finisher": "決定打"
+  ,"buildSelection.tier": "TIER {current} → {next}"
+  ,"buildSelection.select": "選択"
+  ,"buildSelection.confirm": "強化を確定"
+  ,"build.swordDashCircuit.name": "残像回路"
+  ,"build.swordDashCircuit.description": "Tierごとにダッシュ再使用時間が0.3秒短縮。ダッシュ後1.25秒以内の最初の攻撃が強化され、Tier 3で+2になります。"
+  ,"build.swordCounterEdge.name": "カウンターエッジ"
+  ,"build.swordCounterEdge.description": "パリィ反撃ダメージ+1。Tier 3で反撃ボーナスが+2になります。"
+  ,"build.swordFinisherCore.name": "フィニッシャーコア"
+  ,"build.swordFinisherCore.description": "コンボ6のダメージ+1。Tier 2でコンボ4も強化され、Tier 3でコンボ6が+2になります。"
+  ,"build.gauntletAirDrive.name": "エアドライブ"
+  ,"build.gauntletAirDrive.description": "Tierごとに二段ジャンプ力が3%上昇し、空中攻撃ダメージ+1。Tier 3で空中ボーナスが+2になります。"
+  ,"build.gauntletGuardMesh.name": "ガードメッシュ"
+  ,"build.gauntletGuardMesh.description": "パリィ反撃ダメージ+1。Tier 3で反撃ボーナスが+2になります。"
+  ,"build.gauntletSeismicCore.name": "サイズミックコア"
+  ,"build.gauntletSeismicCore.description": "グラウンドスラムのダメージ+1。Tier 2で強攻撃も強化され、Tier 3でスラムが+2になります。"
+  ,"build.gunBurstLoader.name": "バーストローダー"
+  ,"build.gunBurstLoader.description": "Tierごとに銃の攻撃間隔を4.5%短縮し、最大13.5%短縮します。"
+  ,"build.gunPhaseMagazine.name": "フェーズマガジン"
+  ,"build.gunPhaseMagazine.description": "パリィ反撃ダメージ+1。Tier 2でコンボ3・6も強化され、Tier 3で反撃が+2になります。"
+  ,"build.gunRailCore.name": "レールコア"
+  ,"build.gunRailCore.description": "チャージレールのダメージ+1。Tier 3でボーナスが+2になります。"
+  ,"summary.build": "ROOM 1 ビルド"
 }

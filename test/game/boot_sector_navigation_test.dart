@@ -1,3 +1,4 @@
+import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,9 +32,16 @@ void main() {
     final bootDoor = game.world.activeRoom!.children
         .whereType<CampaignDoorComponent>()
         .single;
+    bootDoor.update(.016);
+    expect(bootDoor.children.whereType<TextComponent>().single.text, isEmpty);
     game.world.player.position.setValues(
       bootDoor.position.x,
       bootDoor.position.y - 36,
+    );
+    bootDoor.update(.016);
+    expect(
+      bootDoor.children.whereType<TextComponent>().single.text,
+      contains('[L]'),
     );
     expect(game.world.tryInteract(game.world.player), isTrue);
     await _waitForRoom(tester, game, RoomId.damageLab);

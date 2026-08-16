@@ -29,10 +29,16 @@ enum CampaignNodeId {
   damageTurretControl,
   temporalAscent,
   temporalFracture,
+  temporalDashRift,
+  temporalUpperLoop,
+  temporalRelayControl,
   temporalPendulum,
   chronoJailer,
   collisionCompression,
   collisionFracture,
+  collisionVectorCache,
+  collisionUpperMatrix,
+  collisionPrismControl,
   collisionMerge,
   kernelChimera,
   optimizerCore,
@@ -197,6 +203,30 @@ final class CampaignWorldGraph {
         mapY: -2,
       ),
       CampaignNodeDefinition(
+        id: CampaignNodeId.temporalDashRift,
+        region: CampaignRegion.temporalHall,
+        kind: CampaignNodeKind.secret,
+        mapX: 3,
+        mapY: -3,
+        isCoreRoom: false,
+      ),
+      CampaignNodeDefinition(
+        id: CampaignNodeId.temporalUpperLoop,
+        region: CampaignRegion.temporalHall,
+        kind: CampaignNodeKind.secret,
+        mapX: 4,
+        mapY: -3,
+        isCoreRoom: false,
+      ),
+      CampaignNodeDefinition(
+        id: CampaignNodeId.temporalRelayControl,
+        region: CampaignRegion.temporalHall,
+        kind: CampaignNodeKind.secret,
+        mapX: 2,
+        mapY: -3,
+        isCoreRoom: false,
+      ),
+      CampaignNodeDefinition(
         id: CampaignNodeId.temporalPendulum,
         region: CampaignRegion.temporalHall,
         kind: CampaignNodeKind.traversal,
@@ -223,6 +253,30 @@ final class CampaignWorldGraph {
         kind: CampaignNodeKind.traversal,
         mapX: 3,
         mapY: 2,
+      ),
+      CampaignNodeDefinition(
+        id: CampaignNodeId.collisionVectorCache,
+        region: CampaignRegion.collisionArchive,
+        kind: CampaignNodeKind.secret,
+        mapX: 3,
+        mapY: 3,
+        isCoreRoom: false,
+      ),
+      CampaignNodeDefinition(
+        id: CampaignNodeId.collisionUpperMatrix,
+        region: CampaignRegion.collisionArchive,
+        kind: CampaignNodeKind.secret,
+        mapX: 4,
+        mapY: 3,
+        isCoreRoom: false,
+      ),
+      CampaignNodeDefinition(
+        id: CampaignNodeId.collisionPrismControl,
+        region: CampaignRegion.collisionArchive,
+        kind: CampaignNodeKind.secret,
+        mapX: 2,
+        mapY: 3,
+        isCoreRoom: false,
       ),
       CampaignNodeDefinition(
         id: CampaignNodeId.collisionMerge,
@@ -264,6 +318,12 @@ final class CampaignWorldGraph {
         to: CampaignNodeId.overflowWarden,
       ),
       CampaignWorldConnection(
+        from: CampaignNodeId.damageWorkshop,
+        to: CampaignNodeId.damageOverflow,
+        requirement: CampaignRouteRequirement.unlockedShortcut,
+        unlockId: damageMaintenanceShortcutId,
+      ),
+      CampaignWorldConnection(
         from: CampaignNodeId.damageAssembly,
         to: CampaignNodeId.damageDashCache,
         requirement: CampaignRouteRequirement.swordDash,
@@ -294,6 +354,21 @@ final class CampaignWorldGraph {
       ),
       CampaignWorldConnection(
         from: CampaignNodeId.temporalFracture,
+        to: CampaignNodeId.temporalDashRift,
+        requirement: CampaignRouteRequirement.swordDash,
+      ),
+      CampaignWorldConnection(
+        from: CampaignNodeId.temporalFracture,
+        to: CampaignNodeId.temporalUpperLoop,
+        requirement: CampaignRouteRequirement.gauntletDoubleJump,
+      ),
+      CampaignWorldConnection(
+        from: CampaignNodeId.temporalFracture,
+        to: CampaignNodeId.temporalRelayControl,
+        requirement: CampaignRouteRequirement.gunRangedSwitch,
+      ),
+      CampaignWorldConnection(
+        from: CampaignNodeId.temporalFracture,
         to: CampaignNodeId.temporalPendulum,
       ),
       CampaignWorldConnection(
@@ -313,6 +388,21 @@ final class CampaignWorldGraph {
       CampaignWorldConnection(
         from: CampaignNodeId.collisionCompression,
         to: CampaignNodeId.collisionFracture,
+      ),
+      CampaignWorldConnection(
+        from: CampaignNodeId.collisionFracture,
+        to: CampaignNodeId.collisionVectorCache,
+        requirement: CampaignRouteRequirement.swordDash,
+      ),
+      CampaignWorldConnection(
+        from: CampaignNodeId.collisionFracture,
+        to: CampaignNodeId.collisionUpperMatrix,
+        requirement: CampaignRouteRequirement.gauntletDoubleJump,
+      ),
+      CampaignWorldConnection(
+        from: CampaignNodeId.collisionFracture,
+        to: CampaignNodeId.collisionPrismControl,
+        requirement: CampaignRouteRequirement.gunRangedSwitch,
       ),
       CampaignWorldConnection(
         from: CampaignNodeId.collisionFracture,
@@ -344,6 +434,8 @@ final class CampaignWorldGraph {
 
   static const String temporalHubLiftId = 'shortcut.temporal-hub-lift';
   static const String collisionHubLiftId = 'shortcut.collision-hub-lift';
+  static const String damageMaintenanceShortcutId =
+      'shortcut.damage-maintenance-lift';
   static const String temporalHubAccessId = 'route.temporal-hub-access';
   static const String collisionHubAccessId = 'route.collision-hub-access';
 

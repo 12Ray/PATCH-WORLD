@@ -11,7 +11,7 @@ enum RoomBackdropStyle { damage, temporal, collision, optimizer, survival }
 /// Code-native environment art that makes each rule room visually distinct.
 final class RoomBackdropComponent extends PositionComponent
     with HasGameReference<PatchWorldGame> {
-  RoomBackdropComponent(this.style, {Vector2? worldSize})
+  RoomBackdropComponent(this.style, {Vector2? worldSize, this.environmentAsset})
     : super(
         size:
             worldSize ??
@@ -20,20 +20,23 @@ final class RoomBackdropComponent extends PositionComponent
       );
 
   final RoomBackdropStyle style;
+  final String? environmentAsset;
   double _time = 0;
   Image? _environmentImage;
 
-  String? get _environmentAsset => switch (style) {
-    RoomBackdropStyle.damage =>
-      'assets/images/rooms/damage-lab-environment-v2.png',
-    RoomBackdropStyle.temporal =>
-      'assets/images/rooms/temporal-hall-environment-v2.png',
-    RoomBackdropStyle.collision =>
-      'assets/images/rooms/collision-archive-environment-v2.png',
-    RoomBackdropStyle.optimizer =>
-      'assets/images/rooms/optimizer-core-environment-v2.png',
-    RoomBackdropStyle.survival => null,
-  };
+  String? get _environmentAsset =>
+      environmentAsset ??
+      switch (style) {
+        RoomBackdropStyle.damage =>
+          'assets/images/rooms/damage-lab-environment-v2.png',
+        RoomBackdropStyle.temporal =>
+          'assets/images/rooms/temporal-hall-environment-v2.png',
+        RoomBackdropStyle.collision =>
+          'assets/images/rooms/collision-archive-environment-v2.png',
+        RoomBackdropStyle.optimizer =>
+          'assets/images/rooms/optimizer-core-environment-v2.png',
+        RoomBackdropStyle.survival => null,
+      };
 
   @override
   Future<void> onLoad() async {
@@ -67,15 +70,19 @@ final class RoomBackdropComponent extends PositionComponent
     final environmentImage = _environmentImage;
     if (environmentImage != null) {
       final viewCenter = game.camera.viewfinder.position;
+      final visibleWidth =
+          PatchWorldGame.logicalWidth / game.camera.viewfinder.zoom;
+      final visibleHeight =
+          PatchWorldGame.logicalHeight / game.camera.viewfinder.zoom;
       final visibleRect = Rect.fromLTWH(
-        (viewCenter.x - PatchWorldGame.logicalWidth / 2)
-            .clamp(0, size.x - PatchWorldGame.logicalWidth)
+        (viewCenter.x - visibleWidth / 2)
+            .clamp(0, math.max(0, size.x - visibleWidth))
             .toDouble(),
-        (viewCenter.y - PatchWorldGame.logicalHeight / 2)
-            .clamp(0, size.y - PatchWorldGame.logicalHeight)
+        (viewCenter.y - visibleHeight / 2)
+            .clamp(0, math.max(0, size.y - visibleHeight))
             .toDouble(),
-        PatchWorldGame.logicalWidth,
-        PatchWorldGame.logicalHeight,
+        math.min(visibleWidth, size.x),
+        math.min(visibleHeight, size.y),
       );
       final sourceRect = Rect.fromLTWH(
         visibleRect.left / size.x * environmentImage.width,

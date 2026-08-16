@@ -20,6 +20,8 @@ final class CampaignDoorComponent extends PositionComponent
   final Color accentColor;
   double _clock = 0;
   bool _activated = false;
+  bool _labelVisible = false;
+  late final TextComponent _label;
 
   bool isNear(PlayerComponent player) =>
       player.position.distanceTo(position - Vector2(0, 36)) <= 92;
@@ -33,27 +35,34 @@ final class CampaignDoorComponent extends PositionComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await add(
-      TextComponent(
-        text: '${game.localization.text(labelLocalizationKey)}  [L]',
-        position: Vector2(size.x / 2, -4),
-        anchor: Anchor.bottomCenter,
-        textRenderer: TextPaint(
-          style: TextStyle(
-            fontFamily: 'PatchWorldCJK',
-            color: accentColor,
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            letterSpacing: .8,
-          ),
+    _label = TextComponent(
+      text: '',
+      position: Vector2(size.x / 2, -4),
+      anchor: Anchor.bottomCenter,
+      textRenderer: TextPaint(
+        style: TextStyle(
+          fontFamily: 'PatchWorldCJK',
+          color: accentColor,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: .8,
         ),
       ),
     );
+    await add(_label);
   }
 
   @override
   void update(double dt) {
     _clock += game.clock.realDt;
+    final labelVisible =
+        game.world.player.position.distanceTo(position - Vector2(0, 36)) <= 140;
+    if (_labelVisible != labelVisible) {
+      _labelVisible = labelVisible;
+      _label.text = labelVisible
+          ? '${game.localization.text(labelLocalizationKey)}  [L]'
+          : '';
+    }
     super.update(dt);
   }
 

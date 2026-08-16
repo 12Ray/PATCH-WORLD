@@ -8,6 +8,7 @@ void main() {
 
     progress.clearedEncounterIds.add(0);
     progress.collectedRecordIds.addAll(<int>{0, 2});
+    progress.claimedBuildRewardIds.add(0);
     expect(progress.resumeCell, 1);
     expect(progress.collectedRecordCount, 2);
 
@@ -18,6 +19,7 @@ void main() {
     progress.reset();
     expect(progress.clearedEncounterIds, isEmpty);
     expect(progress.collectedRecordIds, isEmpty);
+    expect(progress.claimedBuildRewardIds, isEmpty);
     expect(progress.resumeCell, 0);
   });
 }

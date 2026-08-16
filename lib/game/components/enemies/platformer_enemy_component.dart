@@ -179,7 +179,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     if (!_dormant || _resolved) return;
     _dormant = false;
     _nextAttackAt = _actionClock + .8;
-    scale.setAll(1.08);
+    scale.setAll(1);
   }
 
   @override
@@ -325,7 +325,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     if (_dormant) {
       _combatState = EnemyCombatState.idle;
       _syncSpriteVisual();
-      scale.setAll(.92 + math.sin(_actionClock * 2) * .02);
+      scale.setAll(1);
       super.update(dt);
       return;
     }
@@ -433,18 +433,12 @@ final class PlatformerEnemyComponent extends PositionComponent
     var angle = math.sin(_visualClock * 2.2 + archetype.index) * .012;
     switch (_combatState) {
       case EnemyCombatState.telegraph:
-        final pulse = (math.sin(_visualClock * 14).abs()) * .07;
-        scaleX += pulse;
-        scaleY += pulse;
+        break;
       case EnemyCombatState.attacking:
         offsetX = _facing * 7;
-        scaleX = 1.10;
-        scaleY = .94;
         angle = _facing * -.045;
       case EnemyCombatState.recovering:
         offsetX = _facing * 2;
-        scaleX = .97;
-        scaleY = 1.03;
       case EnemyCombatState.hurt || EnemyCombatState.staggered:
         offsetX = -_facing * 5;
         angle = -_facing * .08;
@@ -560,6 +554,27 @@ final class PlatformerEnemyComponent extends PositionComponent
 
   void _beginPatternAction() {
     final player = game.world.player;
+    final allies = parent?.children
+        .whereType<PlatformerEnemyComponent>()
+        .where(
+          (enemy) =>
+              enemy != this &&
+              !enemy._resolved &&
+              !enemy._dormant &&
+              enemy.position.distanceTo(position) <= 260,
+        )
+        .toList(growable: false);
+    final nearbyAllies = allies?.length ?? 0;
+    final activeAllyAttackers =
+        allies
+            ?.where(
+              (enemy) =>
+                  enemy._combatState == EnemyCombatState.telegraph ||
+                  enemy._combatState == EnemyCombatState.attacking,
+            )
+            .length ??
+        0;
+    final formationSlot = ((_homePosition.x ~/ 96) + archetype.index).abs() % 3;
     final selection = PlatformerEnemyBrain.chooseAction(
       archetype.name,
       EnemyCombatContext(
@@ -567,6 +582,10 @@ final class PlatformerEnemyComponent extends PositionComponent
         verticalDelta: (player.position.y - position.y).abs(),
         healthRatio: healthState.current / healthState.overflowThreshold,
         playerGrounded: player.isGrounded,
+        playerWeapon: player.selectedWeapon,
+        nearbyAllies: nearbyAllies,
+        activeAllyAttackers: activeAllyAttackers,
+        formationSlot: formationSlot,
         recentActionIds: List<String>.unmodifiable(_recentActionIds),
         decisionSeed: _combatPatternIndex,
       ),
@@ -1085,8 +1104,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   }
 
   void _updateTurret(double dt, Iterable<Rect> solids) {
-    final pulse = 1 + math.sin(_actionClock * 4).abs() * 0.05;
-    scale.setAll(pulse);
+    scale.setAll(1);
     _velocity.y = math.min(620, _velocity.y + 1100 * dt);
     _moveVertical(dt, solids);
   }
@@ -1094,9 +1112,34 @@ final class PlatformerEnemyComponent extends PositionComponent
   void _updateGrounded(double dt, Iterable<Rect> solids) {
     final player = game.world.player.position;
     final playerDistanceX = (player.x - position.x).abs();
-    final aggroRange = archetype.isMidBoss ? 220.0 : 120.0;
+    final aggroRange = switch (archetype) {
+      PlatformerEnemyArchetype.repairLeech => 300.0,
+      _ when archetype.isMidBoss => 300.0,
+      _ => 220.0,
+    };
     final patrolTarget = _homePosition.x + math.sin(_actionClock * 0.8) * 46;
-    final targetX = playerDistanceX <= aggroRange ? player.x : patrolTarget;
+    var targetX = patrolTarget;
+    if (playerDistanceX <= aggroRange) {
+      final towardPlayer = player.x - position.x;
+      final formationSlot =
+          ((_homePosition.x ~/ 96) + archetype.index).abs() % 3;
+      final idealRange = switch (archetype) {
+        PlatformerEnemyArchetype.repairLeech => 164.0 + formationSlot * 18,
+        PlatformerEnemyArchetype.checksumHopper => 76.0 + formationSlot * 12,
+        _ when archetype.isMidBoss => 92.0 + formationSlot * 14,
+        _ => 48.0 + formationSlot * 14,
+      };
+      if (playerDistanceX > idealRange + 18) {
+        targetX = player.x;
+      } else if (playerDistanceX < idealRange - 18) {
+        final retreatDirection = towardPlayer.sign == 0
+            ? _facing
+            : towardPlayer.sign.toDouble();
+        targetX = position.x - retreatDirection * 80;
+      } else {
+        targetX = position.x;
+      }
+    }
     final direction = (targetX - position.x).sign.toDouble();
     var speed = archetype.isMidBoss ? 52.0 : 66.0;
     if (archetype == PlatformerEnemyArchetype.patchMite &&

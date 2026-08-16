@@ -130,6 +130,17 @@ final class _RunSummaryView extends StatelessWidget {
                   })
                   .join(', '),
             ),
+            if (summary.weaponBuildTiers.isNotEmpty)
+              _stat(
+                game.localization.text('summary.build'),
+                summary.weaponBuildTiers.entries
+                    .map(
+                      (entry) =>
+                          '${game.localization.text('build.${entry.key}.name')} '
+                          'T${entry.value}',
+                    )
+                    .join(', '),
+              ),
             _stat(
               game.localization.text('summary.ending'),
               game.localization.text('ending.${summary.endingId}'),

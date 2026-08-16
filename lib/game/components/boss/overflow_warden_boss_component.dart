@@ -176,7 +176,6 @@ final class OverflowWardenBossComponent extends PositionComponent
     };
     if (phase != previous) {
       _attackCooldown = .35;
-      scale.setAll(1.12);
       onPhaseChanged?.call(phase);
       game.triggerImpactFeedback();
       game.publishUiSnapshot(force: true);
@@ -189,6 +188,7 @@ final class OverflowWardenBossComponent extends PositionComponent
     onPhaseChanged?.call(phase);
     _pendingAttack = null;
     _defeatTimer = 1.35;
+    game.triggerCombatSlowMotion();
     game.triggerImpactFeedback();
     game.publishUiSnapshot(force: true);
   }
@@ -389,10 +389,9 @@ final class OverflowWardenBossComponent extends PositionComponent
       size.x / 2,
       size.y / 2 + math.sin(_clock * 3.2) * 1.5,
     );
-    final telegraphPulse = _pendingAttack == null
-        ? 1.0
-        : 1 + math.sin(_clock * 18).abs() * .07;
-    visual.scale.setAll(telegraphPulse);
+    // Telegraphs use the ring in render() rather than scaling the sprite.
+    // Keeping a fixed silhouette prevents apparent boss-size jumps per attack.
+    visual.scale.setAll(1);
   }
 
   @override

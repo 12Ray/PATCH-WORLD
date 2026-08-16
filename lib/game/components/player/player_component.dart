@@ -6,6 +6,8 @@ import 'dart:ui';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
+import 'package:patch_world/game/builds/weapon_build_state.dart';
+import 'package:patch_world/game/campaign/campaign_traversal_ability.dart';
 import 'package:patch_world/game/combat/attack_tier.dart';
 import 'package:patch_world/game/combat/player_combat_animation.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
@@ -33,6 +35,8 @@ final class _PendingWeaponImpact {
     required this.counter,
     required this.gunRail,
     required this.facing,
+    required this.airborne,
+    required this.dashEmpowered,
   });
 
   double remaining;
@@ -41,6 +45,8 @@ final class _PendingWeaponImpact {
   final bool counter;
   final bool gunRail;
   final double facing;
+  final bool airborne;
+  final bool dashEmpowered;
 }
 
 final class PlayerComponent extends RectangleComponent
@@ -54,6 +60,7 @@ final class PlayerComponent extends RectangleComponent
       );
 
   static const double moveSpeed = 160;
+  static const double presentationSize = 46;
   static const double attackCooldownSeconds = 0.45;
   static const double hitInvulnerabilitySeconds = 0.70;
   static const double parryWindowSeconds = 0.20;
@@ -112,8 +119,11 @@ final class PlayerComponent extends RectangleComponent
   double _dashRemaining = 0;
   double _dashCooldown = 0;
   double _dashContactImmunity = 0;
+  double _dashEmpowerWindow = 0;
   double _dashDirection = 1;
   int _airJumpsRemaining = 1;
+  int _traversalAirDashesRemaining = 1;
+  double _wallContactDirection = 0;
   String? lastDamageCauseId;
 
   bool get canAttack => _attackCooldown <= 0 && !isRemoving;
@@ -129,12 +139,24 @@ final class PlayerComponent extends RectangleComponent
       isMounted && game.runItems.contains(RunItemId.echoClock) ? 5 : 6;
   double get facingDirection => _facing;
   double get dashCooldownRemaining => _dashCooldown;
-  double get effectiveDashCooldownSeconds =>
-      isMounted && game.runItems.contains(RunItemId.dashBuffer) ? 4 : 5;
+  double get effectiveDashCooldownSeconds => isMounted
+      ? (game.runItems.swordDashCooldownSeconds -
+                game.weaponBuild.swordDashCooldownReduction)
+            .clamp(3, 5)
+            .toDouble()
+      : 5;
+  double get effectiveAirJumpSpeedMultiplier => isMounted
+      ? (game.runItems.gauntletAirJumpSpeedMultiplier +
+                game.weaponBuild.gauntletAirJumpSpeedBonus)
+            .clamp(.82, 1)
+            .toDouble()
+      : .82;
   double get dashCooldownProgress =>
       (_dashCooldown / effectiveDashCooldownSeconds).clamp(0, 1);
   int get airJumpsRemaining =>
       selectedWeapon == PlayerWeapon.gauntlet ? _airJumpsRemaining : 0;
+  int get traversalAirDashesRemaining => _traversalAirDashesRemaining;
+  bool get isTouchingWall => _wallContactDirection != 0;
   bool get isDashing => _dashRemaining > 0;
   bool get isGrounded => _platformerMotion.grounded;
   bool get hasCompleteArtV3Visuals => PlayerWeapon.values.every(
@@ -166,7 +188,10 @@ final class PlayerComponent extends RectangleComponent
     try {
       final visual = EntitySpriteVisual(
         sprite: await game.loadSprite('sprites/qa-hero.png'),
-        size: Vector2.all(54),
+        // Keep the authored animation source and the 32 px gameplay body
+        // independent. The smaller silhouette gives the environment more
+        // scale without changing jumps, collisions, or weapon reach.
+        size: Vector2.all(presentationSize),
         parentSize: size,
         bobAmplitude: 1.1,
         bobSpeed: 4.2,
@@ -317,10 +342,25 @@ final class PlayerComponent extends RectangleComponent
 
   void queueJump() {
     if (!_usesPlatformerMovement) return;
+    if (isMounted &&
+        !_platformerMotion.grounded &&
+        _wallContactDirection != 0 &&
+        game.campaignExploration.hasTraversalAbility(
+          CampaignTraversalAbility.wallJump,
+        ) &&
+        _platformerMotion.tryWallJump(awayDirection: -_wallContactDirection)) {
+      _facing = -_wallContactDirection;
+      _wallContactDirection = 0;
+      _visual?.squash(seconds: .10);
+      unawaited(game.audio.playJump(doubleJump: true));
+      return;
+    }
     if (selectedWeapon == PlayerWeapon.gauntlet &&
         !_platformerMotion.canGroundJump &&
         _airJumpsRemaining > 0 &&
-        _platformerMotion.tryAirJump()) {
+        _platformerMotion.tryAirJump(
+          speedMultiplier: effectiveAirJumpSpeedMultiplier,
+        )) {
       _airJumpsRemaining -= 1;
       final spinFrames = _gauntletDoubleJumpFrames;
       if (spinFrames != null) {
@@ -350,7 +390,10 @@ final class PlayerComponent extends RectangleComponent
     _dashRemaining = 0;
     _dashCooldown = 0;
     _dashContactImmunity = 0;
+    _dashEmpowerWindow = 0;
     _airJumpsRemaining = 1;
+    _traversalAirDashesRemaining = 1;
+    _wallContactDirection = 0;
     _activeMovementAnimation = null;
     _pendingWeaponImpacts.clear();
     _syncMovementAnimation(force: true);
@@ -398,9 +441,12 @@ final class PlayerComponent extends RectangleComponent
         ? nextMaximum
         : integrity.clamp(0, nextMaximum);
     _airJumpsRemaining = 1;
+    _traversalAirDashesRemaining = 1;
+    _wallContactDirection = 0;
     _dashRemaining = 0;
     _dashCooldown = 0;
     _dashContactImmunity = 0;
+    _dashEmpowerWindow = 0;
     if (isMounted) game.publishUiSnapshot(force: true);
   }
 
@@ -420,6 +466,9 @@ final class PlayerComponent extends RectangleComponent
     _dashRemaining = dashDurationSeconds;
     _dashCooldown = effectiveDashCooldownSeconds;
     _dashContactImmunity = dashContactImmunitySeconds;
+    if (game.weaponBuild.tier(WeaponBuildUpgradeId.swordDashCircuit) > 0) {
+      _dashEmpowerWindow = 1.25;
+    }
     if (!_platformerMotion.grounded) _airJumpsRemaining = 0;
     _visual?.flash(const Color(0xFF36E1FF), seconds: 0.10);
     _visual?.actionLunge(direction: direction, seconds: .15, travel: 20);
@@ -429,6 +478,49 @@ final class PlayerComponent extends RectangleComponent
     }
     if (isMounted) {
       game.patchEffects.onPlayerDashed();
+      unawaited(game.audio.playSwordDash());
+      game.publishUiSnapshot(force: true);
+    }
+    return true;
+  }
+
+  bool trySpecialAbility(double requestedDirection) {
+    switch (selectedWeapon) {
+      case PlayerWeapon.sword:
+        return tryDash(requestedDirection);
+      case PlayerWeapon.gauntlet:
+        if (_platformerMotion.grounded || _airJumpsRemaining > 0) {
+          queueJump();
+          return true;
+        }
+        return tryTraversalAirDash(requestedDirection);
+      case PlayerWeapon.gun:
+        return tryTraversalAirDash(requestedDirection);
+    }
+  }
+
+  bool tryTraversalAirDash(double requestedDirection) {
+    if (!_usesPlatformerMovement ||
+        _platformerMotion.grounded ||
+        _traversalAirDashesRemaining <= 0 ||
+        isDashing ||
+        !game.campaignExploration.hasTraversalAbility(
+          CampaignTraversalAbility.airDash,
+        )) {
+      return false;
+    }
+    final direction = requestedDirection.abs() > .05
+        ? requestedDirection.sign.toDouble()
+        : _facing;
+    _dashDirection = direction;
+    _facing = direction;
+    _dashRemaining = dashDurationSeconds;
+    _dashContactImmunity = dashContactImmunitySeconds;
+    _traversalAirDashesRemaining -= 1;
+    _platformerMotion.velocity.y = 0;
+    _visual?.flash(const Color(0xFF9D8CFF), seconds: .12);
+    _visual?.actionLunge(direction: direction, seconds: .15, travel: 20);
+    if (isMounted) {
       unawaited(game.audio.playSwordDash());
       game.publishUiSnapshot(force: true);
     }
@@ -519,21 +611,18 @@ final class PlayerComponent extends RectangleComponent
 
   void _tryWeaponAttack() {
     final counter = _counterWindow > 0;
+    final airborne = !isGrounded;
+    final dashEmpowered =
+        selectedWeapon == PlayerWeapon.sword && _dashEmpowerWindow > 0;
+    if (dashEmpowered) _dashEmpowerWindow = 0;
     final motionIndex = counter ? 9 : 1 + _weaponComboStep;
     _weaponComboStep = counter ? 0 : (_weaponComboStep + 1) % 6;
     _weaponComboReset = 0.85;
     _counterWindow = 0;
-    final temporalRelayMultiplier =
-        game.runItems.contains(RunItemId.temporalRelay) ? .92 : 1.0;
-    final targetingDaemonMultiplier =
-        selectedWeapon == PlayerWeapon.gun &&
-            game.runItems.contains(RunItemId.targetingDaemon)
-        ? .90
-        : 1.0;
     _attackCooldown =
         (counter ? 0.18 : selectedWeapon.baseCooldown) *
-        temporalRelayMultiplier *
-        targetingDaemonMultiplier;
+        game.runItems.attackCooldownMultiplierFor(selectedWeapon) *
+        game.weaponBuild.attackCooldownMultiplierFor(selectedWeapon);
     final isGunRail = selectedWeapon == PlayerWeapon.gun && motionIndex == 4;
     final railFrames = _gunRailFrames;
     if (isGunRail && railFrames != null) {
@@ -578,6 +667,8 @@ final class PlayerComponent extends RectangleComponent
         counter: counter,
         gunRail: isGunRail,
         facing: _facing,
+        airborne: airborne,
+        dashEmpowered: dashEmpowered,
       ),
     );
   }
@@ -588,22 +679,31 @@ final class PlayerComponent extends RectangleComponent
     final counter = impact.counter;
     final isGunRail = impact.gunRail;
     final facing = impact.facing;
+    final buildDamageBonus = game.weaponBuild.damageBonusFor(
+      weapon: weapon,
+      motionIndex: motionIndex,
+      counter: counter,
+      airborne: impact.airborne,
+      dashEmpowered: impact.dashEmpowered,
+    );
 
     final itemDamageBonus =
-        !counter &&
-            motionIndex == 6 &&
-            game.runItems.contains(RunItemId.overflowCapacitor)
-        ? 1
-        : 0;
+        (motionIndex == 6 && game.runItems.contains(RunItemId.overflowCapacitor)
+            ? 1
+            : 0) +
+        game.runItems.weaponDamageBonusFor(weapon, motionIndex);
     final damage = counter
-        ? 3 + (game.runItems.contains(RunItemId.collisionPrism) ? 1 : 0)
+        ? 3 +
+              (game.runItems.contains(RunItemId.collisionPrism) ? 1 : 0) +
+              buildDamageBonus
         : switch (weapon) {
                 PlayerWeapon.sword =>
                   motionIndex == 4 || motionIndex == 6 ? 2 : 1,
                 PlayerWeapon.gauntlet => motionIndex >= 3 ? 2 : 1,
                 PlayerWeapon.gun => motionIndex == 4 ? 2 : 1,
               } +
-              itemDamageBonus;
+              itemDamageBonus +
+              buildDamageBonus;
     switch (weapon) {
       case PlayerWeapon.sword:
         game.world.add(
@@ -866,6 +966,7 @@ final class PlayerComponent extends RectangleComponent
     _dashRemaining = math.max(0, _dashRemaining - statusDt);
     _dashCooldown = math.max(0, _dashCooldown - statusDt);
     _dashContactImmunity = math.max(0, _dashContactImmunity - statusDt);
+    _dashEmpowerWindow = math.max(0, _dashEmpowerWindow - statusDt);
     if (_weaponComboReset <= 0) _weaponComboStep = 0;
 
     _previousPosition.setFrom(position);
@@ -899,6 +1000,7 @@ final class PlayerComponent extends RectangleComponent
 
   void _updatePlatformer(double dt, PlatformerRoomGeometry room) {
     final wasGrounded = _platformerMotion.grounded;
+    _wallContactDirection = 0;
     var remaining = math.min(dt, 0.10);
     while (remaining > 0) {
       final step = math.min(remaining, 1 / 120);
@@ -931,6 +1033,9 @@ final class PlayerComponent extends RectangleComponent
       unawaited(game.audio.playLand());
       _playLandingAnimation();
     }
+    if (_platformerMotion.grounded) {
+      _traversalAirDashesRemaining = 1;
+    }
 
     if (position.y > room.killPlaneY) {
       takeDamage(1, causeId: 'hazard.platformer.data-pit');
@@ -950,10 +1055,12 @@ final class PlayerComponent extends RectangleComponent
       if (!bounds.overlaps(solid)) continue;
       if (_platformerMotion.velocity.x > 0 && oldRight <= solid.left + 1) {
         position.x = solid.left - halfWidth;
+        _wallContactDirection = 1;
         _platformerMotion.hitWall();
       } else if (_platformerMotion.velocity.x < 0 &&
           oldLeft >= solid.right - 1) {
         position.x = solid.right + halfWidth;
+        _wallContactDirection = -1;
         _platformerMotion.hitWall();
       }
     }

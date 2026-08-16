@@ -48,10 +48,16 @@ final class EnemyProjectileComponent extends CircleComponent
   @override
   bool isReflected = false;
   SpriteComponent? _spriteVisual;
+  bool _budgetReserved = false;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    if (!game.combatEntityBudget.tryReserveEnemyProjectile()) {
+      removeFromParent();
+      return;
+    }
+    _budgetReserved = true;
     if (assetSlug != null) unawaited(_loadSpriteVisual());
     await add(
       CircleHitbox.relative(
@@ -61,6 +67,15 @@ final class EnemyProjectileComponent extends CircleComponent
         anchor: Anchor.center,
       ),
     );
+  }
+
+  @override
+  void onRemove() {
+    if (_budgetReserved) {
+      _budgetReserved = false;
+      game.combatEntityBudget.releaseEnemyProjectile();
+    }
+    super.onRemove();
   }
 
   Future<void> _loadSpriteVisual() async {

@@ -1,7 +1,9 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:patch_world/game/campaign/campaign_traversal_ability.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 
 final class CampaignMapOverlay extends StatelessWidget {
@@ -66,6 +68,39 @@ final class CampaignMapOverlay extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (exploration.unlockedTraversalAbilities.isNotEmpty)
+                      SizedBox(
+                        height: 34,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: <Widget>[
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: 6,
+                                right: 8,
+                                top: 8,
+                              ),
+                              child: Text(
+                                game.localization.text('map.abilities'),
+                                style: const TextStyle(
+                                  color: Color(0xFF8B96AA),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            for (final ability
+                                in CampaignTraversalAbility.values)
+                              if (exploration.unlockedTraversalAbilities
+                                  .contains(ability))
+                                _AbilityChip(
+                                  label: game.localization.text(
+                                    ability.localizationKey,
+                                  ),
+                                ),
+                          ],
+                        ),
+                      ),
                     Expanded(
                       child: Semantics(
                         label: game.localization.text('map.title'),
@@ -77,6 +112,13 @@ final class CampaignMapOverlay extends StatelessWidget {
                             visited: exploration.visitedNodeIds,
                             current: exploration.currentNode,
                             checkpoint: exploration.checkpointNodeId,
+                            selectedWeapon: game.world.isReady
+                                ? game.world.player.selectedWeapon
+                                : PlayerWeapon.sword,
+                            unlockedShortcutIds:
+                                exploration.unlockedShortcutIds,
+                            hasAllCoreSignatures:
+                                exploration.hasAllCoreSignatures,
                           ),
                           child: const SizedBox.expand(),
                         ),
@@ -104,6 +146,10 @@ final class CampaignMapOverlay extends StatelessWidget {
                           color: const Color(0xFFFFD35A),
                           label: game.localization.text('map.checkpoint'),
                         ),
+                        _LegendDot(
+                          color: const Color(0xFFFF4FD8),
+                          label: game.localization.text('map.locked'),
+                        ),
                       ],
                     ),
                   ],
@@ -115,6 +161,33 @@ final class CampaignMapOverlay extends StatelessWidget {
       ),
     );
   }
+}
+
+final class _AbilityChip extends StatelessWidget {
+  const _AbilityChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(right: 5, top: 4, bottom: 3),
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: const Color(0x332CF2C8),
+      border: Border.all(color: const Color(0xAA2CF2C8)),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Text(
+      label,
+      maxLines: 1,
+      style: const TextStyle(
+        color: Color(0xFFC9FFF4),
+        fontSize: 9,
+        fontWeight: FontWeight.w800,
+      ),
+    ),
+  );
 }
 
 final class _LegendDot extends StatelessWidget {
@@ -148,6 +221,9 @@ final class _CampaignMapPainter extends CustomPainter {
     required this.visited,
     required this.current,
     required this.checkpoint,
+    required this.selectedWeapon,
+    required this.unlockedShortcutIds,
+    required this.hasAllCoreSignatures,
   });
 
   final CampaignWorldGraph graph;
@@ -155,6 +231,9 @@ final class _CampaignMapPainter extends CustomPainter {
   final Set<CampaignNodeId> visited;
   final CampaignNodeId? current;
   final CampaignNodeId? checkpoint;
+  final PlayerWeapon selectedWeapon;
+  final Set<String> unlockedShortcutIds;
+  final bool hasAllCoreSignatures;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -178,15 +257,20 @@ final class _CampaignMapPainter extends CustomPainter {
       );
     }
 
-    final routePaint = Paint()
-      ..color = const Color(0x665D7397)
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
     for (final connection in graph.connections) {
       if (!revealed.contains(connection.from) ||
           !revealed.contains(connection.to)) {
         continue;
       }
+      final isLocked = !connection.permits(
+        weapon: selectedWeapon,
+        unlockedShortcutIds: unlockedShortcutIds,
+        hasAllCoreSignatures: hasAllCoreSignatures,
+      );
+      final routePaint = Paint()
+        ..color = isLocked ? const Color(0x99FF4FD8) : const Color(0x665D7397)
+        ..strokeWidth = isLocked ? 1.5 : 3
+        ..strokeCap = StrokeCap.round;
       canvas.drawLine(
         pointFor(graph.nodes[connection.from]!),
         pointFor(graph.nodes[connection.to]!),
@@ -261,6 +345,9 @@ final class _CampaignMapPainter extends CustomPainter {
   bool shouldRepaint(covariant _CampaignMapPainter oldDelegate) =>
       oldDelegate.current != current ||
       oldDelegate.checkpoint != checkpoint ||
+      oldDelegate.selectedWeapon != selectedWeapon ||
+      oldDelegate.unlockedShortcutIds.length != unlockedShortcutIds.length ||
+      oldDelegate.hasAllCoreSignatures != hasAllCoreSignatures ||
       oldDelegate.revealed.length != revealed.length ||
       oldDelegate.visited.length != visited.length;
 }

@@ -21,6 +21,7 @@ final class RunMetrics {
     required List<String> selectedPatchIds,
     required String endingId,
     PlayerWeapon? selectedWeapon,
+    Map<String, int> weaponBuildTiers = const <String, int>{},
     double dashCooldownRemaining = 0,
     int airJumpsRemaining = 0,
   }) {
@@ -37,6 +38,7 @@ final class RunMetrics {
       selectedPatchIds: List<String>.unmodifiable(selectedPatchIds),
       endingId: endingId,
       selectedWeapon: selectedWeapon,
+      weaponBuildTiers: Map<String, int>.unmodifiable(weaponBuildTiers),
       dashCooldownRemaining: dashCooldownRemaining,
       airJumpsRemaining: airJumpsRemaining,
     );
@@ -60,6 +62,7 @@ final class RunSummary {
     required this.selectedPatchIds,
     required this.endingId,
     this.selectedWeapon,
+    this.weaponBuildTiers = const <String, int>{},
     this.dashCooldownRemaining = 0,
     this.airJumpsRemaining = 0,
   });
@@ -72,6 +75,7 @@ final class RunSummary {
   final List<String> selectedPatchIds;
   final String endingId;
   final PlayerWeapon? selectedWeapon;
+  final Map<String, int> weaponBuildTiers;
   final double dashCooldownRemaining;
   final int airJumpsRemaining;
 

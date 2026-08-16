@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
+import 'package:patch_world/game/builds/weapon_build_state.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
@@ -52,9 +53,12 @@ void main() {
         expect(summary!.endingId, 'preserve');
         expect(summary.selectedWeapon, weapon);
         expect(summary.selectedPatchIds, hasLength(3));
+        expect(summary.weaponBuildTiers, hasLength(3));
         expect(encountered, unorderedEquals(PlatformerEnemyArchetype.values));
         expect(game.world.player.selectedWeapon, weapon);
         expect(game.campaignExploration.hasAllCoreSignatures, isTrue);
+        expect(game.weaponBuild.totalChoices, 3);
+        expect(game.damageLabProgress.claimedBuildRewardIds, <int>{0, 1, 2});
 
         game.returnToTitle();
         await _waitForTitleReset(tester, game);
@@ -64,6 +68,7 @@ void main() {
         expect(game.damageLabProgress.clearedEncounterIds, isEmpty);
         expect(game.temporalHallProgress.clearedEncounterIds, isEmpty);
         expect(game.collisionArchiveProgress.clearedEncounterIds, isEmpty);
+        expect(game.weaponBuild.totalChoices, 0);
       }
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -102,6 +107,22 @@ Future<void> _completeCampaign(
     CampaignNodeId.damageOverflow,
   );
   await _clearEncounter(tester, game, encountered);
+  expect(
+    game.campaignExploration.unlockedShortcutIds,
+    contains(CampaignWorldGraph.damageMaintenanceShortcutId),
+  );
+  await _useDoor(
+    tester,
+    game,
+    'interaction.useMaintenanceShortcut',
+    CampaignNodeId.damageWorkshop,
+  );
+  await _useDoor(
+    tester,
+    game,
+    'interaction.useMaintenanceShortcut',
+    CampaignNodeId.damageOverflow,
+  );
   await _useDoor(
     tester,
     game,
@@ -234,15 +255,36 @@ Future<void> _clearEncounter(
   PatchWorldGame game,
   Set<PlatformerEnemyArchetype> encountered,
 ) async {
-  final enemies = game.world.activeRoom!.children
+  final activeRoom = game.world.activeRoom!;
+  final enemies = activeRoom.children
       .whereType<PlatformerEnemyComponent>()
       .toList(growable: false);
-  expect(enemies, hasLength(2));
+  final expectedEnemyCount =
+      activeRoom is DamageLabNodeController &&
+          (activeRoom.nodeId == CampaignNodeId.damageAssembly ||
+              activeRoom.nodeId == CampaignNodeId.damageOverflow)
+      ? 4
+      : activeRoom is RegionalCampaignNodeController &&
+            activeRoom.usesExpandedRegionalGeometry
+      ? 4
+      : 2;
+  expect(enemies, hasLength(expectedEnemyCount));
   encountered.addAll(enemies.map((enemy) => enemy.archetype));
   for (final enemy in enemies) {
     enemy.receiveDamage(99);
   }
-  await _pumpFrames(tester, 5, const Duration(milliseconds: 16));
+  await _pumpFrames(tester, 2, const Duration(milliseconds: 16));
+  if (activeRoom is DamageLabNodeController) {
+    final request = game.pendingWeaponBuildSelection;
+    expect(request, isNotNull);
+    expect(request!.encounterId, activeRoom.encounterId);
+    final choices = WeaponBuildCatalog.choicesFor(request.weapon);
+    expect(
+      game.selectRoomOneBuildUpgrade(choices[activeRoom.encounterId]),
+      isTrue,
+    );
+  }
+  await _pumpFrames(tester, 3, const Duration(milliseconds: 16));
 }
 
 Future<void> _defeatDamageBoss(WidgetTester tester, PatchWorldGame game) async {
@@ -291,6 +333,7 @@ Future<void> _mountGame(WidgetTester tester, PatchWorldGame game) async {
           OverlayIds.title: emptyOverlay,
           OverlayIds.weaponSelection: emptyOverlay,
           OverlayIds.patchSelection: emptyOverlay,
+          OverlayIds.buildSelection: emptyOverlay,
           OverlayIds.patchApplied: emptyOverlay,
           OverlayIds.ending: emptyOverlay,
           OverlayIds.defeat: emptyOverlay,

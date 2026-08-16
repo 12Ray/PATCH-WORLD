@@ -84,6 +84,21 @@ final class PlatformerMotion {
     return true;
   }
 
+  bool tryWallJump({
+    required double awayDirection,
+    double horizontalSpeed = 245,
+    double verticalSpeedMultiplier = .92,
+  }) {
+    if (grounded || awayDirection == 0) return false;
+    velocity
+      ..x = awayDirection.sign * horizontalSpeed
+      ..y = -jumpSpeed * verticalSpeedMultiplier;
+    _coyoteRemaining = 0;
+    _jumpBufferRemaining = 0;
+    _jumpCutApplied = false;
+    return true;
+  }
+
   void beginVerticalResolution() {
     grounded = false;
   }

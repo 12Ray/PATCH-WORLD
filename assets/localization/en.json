@@ -86,10 +86,16 @@
   "room.damageTurretControl": "TURRET CONTROL",
   "room.temporalAscent": "CLOCKWORK ASCENT",
   "room.temporalFracture": "BROKEN TIMELINE",
+  "room.temporalDashRift": "CHRONAL RIFT",
+  "room.temporalUpperLoop": "UPPER LOOP",
+  "room.temporalRelayControl": "RELAY CONTROL",
   "room.temporalPendulum": "REWIND PENDULUM",
   "room.chronoJailer": "CHRONO JAILER",
   "room.collisionCompression": "VECTOR COMPRESSION",
   "room.collisionFracture": "PHASE FRACTURE",
+  "room.collisionVectorCache": "VECTOR CACHE",
+  "room.collisionUpperMatrix": "UPPER MATRIX",
+  "room.collisionPrismControl": "PRISM CONTROL",
   "room.collisionMerge": "POLARITY MERGE",
   "room.kernelChimera": "KERNEL CHIMERA",
   "room.damageLab": "DAMAGE LAB",
@@ -112,9 +118,11 @@
   "objective.temporalHall": "ROOM 2-{room} · CELLS {cleared}/3 · TIME FRAGMENTS {records}/3",
   "objective.temporalHallBoss": "ROOM 2-BOSS · DEFEAT THE CHRONO JAILER",
   "objective.temporalHallExit": "CLAIM THE REWARD AND ACTIVATE THE TIME PATCH TERMINAL",
+  "objective.temporalSecret": "CLAIM THE TIME RELIC · RETURN TO BROKEN TIMELINE",
   "objective.collisionArchive": "ROOM 3-{room} · CELLS {cleared}/3 · MERGE LOGS {records}/3",
   "objective.collisionArchiveBoss": "ROOM 3-BOSS · DEFEAT THE KERNEL CHIMERA",
   "objective.collisionArchiveExit": "CLAIM THE REWARD AND ACTIVATE THE COLLISION PATCH TERMINAL",
+  "objective.collisionSecret": "CLAIM THE COLLISION RELIC · RETURN TO PHASE FRACTURE",
   "objective.optimizerDamage": "OBJECTIVE: ATTACK UNTIL THE OPTIMIZER ENTERS PERFECT PHASE",
   "objective.optimizerPerfect": "OBJECTIVE: ACTIVATE TERMINAL (E), THEN PULSE 4× IN 6S · STABILITY {stability}/150",
   "objective.optimizerOverflow": "CORE OVERFLOW · CALCULATING ENDING",
@@ -343,6 +351,18 @@
   "item.airStack.description": "Gauntlet maximum integrity increases by 1",
   "item.targetingDaemon.name": "TARGETING DAEMON",
   "item.targetingDaemon.description": "Gun attack interval is reduced by 10%",
+  "item.chronalBuffer.name": "CHRONAL BUFFER",
+  "item.chronalBuffer.description": "Sword dash cooldown is reduced by another 0.5 seconds",
+  "item.echoSpring.name": "ECHO SPRING",
+  "item.echoSpring.description": "Gauntlet double-jump power is increased from 82% to 92%",
+  "item.predictiveScope.name": "PREDICTIVE SCOPE",
+  "item.predictiveScope.description": "Gun attack interval is reduced by another 7%",
+  "item.vectorEdge.name": "VECTOR EDGE",
+  "item.vectorEdge.description": "Sword heavy combo hits deal +1 damage",
+  "item.impactLattice.name": "IMPACT LATTICE",
+  "item.impactLattice.description": "Gauntlet heavy combo hits deal +1 damage",
+  "item.splitChamber.name": "SPLIT CHAMBER",
+  "item.splitChamber.description": "Gun rail shot deals +1 damage",
   "boss.overflowWarden.intro": "OVERFLOW WARDEN // LIMIT BREAK",
   "interaction.applyPatch": "APPLY PATCH",
   "interaction.enterDamageLab": "ENTER DAMAGE LAB",
@@ -356,10 +376,22 @@
   "interaction.returnAssembly": "RETURN TO ASSEMBLY",
   "interaction.openMap": "WORLD MAP",
   "interaction.activateCheckpoint": "SYNC CHECKPOINT",
+  "interaction.terrainPulse": "ACTIVATE TERRAIN PULSE",
+  "interaction.repairStation": "REPAIR INTEGRITY",
+  "interaction.resolveEvent": "COMPILE LOADOUT EVENT",
   "interaction.enterTemporalHall": "ENTER TEMPORAL HALL",
   "interaction.enterCollisionArchive": "ENTER COLLISION ARCHIVE",
+  "interaction.enterTemporalDashRift": "ENTER CHRONAL RIFT",
+  "interaction.enterTemporalUpperLoop": "ENTER UPPER LOOP",
+  "interaction.enterTemporalRelayControl": "ENTER RELAY CONTROL",
+  "interaction.enterCollisionVectorCache": "ENTER VECTOR CACHE",
+  "interaction.enterCollisionUpperMatrix": "ENTER UPPER MATRIX",
+  "interaction.enterCollisionPrismControl": "ENTER PRISM CONTROL",
+  "interaction.returnTemporalFracture": "RETURN TO BROKEN TIMELINE",
+  "interaction.returnCollisionFracture": "RETURN TO PHASE FRACTURE",
   "interaction.returnOverflowJunction": "RETURN TO OVERFLOW JUNCTION",
   "interaction.returnHubLift": "BOOT SECTOR LIFT",
+  "interaction.useMaintenanceShortcut": "MAINTENANCE LIFT SHORTCUT",
   "interaction.enterOptimizerCore": "ENTER OPTIMIZER CORE",
   "map.title": "PATCH//WORLD MAP",
   "map.discoveredCount": "VISITED {visited} · REVEALED {revealed}",
@@ -367,6 +399,14 @@
   "map.visited": "VISITED",
   "map.revealed": "REVEALED",
   "map.checkpoint": "CHECKPOINT",
+  "map.locked": "LOCKED ROUTE",
+  "map.abilities": "TRAVERSAL",
+  "ability.wallJump.name": "WALL KICK",
+  "ability.wallJump.description": "Jump away from a wall while airborne",
+  "ability.airDash.name": "AIR DASH",
+  "ability.airDash.description": "Press K in the air after the weapon action is spent",
+  "ability.terrainPulse.name": "TERRAIN PULSE",
+  "ability.terrainPulse.description": "Use L at pulse nodes to rebuild optional routes",
   "common.close": "CLOSE",
   "quest.timeFragment": "TIME FRAGMENT"
   ,"quest.mergeLog": "MERGE LOG"
@@ -389,4 +429,31 @@
   ,"gate.coreProgress": "CORE SIGNATURES {current}/{required}"
   ,"boss.optimizer.name": "THE OPTIMIZER"
   ,"boss.optimizer.intro": "FINAL VALIDATION // PERFECT WORLD"
+  ,"buildSelection.title": "COMBAT BUILD UPGRADE"
+  ,"buildSelection.subtitle": "Choose one module. Repeat a branch for Tier 3 or mix branches for a hybrid build."
+  ,"buildSelection.mobility": "MOBILITY"
+  ,"buildSelection.counter": "COUNTER"
+  ,"buildSelection.finisher": "FINISHER"
+  ,"buildSelection.tier": "TIER {current} → {next}"
+  ,"buildSelection.select": "SELECT"
+  ,"buildSelection.confirm": "CONFIRM UPGRADE"
+  ,"build.swordDashCircuit.name": "AFTERIMAGE CIRCUIT"
+  ,"build.swordDashCircuit.description": "Reduces dash cooldown by 0.3 seconds per tier. The first attack within 1.25 seconds after a dash gains damage; Tier 3 raises the bonus to +2."
+  ,"build.swordCounterEdge.name": "COUNTER EDGE"
+  ,"build.swordCounterEdge.description": "Parry counter damage +1. At Tier 3 the counter bonus becomes +2."
+  ,"build.swordFinisherCore.name": "FINISHER CORE"
+  ,"build.swordFinisherCore.description": "Combo 6 gains +1 damage. Tier 2 also empowers combo 4, and Tier 3 raises combo 6 to +2."
+  ,"build.gauntletAirDrive.name": "AIR DRIVE"
+  ,"build.gauntletAirDrive.description": "Raises double-jump force by 3% per tier and grants airborne attacks +1 damage. At Tier 3 the airborne bonus becomes +2."
+  ,"build.gauntletGuardMesh.name": "GUARD MESH"
+  ,"build.gauntletGuardMesh.description": "Parry counter damage +1. At Tier 3 the counter bonus becomes +2."
+  ,"build.gauntletSeismicCore.name": "SEISMIC CORE"
+  ,"build.gauntletSeismicCore.description": "Ground slam gains +1 damage. Tier 2 empowers heavy combo hits, and Tier 3 raises the slam bonus to +2."
+  ,"build.gunBurstLoader.name": "BURST LOADER"
+  ,"build.gunBurstLoader.description": "Reduces gun attack interval by 4.5% per tier, up to 13.5%."
+  ,"build.gunPhaseMagazine.name": "PHASE MAGAZINE"
+  ,"build.gunPhaseMagazine.description": "Parry counter damage +1. Tier 2 also empowers combo 3 and 6, and Tier 3 raises the counter bonus to +2."
+  ,"build.gunRailCore.name": "RAIL CORE"
+  ,"build.gunRailCore.description": "Charged rail damage +1. At Tier 3 the rail bonus becomes +2."
+  ,"summary.build": "ROOM 1 BUILD"
 }

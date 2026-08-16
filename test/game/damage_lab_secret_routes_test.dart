@@ -5,6 +5,7 @@ import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
+import 'package:patch_world/game/components/environment/ranged_route_switch_component.dart';
 import 'package:patch_world/game/components/items/item_pedestal_component.dart';
 import 'package:patch_world/game/items/run_item_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';

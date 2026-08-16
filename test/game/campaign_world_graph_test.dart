@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/campaign/campaign_exploration_state.dart';
+import 'package:patch_world/game/campaign/campaign_traversal_ability.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
@@ -13,20 +14,36 @@ void main() {
       expect(graph.nodes, contains(CampaignNodeId.bootSector));
       expect(graph.nodes, contains(CampaignNodeId.optimizerCore));
 
-      final optionalRequirements = graph.connections
-          .where(
-            (connection) =>
-                connection.to == CampaignNodeId.damageDashCache ||
-                connection.to == CampaignNodeId.damageUpperArchive ||
-                connection.to == CampaignNodeId.damageTurretControl,
-          )
-          .map((connection) => connection.requirement)
-          .toSet();
-      expect(optionalRequirements, <CampaignRouteRequirement>{
-        CampaignRouteRequirement.swordDash,
-        CampaignRouteRequirement.gauntletDoubleJump,
-        CampaignRouteRequirement.gunRangedSwitch,
-      });
+      const routeSources = <CampaignNodeId>{
+        CampaignNodeId.damageAssembly,
+        CampaignNodeId.temporalFracture,
+        CampaignNodeId.collisionFracture,
+      };
+      for (final source in routeSources) {
+        final optionalRequirements = graph.connections
+            .where(
+              (connection) =>
+                  connection.from == source &&
+                  graph.nodes[connection.to]!.kind == CampaignNodeKind.secret,
+            )
+            .map((connection) => connection.requirement)
+            .toSet();
+        expect(
+          optionalRequirements,
+          <CampaignRouteRequirement>{
+            CampaignRouteRequirement.swordDash,
+            CampaignRouteRequirement.gauntletDoubleJump,
+            CampaignRouteRequirement.gunRangedSwitch,
+          },
+          reason: '$source must expose one route for every weapon',
+        );
+      }
+      expect(
+        graph.nodes.values.where(
+          (node) => node.kind == CampaignNodeKind.secret,
+        ),
+        hasLength(9),
+      );
     });
 
     test('every weapon can traverse all universal regional routes', () {
@@ -55,6 +72,22 @@ void main() {
             );
           }
         }
+      }
+    });
+
+    test('Damage Lab maintenance lift is locked until discovered', () {
+      final graph = CampaignWorldGraph.standard();
+      final state = CampaignExplorationState();
+      final shortcut = graph.connectionBetween(
+        CampaignNodeId.damageWorkshop,
+        CampaignNodeId.damageOverflow,
+      );
+
+      expect(shortcut.requirement, CampaignRouteRequirement.unlockedShortcut);
+      expect(state.canTraverse(shortcut, weapon: PlayerWeapon.sword), isFalse);
+      state.unlockShortcut(CampaignWorldGraph.damageMaintenanceShortcutId);
+      for (final weapon in PlayerWeapon.values) {
+        expect(state.canTraverse(shortcut, weapon: weapon), isTrue);
       }
     });
   });
@@ -95,8 +128,34 @@ void main() {
       expect(state.revealedNodeIds, isEmpty);
       expect(state.unlockedShortcutIds, isEmpty);
       expect(state.coreSignatures, isEmpty);
+      expect(state.unlockedTraversalAbilities, isEmpty);
+      expect(state.activatedTerrainNodeIds, isEmpty);
       expect(state.mappedRegions, isEmpty);
       expect(state.checkpointNodeId, isNull);
+    });
+
+    test('regional cores unlock traversal abilities in campaign order', () {
+      final state = CampaignExplorationState();
+
+      state.collectCoreSignature(CampaignRegion.damageLab);
+      expect(state.unlockedTraversalAbilities, <CampaignTraversalAbility>{
+        CampaignTraversalAbility.wallJump,
+      });
+
+      state.collectCoreSignature(CampaignRegion.temporalHall);
+      expect(
+        state.hasTraversalAbility(CampaignTraversalAbility.airDash),
+        isTrue,
+      );
+
+      state
+        ..collectCoreSignature(CampaignRegion.collisionArchive)
+        ..activateTerrainNode('terrain.test.bridge');
+      expect(
+        state.unlockedTraversalAbilities,
+        containsAll(CampaignTraversalAbility.values),
+      );
+      expect(state.activatedTerrainNodeIds, contains('terrain.test.bridge'));
     });
 
     test('optimizer route unlocks after all three core signatures', () {
@@ -119,34 +178,64 @@ void main() {
     test('weapon-specific routes never leak to another loadout', () {
       final graph = CampaignWorldGraph.standard();
       final state = CampaignExplorationState();
-      final swordRoute = graph.connectionBetween(
-        CampaignNodeId.damageAssembly,
-        CampaignNodeId.damageDashCache,
-      );
-      final gauntletRoute = graph.connectionBetween(
-        CampaignNodeId.damageAssembly,
-        CampaignNodeId.damageUpperArchive,
-      );
-      final gunRoute = graph.connectionBetween(
-        CampaignNodeId.damageAssembly,
-        CampaignNodeId.damageTurretControl,
-      );
+      const routes = <(CampaignNodeId, CampaignNodeId, PlayerWeapon)>[
+        (
+          CampaignNodeId.damageAssembly,
+          CampaignNodeId.damageDashCache,
+          PlayerWeapon.sword,
+        ),
+        (
+          CampaignNodeId.damageAssembly,
+          CampaignNodeId.damageUpperArchive,
+          PlayerWeapon.gauntlet,
+        ),
+        (
+          CampaignNodeId.damageAssembly,
+          CampaignNodeId.damageTurretControl,
+          PlayerWeapon.gun,
+        ),
+        (
+          CampaignNodeId.temporalFracture,
+          CampaignNodeId.temporalDashRift,
+          PlayerWeapon.sword,
+        ),
+        (
+          CampaignNodeId.temporalFracture,
+          CampaignNodeId.temporalUpperLoop,
+          PlayerWeapon.gauntlet,
+        ),
+        (
+          CampaignNodeId.temporalFracture,
+          CampaignNodeId.temporalRelayControl,
+          PlayerWeapon.gun,
+        ),
+        (
+          CampaignNodeId.collisionFracture,
+          CampaignNodeId.collisionVectorCache,
+          PlayerWeapon.sword,
+        ),
+        (
+          CampaignNodeId.collisionFracture,
+          CampaignNodeId.collisionUpperMatrix,
+          PlayerWeapon.gauntlet,
+        ),
+        (
+          CampaignNodeId.collisionFracture,
+          CampaignNodeId.collisionPrismControl,
+          PlayerWeapon.gun,
+        ),
+      ];
 
-      expect(state.canTraverse(swordRoute, weapon: PlayerWeapon.sword), isTrue);
-      expect(
-        state.canTraverse(swordRoute, weapon: PlayerWeapon.gauntlet),
-        isFalse,
-      );
-      expect(
-        state.canTraverse(gauntletRoute, weapon: PlayerWeapon.gauntlet),
-        isTrue,
-      );
-      expect(
-        state.canTraverse(gauntletRoute, weapon: PlayerWeapon.gun),
-        isFalse,
-      );
-      expect(state.canTraverse(gunRoute, weapon: PlayerWeapon.gun), isTrue);
-      expect(state.canTraverse(gunRoute, weapon: PlayerWeapon.sword), isFalse);
+      for (final route in routes) {
+        final connection = graph.connectionBetween(route.$1, route.$2);
+        for (final weapon in PlayerWeapon.values) {
+          expect(
+            state.canTraverse(connection, weapon: weapon),
+            weapon == route.$3,
+            reason: '${route.$2} leaked to ${weapon.name}',
+          );
+        }
+      }
     });
   });
 

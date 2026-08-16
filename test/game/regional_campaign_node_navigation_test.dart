@@ -8,6 +8,9 @@ import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/boss/campaign_chapter_boss_component.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
+import 'package:patch_world/game/components/environment/campaign_service_components.dart';
+import 'package:patch_world/game/components/environment/platform_surface_component.dart';
+import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/components/presentation/boss_arena_presentation_component.dart';
 import 'package:patch_world/game/core/run_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -53,6 +56,180 @@ void main() {
     }
   });
 
+  test(
+    'Temporal Hall exploration rooms use authored large-world contracts',
+    () {
+      final game = PatchWorldGame(initialRoom: RoomId.bootSector);
+      const expectations =
+          <(CampaignNodeId, String, List<PlatformerEnemyArchetype>)>[
+            (
+              CampaignNodeId.temporalAscent,
+              'assets/images/rooms/temporal-ascent-v1.png',
+              <PlatformerEnemyArchetype>[
+                PlatformerEnemyArchetype.tickRunner,
+                PlatformerEnemyArchetype.echoBat,
+                PlatformerEnemyArchetype.delaySniper,
+                PlatformerEnemyArchetype.rewindSkater,
+              ],
+            ),
+            (
+              CampaignNodeId.temporalFracture,
+              'assets/images/rooms/temporal-fracture-v1.png',
+              <PlatformerEnemyArchetype>[
+                PlatformerEnemyArchetype.delaySniper,
+                PlatformerEnemyArchetype.tickRunner,
+                PlatformerEnemyArchetype.echoBat,
+                PlatformerEnemyArchetype.rewindSkater,
+              ],
+            ),
+            (
+              CampaignNodeId.temporalPendulum,
+              'assets/images/rooms/temporal-pendulum-v1.png',
+              <PlatformerEnemyArchetype>[
+                PlatformerEnemyArchetype.rewindSkater,
+                PlatformerEnemyArchetype.echoBat,
+                PlatformerEnemyArchetype.tickRunner,
+                PlatformerEnemyArchetype.delaySniper,
+              ],
+            ),
+          ];
+      for (final expectation in expectations) {
+        final room = RegionalCampaignNodeController(
+          nodeId: expectation.$1,
+          entry: CampaignNodeEntry.west,
+          progress: game.temporalHallProgress,
+        );
+        expect(room.usesExpandedTemporalGeometry, isTrue);
+        expect(room.worldSize.x, 1920);
+        expect(room.worldSize.y, 1080);
+        expect(room.killPlaneY, 1160);
+        expect(room.environmentAsset, expectation.$2);
+        expect(room.horizontalCameraLead, 96);
+        expect(room.horizontalCameraDeadZone, 112);
+        expect(room.verticalCameraDeadZone, 58);
+        expect(room.cameraFollowResponsiveness, 5.2);
+        expect(room.cameraZoomFor(room.playerSpawn), .92);
+        expect(room.backdropAlignedPlatformBounds, isNotEmpty);
+        expect(
+          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top < 300),
+          isTrue,
+          reason: '${expectation.$1.name} needs an upper exploration band',
+        );
+        expect(
+          room.backdropAlignedPlatformBounds.any(
+            (bounds) => bounds.top >= 300 && bounds.top <= 750,
+          ),
+          isTrue,
+          reason: '${expectation.$1.name} needs a middle combat band',
+        );
+        expect(
+          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top >= 900),
+          isTrue,
+          reason: '${expectation.$1.name} needs a lower optional loop',
+        );
+        expect(
+          room.combatEncounterSpecs.map((spec) => spec.$1),
+          orderedEquals(expectation.$3),
+        );
+        final eastEntryRoom = RegionalCampaignNodeController(
+          nodeId: expectation.$1,
+          entry: CampaignNodeEntry.east,
+          progress: game.temporalHallProgress,
+        );
+        expect(
+          _hasStaticUniversalRoute(room, eastEntryRoom.playerSpawn),
+          isTrue,
+          reason:
+              '${expectation.$1.name} collision geometry must connect doors',
+        );
+      }
+    },
+  );
+
+  test(
+    'Collision Archive exploration rooms use authored large-world contracts',
+    () {
+      final game = PatchWorldGame(initialRoom: RoomId.bootSector);
+      const expectations =
+          <(CampaignNodeId, String, List<PlatformerEnemyArchetype>)>[
+            (
+              CampaignNodeId.collisionCompression,
+              'assets/images/rooms/collision-compression-v1.png',
+              <PlatformerEnemyArchetype>[
+                PlatformerEnemyArchetype.vectorRam,
+                PlatformerEnemyArchetype.polarityDrone,
+                PlatformerEnemyArchetype.phaseMimic,
+                PlatformerEnemyArchetype.shardLobber,
+              ],
+            ),
+            (
+              CampaignNodeId.collisionFracture,
+              'assets/images/rooms/collision-fracture-v1.png',
+              <PlatformerEnemyArchetype>[
+                PlatformerEnemyArchetype.phaseMimic,
+                PlatformerEnemyArchetype.vectorRam,
+                PlatformerEnemyArchetype.shardLobber,
+                PlatformerEnemyArchetype.polarityDrone,
+              ],
+            ),
+            (
+              CampaignNodeId.collisionMerge,
+              'assets/images/rooms/collision-merge-v1.png',
+              <PlatformerEnemyArchetype>[
+                PlatformerEnemyArchetype.shardLobber,
+                PlatformerEnemyArchetype.polarityDrone,
+                PlatformerEnemyArchetype.vectorRam,
+                PlatformerEnemyArchetype.phaseMimic,
+              ],
+            ),
+          ];
+      for (final expectation in expectations) {
+        final room = RegionalCampaignNodeController(
+          nodeId: expectation.$1,
+          entry: CampaignNodeEntry.west,
+          progress: game.collisionArchiveProgress,
+        );
+        expect(room.usesExpandedCollisionGeometry, isTrue);
+        expect(room.usesExpandedRegionalGeometry, isTrue);
+        expect(room.worldSize.x, 1920);
+        expect(room.worldSize.y, 1080);
+        expect(room.killPlaneY, 1160);
+        expect(room.environmentAsset, expectation.$2);
+        expect(room.cameraZoomFor(room.playerSpawn), .92);
+        expect(room.backdropAlignedPlatformBounds, isNotEmpty);
+        expect(
+          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top < 300),
+          isTrue,
+        );
+        expect(
+          room.backdropAlignedPlatformBounds.any(
+            (bounds) => bounds.top >= 300 && bounds.top <= 755,
+          ),
+          isTrue,
+        );
+        expect(
+          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top >= 900),
+          isTrue,
+        );
+        expect(
+          room.combatEncounterSpecs.map((spec) => spec.$1),
+          orderedEquals(expectation.$3),
+        );
+        final eastEntryRoom = RegionalCampaignNodeController(
+          nodeId: expectation.$1,
+          entry: CampaignNodeEntry.east,
+          progress: game.collisionArchiveProgress,
+        );
+        expect(
+          _hasStaticUniversalRoute(room, eastEntryRoom.playerSpawn),
+          isTrue,
+          reason:
+              '${expectation.$1.name} collision geometry must connect doors',
+        );
+      }
+    },
+  );
+
   testWidgets('boss core, hub lift, and all-weapon regional traversal work', (
     tester,
   ) async {
@@ -76,12 +253,19 @@ void main() {
       'interaction.enterTemporalHall',
       CampaignNodeId.temporalAscent,
     );
+    _expectMountedExpandedTemporalRoom(
+      game,
+      nodeId: CampaignNodeId.temporalAscent,
+      environmentAsset: 'assets/images/rooms/temporal-ascent-v1.png',
+    );
     await _defeatActiveEncounter(
       tester,
       game,
       expected: const <PlatformerEnemyArchetype>[
         PlatformerEnemyArchetype.tickRunner,
         PlatformerEnemyArchetype.echoBat,
+        PlatformerEnemyArchetype.delaySniper,
+        PlatformerEnemyArchetype.rewindSkater,
       ],
     );
     await _useDoor(
@@ -90,12 +274,19 @@ void main() {
       'interaction.nextRoom',
       CampaignNodeId.temporalFracture,
     );
+    _expectMountedExpandedTemporalRoom(
+      game,
+      nodeId: CampaignNodeId.temporalFracture,
+      environmentAsset: 'assets/images/rooms/temporal-fracture-v1.png',
+    );
     await _defeatActiveEncounter(
       tester,
       game,
       expected: const <PlatformerEnemyArchetype>[
         PlatformerEnemyArchetype.delaySniper,
         PlatformerEnemyArchetype.tickRunner,
+        PlatformerEnemyArchetype.echoBat,
+        PlatformerEnemyArchetype.rewindSkater,
       ],
     );
     await _useDoor(
@@ -104,12 +295,19 @@ void main() {
       'interaction.nextRoom',
       CampaignNodeId.temporalPendulum,
     );
+    _expectMountedExpandedTemporalRoom(
+      game,
+      nodeId: CampaignNodeId.temporalPendulum,
+      environmentAsset: 'assets/images/rooms/temporal-pendulum-v1.png',
+    );
     await _defeatActiveEncounter(
       tester,
       game,
       expected: const <PlatformerEnemyArchetype>[
         PlatformerEnemyArchetype.rewindSkater,
         PlatformerEnemyArchetype.echoBat,
+        PlatformerEnemyArchetype.tickRunner,
+        PlatformerEnemyArchetype.delaySniper,
       ],
     );
     await _useDoor(
@@ -181,12 +379,19 @@ void main() {
       'interaction.enterCollisionArchive',
       CampaignNodeId.collisionCompression,
     );
+    _expectMountedExpandedCollisionRoom(
+      game,
+      nodeId: CampaignNodeId.collisionCompression,
+      environmentAsset: 'assets/images/rooms/collision-compression-v1.png',
+    );
     await _defeatActiveEncounter(
       tester,
       game,
       expected: const <PlatformerEnemyArchetype>[
         PlatformerEnemyArchetype.vectorRam,
         PlatformerEnemyArchetype.polarityDrone,
+        PlatformerEnemyArchetype.phaseMimic,
+        PlatformerEnemyArchetype.shardLobber,
       ],
     );
     await _useDoor(
@@ -195,12 +400,19 @@ void main() {
       'interaction.nextRoom',
       CampaignNodeId.collisionFracture,
     );
+    _expectMountedExpandedCollisionRoom(
+      game,
+      nodeId: CampaignNodeId.collisionFracture,
+      environmentAsset: 'assets/images/rooms/collision-fracture-v1.png',
+    );
     await _defeatActiveEncounter(
       tester,
       game,
       expected: const <PlatformerEnemyArchetype>[
         PlatformerEnemyArchetype.phaseMimic,
         PlatformerEnemyArchetype.vectorRam,
+        PlatformerEnemyArchetype.shardLobber,
+        PlatformerEnemyArchetype.polarityDrone,
       ],
     );
     await _useDoor(
@@ -209,12 +421,19 @@ void main() {
       'interaction.nextRoom',
       CampaignNodeId.collisionMerge,
     );
+    _expectMountedExpandedCollisionRoom(
+      game,
+      nodeId: CampaignNodeId.collisionMerge,
+      environmentAsset: 'assets/images/rooms/collision-merge-v1.png',
+    );
     await _defeatActiveEncounter(
       tester,
       game,
       expected: const <PlatformerEnemyArchetype>[
         PlatformerEnemyArchetype.shardLobber,
         PlatformerEnemyArchetype.polarityDrone,
+        PlatformerEnemyArchetype.vectorRam,
+        PlatformerEnemyArchetype.phaseMimic,
       ],
     );
     await _useDoor(
@@ -324,6 +543,174 @@ void main() {
   });
 }
 
+bool _hasStaticUniversalRoute(
+  RegionalCampaignNodeController westEntryRoom,
+  Vector2 eastSpawn,
+) {
+  final platforms = westEntryRoom.backdropAlignedPlatformBounds
+      .where(
+        (bounds) =>
+            bounds.width >=
+                PlatformerTraversalContract.minimumRequiredLandingWidth &&
+            bounds.width > bounds.height * 2,
+      )
+      .toList(growable: false);
+  Rect? platformAt(Vector2 spawn) {
+    final feetY = spawn.y + 36;
+    for (final bounds in platforms) {
+      if (spawn.x >= bounds.left &&
+          spawn.x <= bounds.right &&
+          (bounds.top - feetY).abs() <= 1) {
+        return bounds;
+      }
+    }
+    return null;
+  }
+
+  final start = platformAt(westEntryRoom.playerSpawn);
+  final goal = platformAt(eastSpawn);
+  if (start == null || goal == null) return false;
+  final visited = <Rect>{start};
+  final frontier = <Rect>[start];
+  while (frontier.isNotEmpty) {
+    final current = frontier.removeAt(0);
+    if (current == goal) return true;
+    for (final candidate in platforms) {
+      if (visited.contains(candidate)) continue;
+      final rise = current.top - candidate.top;
+      if (rise > PlatformerTraversalContract.maximumRequiredRise) continue;
+      if (candidate.top - current.top > 90) continue;
+      final gap = current.right < candidate.left
+          ? candidate.left - current.right
+          : candidate.right < current.left
+          ? current.left - candidate.right
+          : 0.0;
+      if (gap > PlatformerTraversalContract.maximumRequiredGap) continue;
+      visited.add(candidate);
+      frontier.add(candidate);
+    }
+  }
+  return false;
+}
+
+void _expectMountedExpandedTemporalRoom(
+  PatchWorldGame game, {
+  required CampaignNodeId nodeId,
+  required String environmentAsset,
+}) {
+  final room = game.world.activeRoom! as RegionalCampaignNodeController;
+  expect(room.nodeId, nodeId);
+  expect(room.worldSize.x, 1920);
+  expect(room.worldSize.y, 1080);
+  expect(
+    room.children.whereType<RoomBackdropComponent>().single.environmentAsset,
+    environmentAsset,
+  );
+  final invisibleAuthoredSurfaces = room.children
+      .whereType<PlatformSurfaceComponent>()
+      .where((surface) => !surface.renderArtwork)
+      .toList(growable: false);
+  expect(
+    invisibleAuthoredSurfaces.length,
+    room.backdropAlignedPlatformBounds.length,
+  );
+  final rewindPlatforms = room.children
+      .whereType<RewindPlatformComponent>()
+      .toList(growable: false);
+  expect(rewindPlatforms, isNotEmpty);
+  final rewindBounds = rewindPlatforms.first.bounds;
+  expect(
+    room.solidBounds.any(
+      (bounds) =>
+          bounds.left == rewindBounds.left &&
+          bounds.top == rewindBounds.top &&
+          bounds.width == rewindBounds.width,
+    ),
+    isTrue,
+    reason: 'The visible rewind platform must participate in collision.',
+  );
+  switch (nodeId) {
+    case CampaignNodeId.temporalAscent:
+      expect(room.children.whereType<MovingPlatformComponent>(), isNotEmpty);
+      expect(
+        room.children.whereType<CampaignRepairStationComponent>(),
+        hasLength(1),
+      );
+    case CampaignNodeId.temporalFracture:
+      expect(room.children.whereType<BreakablePlatformComponent>(), isNotEmpty);
+    case CampaignNodeId.temporalPendulum:
+      expect(rewindPlatforms, hasLength(1));
+      expect(
+        room.children.whereType<LoadoutEventTerminalComponent>(),
+        hasLength(1),
+      );
+    default:
+      fail('Unexpected expanded Temporal Hall node: $nodeId');
+  }
+}
+
+void _expectMountedExpandedCollisionRoom(
+  PatchWorldGame game, {
+  required CampaignNodeId nodeId,
+  required String environmentAsset,
+}) {
+  final room = game.world.activeRoom! as RegionalCampaignNodeController;
+  expect(room.nodeId, nodeId);
+  expect(room.usesExpandedCollisionGeometry, isTrue);
+  expect(room.worldSize.x, 1920);
+  expect(room.worldSize.y, 1080);
+  expect(
+    room.children.whereType<RoomBackdropComponent>().single.environmentAsset,
+    environmentAsset,
+  );
+  final invisibleAuthoredSurfaces = room.children
+      .whereType<PlatformSurfaceComponent>()
+      .where((surface) => !surface.renderArtwork)
+      .toList(growable: false);
+  expect(
+    invisibleAuthoredSurfaces.length,
+    room.backdropAlignedPlatformBounds.length,
+  );
+  late final PlatformSurfaceComponent stateSurface;
+  switch (nodeId) {
+    case CampaignNodeId.collisionCompression:
+      expect(room.children.whereType<ConveyorPlatformComponent>(), isNotEmpty);
+      expect(
+        room.children.whereType<CampaignRepairStationComponent>(),
+        hasLength(1),
+      );
+      stateSurface = room.children.whereType<MovingPlatformComponent>().first;
+    case CampaignNodeId.collisionFracture:
+      stateSurface = room.children
+          .whereType<BreakablePlatformComponent>()
+          .single;
+    case CampaignNodeId.collisionMerge:
+      final merging = room.children
+          .whereType<MergingPlatformComponent>()
+          .single;
+      merging.update(merging.periodSeconds * .3);
+      expect(merging.isMerged, isTrue);
+      expect(
+        room.children.whereType<LoadoutEventTerminalComponent>(),
+        hasLength(1),
+      );
+      stateSurface = merging;
+    default:
+      fail('Unexpected expanded Collision Archive node: $nodeId');
+  }
+  final stateBounds = stateSurface.bounds;
+  expect(
+    room.solidBounds.any(
+      (bounds) =>
+          bounds.left == stateBounds.left &&
+          bounds.top == stateBounds.top &&
+          bounds.width == stateBounds.width,
+    ),
+    isTrue,
+    reason: 'The visible collision-state platform must own live collision.',
+  );
+}
+
 Future<void> _verifyDamageBranchJunction(
   WidgetTester tester,
   PatchWorldGame game,
@@ -396,7 +783,7 @@ Future<void> _defeatActiveEncounter(
   final enemies = game.world.activeRoom!.children
       .whereType<PlatformerEnemyComponent>()
       .toList(growable: false);
-  expect(enemies, hasLength(2));
+  expect(enemies, hasLength(expected.length));
   expect(enemies.map((enemy) => enemy.archetype), unorderedEquals(expected));
   for (final enemy in enemies) {
     enemy.receiveDamage(99);

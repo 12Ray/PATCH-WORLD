@@ -76,10 +76,12 @@ class PlatformSurfaceComponent extends RectangleComponent
     required super.size,
     this.isBoundary = false,
     this.style = PlatformSurfaceStyle.damage,
+    this.renderArtwork = true,
   }) : super(paint: Paint()..color = style.bodyColor, priority: 2);
 
   final bool isBoundary;
   final PlatformSurfaceStyle style;
+  final bool renderArtwork;
   Image? _foregroundImage;
 
   bool get hasArtV3Foreground => _foregroundImage != null;
@@ -95,7 +97,7 @@ class PlatformSurfaceComponent extends RectangleComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    unawaited(_loadForeground());
+    if (renderArtwork) unawaited(_loadForeground());
   }
 
   Future<void> _loadForeground() async {
@@ -111,7 +113,7 @@ class PlatformSurfaceComponent extends RectangleComponent
 
   @override
   void render(Canvas canvas) {
-    if (isBoundary) return;
+    if (isBoundary || !renderArtwork) return;
     final bounds = size.toRect();
     canvas.drawRect(
       bounds,
@@ -294,6 +296,135 @@ final class MovingPlatformComponent extends PlatformSurfaceComponent {
         Paint()
           ..strokeWidth = 2
           ..color = style.accentColor,
+      );
+    }
+  }
+}
+
+/// A Temporal Hall platform that visibly retraces a multi-point timeline.
+///
+/// Unlike a one-axis moving platform, this component advances through every
+/// authored point and then follows the same path backwards. Rooms keep it in
+/// their solid-surface collection, so the rendered position and collision
+/// position always rewind together.
+final class RewindPlatformComponent extends PlatformSurfaceComponent {
+  RewindPlatformComponent({
+    required List<Vector2> timeline,
+    required super.size,
+    required this.periodSeconds,
+    super.style,
+  }) : assert(timeline.length >= 2),
+       _timeline = timeline
+           .map((point) => point.clone())
+           .toList(growable: false),
+       super(position: timeline.first.clone());
+
+  final List<Vector2> _timeline;
+  final double periodSeconds;
+  double _elapsed = 0;
+
+  @override
+  ArtV3EnvironmentRole get foregroundRole => ArtV3EnvironmentRole.statePlatform;
+
+  @override
+  void update(double dt) {
+    _elapsed += dt;
+    final cycle = (_elapsed / periodSeconds) % 1;
+    final rewindProgress = cycle <= .5 ? cycle * 2 : (1 - cycle) * 2;
+    final segmentProgress = rewindProgress * (_timeline.length - 1);
+    final segment = math.min(_timeline.length - 2, segmentProgress.floor());
+    final local = (segmentProgress - segment).clamp(0.0, 1.0);
+    final eased = local * local * (3 - 2 * local);
+    position.setFrom(
+      _timeline[segment] +
+          (_timeline[segment + 1] - _timeline[segment]) * eased,
+    );
+    super.update(dt);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    final center = Offset(size.x / 2, size.y / 2);
+    final direction = ((_elapsed / periodSeconds) % 1) <= .5 ? 1.0 : -1.0;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = style.secondaryAccent;
+    for (final offset in <double>[-13, 13]) {
+      final x = center.dx + offset;
+      final arrow = Path()
+        ..moveTo(x - 6 * direction, center.dy - 5)
+        ..lineTo(x, center.dy)
+        ..lineTo(x - 6 * direction, center.dy + 5);
+      canvas.drawPath(arrow, paint);
+    }
+    canvas.drawCircle(center, 4, Paint()..color = style.accentColor);
+  }
+}
+
+/// Two Collision Archive fragments that periodically merge into one bridge.
+///
+/// The bridge is intentionally optional: collision becomes solid only while
+/// the halves are visibly locked together, making the state readable without
+/// gating the region's universal route.
+final class MergingPlatformComponent extends PlatformSurfaceComponent {
+  MergingPlatformComponent({
+    required super.position,
+    required super.size,
+    required this.periodSeconds,
+    super.style,
+  });
+
+  final double periodSeconds;
+  double _elapsed = 0;
+
+  double get _cycle => (_elapsed / periodSeconds) % 1;
+  bool get isMerged => _cycle >= .22 && _cycle <= .78;
+
+  @override
+  ArtV3EnvironmentRole get foregroundRole => ArtV3EnvironmentRole.statePlatform;
+
+  @override
+  bool get isSolid => isMerged && super.isSolid;
+
+  @override
+  void update(double dt) {
+    _elapsed += dt;
+    super.update(dt);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final halfWidth = size.x / 2;
+    final openAmount = isMerged
+        ? 0.0
+        : 18 * (1 - math.sin(_cycle * math.pi).abs());
+    final left = Rect.fromLTWH(-openAmount, 0, halfWidth, size.y);
+    final right = Rect.fromLTWH(halfWidth + openAmount, 0, halfWidth, size.y);
+    for (final fragment in <Rect>[left, right]) {
+      canvas.drawRect(
+        fragment,
+        Paint()
+          ..shader = Gradient.linear(
+            fragment.topLeft,
+            fragment.topRight,
+            <Color>[style.accentColor, style.secondaryAccent],
+          ),
+      );
+      canvas.drawRect(
+        fragment.deflate(2),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = style.bodyHighlight,
+      );
+    }
+    if (isMerged) {
+      canvas.drawCircle(
+        Offset(size.x / 2, size.y / 2),
+        5,
+        Paint()..color = const Color(0xFFFFD35A),
       );
     }
   }

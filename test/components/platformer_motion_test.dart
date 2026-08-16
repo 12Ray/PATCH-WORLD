@@ -75,6 +75,17 @@ void main() {
       expect(motion.grounded, isFalse);
     });
 
+    test('wall jump launches upward and away from the contacted wall', () {
+      final motion = PlatformerMotion();
+
+      expect(motion.tryWallJump(awayDirection: -1), isTrue);
+      expect(motion.velocity.x, -245);
+      expect(motion.velocity.y, closeTo(-motion.jumpSpeed * .92, .001));
+
+      motion.land();
+      expect(motion.tryWallJump(awayDirection: 1), isFalse);
+    });
+
     test('run speed multiplier supports gauntlet movement penalty', () {
       final normal = PlatformerMotion();
       final gauntlet = PlatformerMotion();

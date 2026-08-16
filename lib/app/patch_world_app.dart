@@ -15,8 +15,10 @@ import 'package:patch_world/app/overlays/settings_overlay.dart';
 import 'package:patch_world/app/overlays/title_overlay.dart';
 import 'package:patch_world/app/overlays/touch_controls_overlay.dart';
 import 'package:patch_world/app/overlays/weapon_selection_overlay.dart';
+import 'package:patch_world/app/overlays/weapon_build_selection_overlay.dart';
 import 'package:patch_world/app/overlays/survival_upgrade_overlay.dart';
 import 'package:patch_world/app/overlays/survival_result_overlay.dart';
+import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
@@ -39,6 +41,9 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
   static const String _campaignQaWeapon = String.fromEnvironment(
     'CAMPAIGN_QA_WEAPON',
     defaultValue: 'sword',
+  );
+  static const String _campaignQaNode = String.fromEnvironment(
+    'CAMPAIGN_QA_NODE',
   );
   static final double _campaignQaStartX =
       double.tryParse(
@@ -72,6 +77,13 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
           _ => PlayerWeapon.sword,
         };
         await _game.selectStartingWeapon(weapon);
+        final qaNode = switch (_campaignQaNode) {
+          'damageWorkshop' => CampaignNodeId.damageWorkshop,
+          'damageAssembly' => CampaignNodeId.damageAssembly,
+          'damageOverflow' => CampaignNodeId.damageOverflow,
+          _ => null,
+        };
+        if (qaNode != null) await _travelForCampaignQa(qaNode);
         if (_campaignQaStartX >= 0) {
           _game.world.player.position.x = _campaignQaStartX;
         }
@@ -79,6 +91,43 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
           _game.world.player.position.y = _campaignQaStartY;
         }
       });
+    }
+  }
+
+  Future<void> _travelForCampaignQa(CampaignNodeId target) async {
+    final path = switch (target) {
+      CampaignNodeId.damageWorkshop => const <CampaignNodeId>[
+        CampaignNodeId.damageWorkshop,
+      ],
+      CampaignNodeId.damageAssembly => const <CampaignNodeId>[
+        CampaignNodeId.damageWorkshop,
+        CampaignNodeId.damageAssembly,
+      ],
+      CampaignNodeId.damageOverflow => const <CampaignNodeId>[
+        CampaignNodeId.damageWorkshop,
+        CampaignNodeId.damageAssembly,
+        CampaignNodeId.damageOverflow,
+      ],
+      _ => const <CampaignNodeId>[],
+    };
+    if (path.contains(CampaignNodeId.damageAssembly)) {
+      _game.damageLabProgress.clearedEncounterIds.add(0);
+    }
+    if (path.contains(CampaignNodeId.damageOverflow)) {
+      _game.damageLabProgress.clearedEncounterIds.add(1);
+    }
+    for (final node in path) {
+      if (!_game.travelToCampaignNode(node, entry: CampaignNodeEntry.west)) {
+        return;
+      }
+      for (var attempt = 0; attempt < 120; attempt += 1) {
+        await Future<void>.delayed(const Duration(milliseconds: 16));
+        if (_game.world.isReady &&
+            !_game.isRoomTransitionInProgress &&
+            _game.campaignExploration.currentNode == node) {
+          break;
+        }
+      }
     }
   }
 
@@ -161,6 +210,8 @@ final class _PatchWorldAppState extends State<PatchWorldApp> {
                             CreditsOverlay(game: game),
                         OverlayIds.patchSelection: (context, game) =>
                             PatchSelectionOverlay(game: game),
+                        OverlayIds.buildSelection: (context, game) =>
+                            WeaponBuildSelectionOverlay(game: game),
                         OverlayIds.patchApplied: (context, game) =>
                             PatchAppliedOverlay(game: game),
                         OverlayIds.survivalUpgrade: (context, game) =>

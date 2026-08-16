@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/enemies/platformer/platformer_enemy_brain.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 
@@ -36,6 +37,10 @@ void main() {
         verticalDelta: 0,
         healthRatio: .35,
         playerGrounded: true,
+        playerWeapon: PlayerWeapon.sword,
+        nearbyAllies: 0,
+        activeAllyAttackers: 0,
+        formationSlot: 0,
         recentActionIds: <String>[pattern[0].actionId, pattern[1].actionId],
         decisionSeed: 4,
       ),
@@ -46,4 +51,58 @@ void main() {
     ], isNot(contains(selection.decision.actionId)));
     expect(selection.motionFrame, inInclusiveRange(3, 7));
   });
+
+  test('enemy action selection answers each starting weapon differently', () {
+    EnemyBrainSelection select(PlayerWeapon weapon) =>
+        PlatformerEnemyBrain.chooseAction(
+          'patchMite',
+          EnemyCombatContext(
+            distance: 215,
+            verticalDelta: 80,
+            healthRatio: .8,
+            playerGrounded: false,
+            playerWeapon: weapon,
+            nearbyAllies: 0,
+            activeAllyAttackers: 0,
+            formationSlot: 0,
+            recentActionIds: const <String>[],
+            decisionSeed: 0,
+          ),
+        );
+
+    expect(
+      select(PlayerWeapon.sword).decision.actionId,
+      contains('.enhanced.'),
+    );
+    expect(
+      select(PlayerWeapon.gauntlet).decision.actionId,
+      contains('.parryable.'),
+    );
+    expect(select(PlayerWeapon.gun).decision.actionId, contains('.normal.'));
+  });
+
+  test(
+    'a second attacker selects a cover pattern instead of body-stacking',
+    () {
+      EnemyBrainSelection select(int activeAllyAttackers) =>
+          PlatformerEnemyBrain.chooseAction(
+            'patchMite',
+            EnemyCombatContext(
+              distance: 90,
+              verticalDelta: 0,
+              healthRatio: .8,
+              playerGrounded: true,
+              playerWeapon: PlayerWeapon.sword,
+              nearbyAllies: 3,
+              activeAllyAttackers: activeAllyAttackers,
+              formationSlot: 0,
+              recentActionIds: const <String>[],
+              decisionSeed: 0,
+            ),
+          );
+
+      expect(select(0).decision.actionId, 'patchMite.bite');
+      expect(select(1).decision.actionId, contains('.special.'));
+    },
+  );
 }

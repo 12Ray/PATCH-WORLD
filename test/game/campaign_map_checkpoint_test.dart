@@ -8,6 +8,7 @@ import 'package:patch_world/game/components/environment/campaign_checkpoint_comp
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
 import 'package:patch_world/game/components/environment/campaign_map_terminal_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/damage_lab_node_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -109,7 +110,12 @@ void main() {
       game.handlePlayerDefeat(causeId: 'test.checkpoint');
       game.restartDefeatedRoom();
       await _waitForNode(tester, game, CampaignNodeId.damageWorkshop);
-      expect(game.world.player.position.x, closeTo(166, 1));
+      final restartedWorkshop =
+          game.world.activeRoom! as DamageLabNodeController;
+      expect(
+        game.world.player.position.x,
+        closeTo(restartedWorkshop.playerSpawn.x, 1),
+      );
       expect(
         game.campaignExploration.checkpointNodeId,
         CampaignNodeId.damageWorkshop,

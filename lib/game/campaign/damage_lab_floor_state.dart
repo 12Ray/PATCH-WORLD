@@ -7,11 +7,14 @@ final class DamageLabFloorState {
   final Set<int> clearedEncounterIds = <int>{};
   final Set<int> collectedRecordIds = <int>{};
   final Set<String> claimedSecretRewardIds = <String>{};
+  final Set<int> claimedBuildRewardIds = <int>{};
 
   bool bossDefeated = false;
   bool questRewardClaimed = false;
   bool bossRewardClaimed = false;
   bool patchApplied = false;
+  bool repairStationUsed = false;
+  bool loadoutEventResolved = false;
 
   int get clearedEncounterCount => clearedEncounterIds.length;
   int get collectedRecordCount => collectedRecordIds.length;
@@ -30,9 +33,12 @@ final class DamageLabFloorState {
     clearedEncounterIds.clear();
     collectedRecordIds.clear();
     claimedSecretRewardIds.clear();
+    claimedBuildRewardIds.clear();
     bossDefeated = false;
     questRewardClaimed = false;
     bossRewardClaimed = false;
     patchApplied = false;
+    repairStationUsed = false;
+    loadoutEventResolved = false;
   }
 }

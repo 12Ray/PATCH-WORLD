@@ -1,3 +1,5 @@
+import 'package:patch_world/game/combat/player_weapon.dart';
+
 final class EnemyBrainDecision {
   const EnemyBrainDecision(
     this.actionId,
@@ -17,6 +19,10 @@ final class EnemyCombatContext {
     required this.verticalDelta,
     required this.healthRatio,
     required this.playerGrounded,
+    required this.playerWeapon,
+    required this.nearbyAllies,
+    required this.activeAllyAttackers,
+    required this.formationSlot,
     required this.recentActionIds,
     required this.decisionSeed,
   });
@@ -25,6 +31,10 @@ final class EnemyCombatContext {
   final double verticalDelta;
   final double healthRatio;
   final bool playerGrounded;
+  final PlayerWeapon playerWeapon;
+  final int nearbyAllies;
+  final int activeAllyAttackers;
+  final int formationSlot;
   final List<String> recentActionIds;
   final int decisionSeed;
 }
@@ -86,6 +96,18 @@ abstract final class PlatformerEnemyBrain {
         score += context.healthRatio < .55 ? 2.7 : .5;
         if (context.verticalDelta > 70) score += 1.2;
       }
+      score += _weaponResponseScore(
+        actionIndex: index,
+        actionId: action.actionId,
+        weapon: context.playerWeapon,
+      );
+      score += _coordinationScore(
+        actionIndex: index,
+        actionId: action.actionId,
+        nearbyAllies: context.nearbyAllies,
+        activeAllyAttackers: context.activeAllyAttackers,
+      );
+      score += ((context.formationSlot + index) % 3) * .06;
       if (score > bestScore) {
         bestScore = score;
         bestIndex = index;
@@ -95,6 +117,63 @@ abstract final class PlatformerEnemyBrain {
       decision: pattern[bestIndex],
       motionFrame: 3 + bestIndex,
     );
+  }
+
+  static double _weaponResponseScore({
+    required int actionIndex,
+    required String actionId,
+    required PlayerWeapon weapon,
+  }) => switch (weapon) {
+    // Sword players are strongest at a steady melee range. Enemies answer by
+    // buying space or asking for a readable parry instead of body-stacking.
+    PlayerWeapon.sword => switch (actionIndex) {
+      0 => -.4,
+      _ when actionId.contains('.normal.') => -.25,
+      _ when actionId.contains('.enhanced.') => 1.25,
+      _ when actionId.contains('.parryable.') => .5,
+      _ => .65,
+    },
+    // Gauntlet players own the air and can double-jump over flat volleys.
+    // Vertical/parryable patterns make that mobility part of the fight.
+    PlayerWeapon.gauntlet => switch (actionIndex) {
+      0 => .1,
+      _ when actionId.contains('.normal.') => .25,
+      _ when actionId.contains('.enhanced.') => .1,
+      _ when actionId.contains('.parryable.') => 1.45,
+      _ => .45,
+    },
+    // Gun players prefer long, safe lanes. An engager or quick normal pattern
+    // pressures that lane while expensive ranged patterns become less common.
+    PlayerWeapon.gun => switch (actionIndex) {
+      0 => 1.4,
+      _ when actionId.contains('.normal.') => .9,
+      _ when actionId.contains('.enhanced.') => -.65,
+      _ when actionId.contains('.parryable.') => -.15,
+      _ => -.45,
+    },
+  };
+
+  static double _coordinationScore({
+    required int actionIndex,
+    required String actionId,
+    required int nearbyAllies,
+    required int activeAllyAttackers,
+  }) {
+    if (activeAllyAttackers <= 0) {
+      return actionIndex == 0 ? .6 : (actionId.contains('.normal.') ? .3 : 0);
+    }
+    var score = switch (actionIndex) {
+      0 => -2.0,
+      _ when actionId.contains('.normal.') => -.8,
+      _ when actionId.contains('.enhanced.') => 1.0,
+      _ when actionId.contains('.parryable.') => .55,
+      _ => 1.3,
+    };
+    if (nearbyAllies >= 2 &&
+        (actionId.contains('.enhanced.') || actionId.contains('.special.'))) {
+      score += .25;
+    }
+    return score;
   }
 
   static List<String> _additionalCombatMotions(String name) => switch (name) {

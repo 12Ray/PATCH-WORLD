@@ -6,6 +6,10 @@ void main() {
     final state = CampaignFloorState();
     state.clearedEncounterIds.addAll(<int>{0, 1});
     state.collectedRecordIds.addAll(<int>{0, 1, 2});
+    state.claimedSecretRewardIds.add('temporalDashRift');
+    state
+      ..repairStationUsed = true
+      ..loadoutEventResolved = true;
 
     expect(state.resumeCell, 2);
     expect(state.questComplete, isTrue);
@@ -15,5 +19,8 @@ void main() {
     state.reset();
     expect(state.resumeCell, 0);
     expect(state.questComplete, isFalse);
+    expect(state.claimedSecretRewardIds, isEmpty);
+    expect(state.repairStationUsed, isFalse);
+    expect(state.loadoutEventResolved, isFalse);
   });
 }

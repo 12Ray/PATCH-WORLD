@@ -18,8 +18,8 @@ final class HudOverlay extends StatelessWidget {
         child: ValueListenableBuilder<UiSnapshot>(
           valueListenable: game.uiSnapshot,
           builder: (context, snapshot, child) => Container(
-            height: 70,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            height: 58,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: const BoxDecoration(
               color: Color(0xE6111827),
               border: Border(bottom: BorderSide(color: Color(0xFF25304A))),

@@ -86,10 +86,16 @@
   "room.damageTurretControl": "포탑 제어실",
   "room.temporalAscent": "시계장치 상승로",
   "room.temporalFracture": "파손된 시간선",
+  "room.temporalDashRift": "시간 균열",
+  "room.temporalUpperLoop": "상층 루프",
+  "room.temporalRelayControl": "릴레이 제어실",
   "room.temporalPendulum": "되감기 진자실",
   "room.chronoJailer": "CHRONO JAILER",
   "room.collisionCompression": "벡터 압축로",
   "room.collisionFracture": "위상 균열지대",
+  "room.collisionVectorCache": "벡터 캐시",
+  "room.collisionUpperMatrix": "상층 매트릭스",
+  "room.collisionPrismControl": "프리즘 제어실",
   "room.collisionMerge": "극성 융합실",
   "room.kernelChimera": "KERNEL CHIMERA",
   "room.damageLab": "DAMAGE LAB",
@@ -112,9 +118,11 @@
   "objective.temporalHall": "ROOM 2-{room} · 전투방 {cleared}/3 · 시간 파편 {records}/3",
   "objective.temporalHallBoss": "ROOM 2-BOSS · CHRONO JAILER를 격파하세요",
   "objective.temporalHallExit": "보상 획득 후 시간 패치 터미널을 작동하세요",
+  "objective.temporalSecret": "시간 유물을 획득하고 파손된 시간선으로 복귀하세요",
   "objective.collisionArchive": "ROOM 3-{room} · 전투방 {cleared}/3 · 융합 기록 {records}/3",
   "objective.collisionArchiveBoss": "ROOM 3-BOSS · KERNEL CHIMERA를 격파하세요",
   "objective.collisionArchiveExit": "보상 획득 후 충돌 패치 터미널을 작동하세요",
+  "objective.collisionSecret": "충돌 유물을 획득하고 위상 균열지대로 복귀하세요",
   "objective.optimizerDamage": "목표: 공격하여 THE OPTIMIZER를 PERFECT 단계로 만들기",
   "objective.optimizerPerfect": "목표: 터미널(E) 활성화 후 6초 내 펄스 4회 · 안정성 {stability}/150",
   "objective.optimizerOverflow": "CORE OVERFLOW · 엔딩 계산 중",
@@ -343,6 +351,18 @@
   "item.airStack.description": "주먹 최대 체력 +1",
   "item.targetingDaemon.name": "타기팅 데몬",
   "item.targetingDaemon.description": "총 공격 간격 10% 감소",
+  "item.chronalBuffer.name": "크로널 버퍼",
+  "item.chronalBuffer.description": "칼 대시 쿨타임이 추가로 0.5초 감소",
+  "item.echoSpring.name": "에코 스프링",
+  "item.echoSpring.description": "주먹 더블 점프 위력이 82%에서 92%로 증가",
+  "item.predictiveScope.name": "예측 조준경",
+  "item.predictiveScope.description": "총 공격 간격이 추가로 7% 감소",
+  "item.vectorEdge.name": "벡터 엣지",
+  "item.vectorEdge.description": "칼 강공격 콤보 피해 +1",
+  "item.impactLattice.name": "임팩트 래티스",
+  "item.impactLattice.description": "주먹 강공격 콤보 피해 +1",
+  "item.splitChamber.name": "스플릿 챔버",
+  "item.splitChamber.description": "총 레일 사격 피해 +1",
   "boss.overflowWarden.intro": "OVERFLOW WARDEN // LIMIT BREAK",
   "interaction.applyPatch": "패치 적용",
   "interaction.enterDamageLab": "DAMAGE LAB 진입",
@@ -356,10 +376,22 @@
   "interaction.returnAssembly": "ASSEMBLY로 복귀",
   "interaction.openMap": "월드맵",
   "interaction.activateCheckpoint": "체크포인트 동기화",
+  "interaction.terrainPulse": "지형 펄스 활성화",
+  "interaction.repairStation": "무결성 수리",
+  "interaction.resolveEvent": "무기 연동 이벤트 실행",
   "interaction.enterTemporalHall": "TEMPORAL HALL 진입",
   "interaction.enterCollisionArchive": "COLLISION ARCHIVE 진입",
+  "interaction.enterTemporalDashRift": "시간 균열 진입",
+  "interaction.enterTemporalUpperLoop": "상층 루프 진입",
+  "interaction.enterTemporalRelayControl": "릴레이 제어실 진입",
+  "interaction.enterCollisionVectorCache": "벡터 캐시 진입",
+  "interaction.enterCollisionUpperMatrix": "상층 매트릭스 진입",
+  "interaction.enterCollisionPrismControl": "프리즘 제어실 진입",
+  "interaction.returnTemporalFracture": "파손된 시간선으로 복귀",
+  "interaction.returnCollisionFracture": "위상 균열지대로 복귀",
   "interaction.returnOverflowJunction": "OVERFLOW 분기점으로 복귀",
   "interaction.returnHubLift": "BOOT SECTOR 리프트",
+  "interaction.useMaintenanceShortcut": "리프트 지름길",
   "interaction.enterOptimizerCore": "OPTIMIZER CORE 진입",
   "map.title": "PATCH//WORLD 지도",
   "map.discoveredCount": "방문 {visited} · 발견 {revealed}",
@@ -367,6 +399,14 @@
   "map.visited": "방문함",
   "map.revealed": "발견함",
   "map.checkpoint": "체크포인트",
+  "map.locked": "잠긴 통로",
+  "map.abilities": "탐험 능력",
+  "ability.wallJump.name": "벽차기",
+  "ability.wallJump.description": "공중에서 벽을 짚고 반대 방향으로 점프",
+  "ability.airDash.name": "공중 대시",
+  "ability.airDash.description": "무기 특수 행동을 소모한 뒤 공중에서 K 입력",
+  "ability.terrainPulse.name": "지형 펄스",
+  "ability.terrainPulse.description": "펄스 노드 근처에서 L로 선택 경로 복원",
   "common.close": "닫기",
   "quest.timeFragment": "시간 파편"
   ,"quest.mergeLog": "융합 기록"
@@ -389,4 +429,31 @@
   ,"gate.coreProgress": "코어 서명 {current}/{required}"
   ,"boss.optimizer.name": "옵티마이저"
   ,"boss.optimizer.intro": "최종 검증 // 완벽한 세계"
+  ,"buildSelection.title": "전투 빌드 강화"
+  ,"buildSelection.subtitle": "모듈 하나를 선택하세요. 한 계열을 반복하면 3티어, 서로 섞으면 혼합 빌드가 됩니다."
+  ,"buildSelection.mobility": "기동"
+  ,"buildSelection.counter": "반격"
+  ,"buildSelection.finisher": "결정타"
+  ,"buildSelection.tier": "티어 {current} → {next}"
+  ,"buildSelection.select": "선택"
+  ,"buildSelection.confirm": "강화 확정"
+  ,"build.swordDashCircuit.name": "잔상 회로"
+  ,"build.swordDashCircuit.description": "티어마다 대쉬 재사용 시간이 0.3초 감소합니다. 대쉬 후 1.25초 안의 첫 공격 피해가 증가하며 3티어에는 +2가 됩니다."
+  ,"build.swordCounterEdge.name": "반격 칼날"
+  ,"build.swordCounterEdge.description": "패링 반격 피해가 +1 증가합니다. 3티어에는 반격 추가 피해가 +2가 됩니다."
+  ,"build.swordFinisherCore.name": "결정타 코어"
+  ,"build.swordFinisherCore.description": "6번째 콤보 피해가 +1 증가합니다. 2티어에는 4번째 콤보도 강화되고 3티어에는 6번째 콤보가 +2가 됩니다."
+  ,"build.gauntletAirDrive.name": "공중 드라이브"
+  ,"build.gauntletAirDrive.description": "티어마다 더블 점프 힘이 3% 증가하고 공중 공격 피해가 +1 증가합니다. 3티어에는 공중 추가 피해가 +2가 됩니다."
+  ,"build.gauntletGuardMesh.name": "가드 메시"
+  ,"build.gauntletGuardMesh.description": "패링 반격 피해가 +1 증가합니다. 3티어에는 반격 추가 피해가 +2가 됩니다."
+  ,"build.gauntletSeismicCore.name": "지진 코어"
+  ,"build.gauntletSeismicCore.description": "지면 강타 피해가 +1 증가합니다. 2티어에는 강공격 콤보도 강화되고 3티어에는 강타 피해가 +2가 됩니다."
+  ,"build.gunBurstLoader.name": "점사 장전기"
+  ,"build.gunBurstLoader.description": "티어마다 총 공격 간격이 4.5% 감소하여 최대 13.5%까지 빨라집니다."
+  ,"build.gunPhaseMagazine.name": "위상 탄창"
+  ,"build.gunPhaseMagazine.description": "패링 반격 피해가 +1 증가합니다. 2티어에는 3·6번째 콤보도 강화되고 3티어에는 반격 피해가 +2가 됩니다."
+  ,"build.gunRailCore.name": "레일 코어"
+  ,"build.gunRailCore.description": "충전 레일 공격 피해가 +1 증가합니다. 3티어에는 추가 피해가 +2가 됩니다."
+  ,"summary.build": "ROOM 1 빌드"
 }

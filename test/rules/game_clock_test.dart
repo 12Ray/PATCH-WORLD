@@ -35,4 +35,18 @@ void main() {
     );
     expect(clock.realDt, closeTo(1 / 15, 0.00001));
   });
+
+  test('cinematic scale slows simulation without slowing status timers', () {
+    final clock = GameClock();
+    clock.beginFrame(
+      realDt: 0.02,
+      simulationAdvances: true,
+      enemySpeedMultiplier: 1.5,
+      simulationSpeedMultiplier: .25,
+    );
+    expect(clock.realDt, 0.02);
+    expect(clock.playerStatusDt, 0.02);
+    expect(clock.simulationDt, 0.005);
+    expect(clock.enemyDt, 0.0075);
+  });
 }

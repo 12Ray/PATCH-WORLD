@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
-import 'package:flame/text.dart';
 import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
@@ -33,6 +32,7 @@ import 'package:patch_world/game/rooms/boss_room_controller.dart';
 import 'package:patch_world/game/rooms/room_three_controller.dart';
 import 'package:patch_world/game/rooms/room_two_controller.dart';
 import 'package:patch_world/game/rooms/regional_campaign_node_controller.dart';
+import 'package:patch_world/game/rooms/regional_secret_controller.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/game/systems/duplicate_fault_system.dart';
@@ -47,7 +47,6 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   bool _isReady = false;
   final List<SurvivalScorePopupComponent> _scorePopups =
       <SurvivalScorePopupComponent>[];
-  TextComponent? _controlsHint;
 
   bool get isReady => _isReady;
   Component? get activeRoom => _activeRoom;
@@ -108,24 +107,9 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     await add(player);
     await loadRoom(game.currentRoom);
     await add(TimeFreezeOverlayComponent());
-    _controlsHint = TextComponent(
-      text: game.localization.text('game.controlsHint'),
-      position: Vector2(48, 66),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          fontFamily: 'PatchWorldCJK',
-          color: Color(0xFF9CB0C9),
-          fontSize: 14,
-          letterSpacing: 1.1,
-        ),
-      ),
-      priority: 40,
-    );
-    await add(_controlsHint!);
   }
 
   void refreshLocalizedText() {
-    _controlsHint?.text = game.localization.text('game.controlsHint');
     final room = _activeRoom;
     if (room == null) return;
     for (final enemy in room.children.whereType<PlatformerEnemyComponent>()) {
@@ -178,12 +162,24 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
         entry: entry,
         progress: game.temporalHallProgress,
       ),
+      CampaignNodeId.temporalDashRift ||
+      CampaignNodeId.temporalUpperLoop ||
+      CampaignNodeId.temporalRelayControl => RegionalSecretController(
+        nodeId: nodeId,
+        progress: game.temporalHallProgress,
+      ),
       CampaignNodeId.collisionCompression ||
       CampaignNodeId.collisionFracture ||
       CampaignNodeId.collisionMerge ||
       CampaignNodeId.kernelChimera => RegionalCampaignNodeController(
         nodeId: nodeId,
         entry: entry,
+        progress: game.collisionArchiveProgress,
+      ),
+      CampaignNodeId.collisionVectorCache ||
+      CampaignNodeId.collisionUpperMatrix ||
+      CampaignNodeId.collisionPrismControl => RegionalSecretController(
+        nodeId: nodeId,
         progress: game.collisionArchiveProgress,
       ),
       CampaignNodeId.optimizerCore => BossRoomController(),
@@ -216,6 +212,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       DamageLabNodeController controller => controller.playerSpawn,
       DamageLabSecretController controller => controller.playerSpawn,
       RegionalCampaignNodeController controller => controller.playerSpawn,
+      RegionalSecretController controller => controller.playerSpawn,
       RoomOneController controller => controller.playerSpawn,
       RoomTwoController controller => controller.playerSpawn,
       RoomThreeController controller => controller.playerSpawn,
@@ -240,6 +237,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       RegionalCampaignNodeController controller => controller.tryInteract(
         player,
       ),
+      RegionalSecretController controller => controller.tryInteract(player),
       RoomOneController controller => controller.tryInteract(player),
       RoomTwoController controller => controller.tryInteract(player),
       RoomThreeController controller => controller.tryInteract(player),
