@@ -107,7 +107,10 @@ Future<void> waitForArtV3(
   WidgetTester tester,
   bool Function() predicate,
 ) async {
-  for (var attempt = 0; attempt < 60; attempt += 1) {
+  // GitHub's shared Linux runners decode the full campaign image cache much
+  // more slowly than a local desktop. Keep polling the real readiness state
+  // instead of failing on the old ~1.5 second wall-clock budget.
+  for (var attempt = 0; attempt < 240; attempt += 1) {
     await tester.pump(const Duration(milliseconds: 50));
     if (predicate()) return;
     await tester.runAsync(
