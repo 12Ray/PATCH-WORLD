@@ -118,21 +118,27 @@ final class OptimizerFragmentComponent extends CircleComponent
     if (_attackIndex.isEven) {
       final player = game.world.player.position;
       for (var index = -1; index <= 1; index += 1) {
-        await parent?.add(
+        final host = parent;
+        if (host == null) break;
+        await game.world.tryAddCombatEffect(
           PredictionStrikeComponent(
             position: player + Vector2(index * 58.0, index.isEven ? 44 : 0),
             warningSeconds: 0.62 + index.abs() * 0.08,
           ),
+          host: host,
         );
       }
       return;
     }
-    await parent?.add(
+    final host = parent;
+    if (host == null) return;
+    await game.world.tryAddCombatEffect(
       OptimizerVolleyTelegraphComponent(
         position: position.clone(),
         laneCount: 10,
         onResolved: () => unawaited(_spawnVolley()),
       ),
+      host: host,
     );
   }
 

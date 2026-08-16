@@ -1,7 +1,10 @@
 import 'dart:math' as math;
 
+import 'package:patch_world/game/combat/player_weapon.dart';
+import 'package:patch_world/game/survival/survival_balance.dart';
 import 'package:patch_world/game/survival/survival_playtest_telemetry.dart';
 import 'package:patch_world/game/survival/survival_patch_fusions.dart';
+import 'package:patch_world/game/survival/survival_phase_eleven.dart';
 
 enum PatchWorldMode { campaign, survival }
 
@@ -13,6 +16,9 @@ final class SurvivalRunState {
   final Map<String, int> _patchTiers = <String, int>{};
   final List<double> _killTimes = <double>[];
   final List<int> _pendingUpgradeLevels = <int>[];
+  final Map<String, int> _damageByCause = <String, int>{};
+  final Set<String> _visitedRegionIds = <String>{};
+  final Set<String> _completedRegionEventIds = <String>{};
   double elapsedSeconds = 0;
   int kills = 0;
   int eliteKills = 0;
@@ -31,6 +37,14 @@ final class SurvivalRunState {
   int perfectDodges = 0;
   int houndBreaks = 0;
   int phaseExecutions = 0;
+  int damageTaken = 0;
+  int regionEventsStarted = 0;
+  int regionEventsCompleted = 0;
+  int regionEventsFailed = 0;
+  int survivalBossesDefeated = 0;
+  int survivalItemsAcquired = 0;
+  int survivalItemSynergiesUnlocked = 0;
+  bool finalBossDefeated = false;
   String? firstPatchId;
   double turboOverclockRemaining = 0;
   double frameOverclockRemaining = 0;
@@ -39,6 +53,13 @@ final class SurvivalRunState {
   int reroutesRemaining = 1;
 
   Map<String, int> get patchTiers => Map<String, int>.unmodifiable(_patchTiers);
+  Map<String, int> get damageByCause =>
+      Map<String, int>.unmodifiable(_damageByCause);
+  Set<String> get visitedRegionIds =>
+      Set<String>.unmodifiable(_visitedRegionIds);
+  Set<String> get completedRegionEventIds =>
+      Set<String>.unmodifiable(_completedRegionEventIds);
+  int get visitedRegionCount => _visitedRegionIds.length;
 
   int patchTier(String patchId) => _patchTiers[patchId] ?? 0;
 
@@ -159,8 +180,17 @@ final class SurvivalRunState {
     return leveledUp;
   }
 
-  void recordHit() {
+  void recordHit({String causeId = 'unknown', int amount = 1}) {
     telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.hit);
+    final safeDamage = math.max(0, amount);
+    damageTaken += safeDamage;
+    if (safeDamage > 0) {
+      _damageByCause.update(
+        causeId,
+        (current) => current + safeDamage,
+        ifAbsent: () => safeDamage,
+      );
+    }
     combo = combo ~/ 2;
     comboRemaining = combo == 0 ? 0 : comboWindowForCombo(combo);
   }
@@ -202,6 +232,64 @@ final class SurvivalRunState {
   }
 
   void recordHotCacheExpired() => hotCachesExpired += 1;
+
+  bool recordRegionVisited(SurvivalNexusRegion region) {
+    if (!_visitedRegionIds.add(region.id)) return false;
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.regionVisited);
+    return true;
+  }
+
+  void recordRegionEventStarted(SurvivalRegionEventKind kind) {
+    regionEventsStarted += 1;
+    telemetry.record(
+      elapsedSeconds,
+      SurvivalMeaningfulEvent.regionEventStarted,
+    );
+  }
+
+  int recordRegionEventCompleted(SurvivalRegionEventKind kind) {
+    regionEventsCompleted += 1;
+    _completedRegionEventIds.add(kind.id);
+    final reward = 700 * flowMultiplier;
+    bonusScore += reward;
+    telemetry.record(
+      elapsedSeconds,
+      SurvivalMeaningfulEvent.regionEventCompleted,
+    );
+    return reward;
+  }
+
+  void recordRegionEventFailed(SurvivalRegionEventKind kind) {
+    regionEventsFailed += 1;
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.regionEventFailed);
+  }
+
+  void recordSurvivalBossIntro() {
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.bossIntro);
+  }
+
+  void recordSurvivalBossPhaseChanged() {
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.bossPhaseChanged);
+  }
+
+  void recordSurvivalBossDefeated({required bool finalBoss}) {
+    survivalBossesDefeated += 1;
+    finalBossDefeated = finalBossDefeated || finalBoss;
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.bossDefeated);
+  }
+
+  void recordSurvivalItemAcquired({required int newSynergies}) {
+    survivalItemsAcquired += 1;
+    telemetry.record(elapsedSeconds, SurvivalMeaningfulEvent.itemAcquired);
+    if (newSynergies <= 0) return;
+    survivalItemSynergiesUnlocked += newSynergies;
+    for (var index = 0; index < newSynergies; index += 1) {
+      telemetry.record(
+        elapsedSeconds,
+        SurvivalMeaningfulEvent.itemSynergyUnlocked,
+      );
+    }
+  }
 
   int recordPerfectDodge() {
     perfectDodges += 1;
@@ -257,6 +345,14 @@ final class SurvivalRunState {
     perfectDodges = 0;
     houndBreaks = 0;
     phaseExecutions = 0;
+    damageTaken = 0;
+    regionEventsStarted = 0;
+    regionEventsCompleted = 0;
+    regionEventsFailed = 0;
+    survivalBossesDefeated = 0;
+    survivalItemsAcquired = 0;
+    survivalItemSynergiesUnlocked = 0;
+    finalBossDefeated = false;
     firstPatchId = null;
     turboOverclockRemaining = 0;
     frameOverclockRemaining = 0;
@@ -266,6 +362,9 @@ final class SurvivalRunState {
     _patchTiers.clear();
     _killTimes.clear();
     _pendingUpgradeLevels.clear();
+    _damageByCause.clear();
+    _visitedRegionIds.clear();
+    _completedRegionEventIds.clear();
     telemetry.reset();
   }
 }
@@ -291,12 +390,31 @@ final class SurvivalResultSnapshot {
     required this.meaningfulEventCount,
     required this.longestQuietSeconds,
     required this.eventsPerMinute,
+    this.selectedWeapon = PlayerWeapon.sword,
+    this.weaponBuildTiers = const <String, int>{},
+    this.deathCauseId = 'unknown',
+    this.damageTaken = 0,
+    this.damageByCause = const <String, int>{},
+    this.completedWeaponBuilds = 0,
+    this.visitedRegionCount = 0,
+    this.regionEventsStarted = 0,
+    this.regionEventsCompleted = 0,
+    this.regionEventsFailed = 0,
+    this.survivalBossesDefeated = 0,
+    this.finalBossDefeated = false,
+    this.itemIds = const <String>[],
+    this.itemSynergyTiers = const <String, int>{},
   });
 
   factory SurvivalResultSnapshot.fromRun(
     SurvivalRunState run, {
     required bool isBestScore,
     required bool isBestTime,
+    PlayerWeapon selectedWeapon = PlayerWeapon.sword,
+    Map<String, int> weaponBuildTiers = const <String, int>{},
+    List<String> itemIds = const <String>[],
+    Map<String, int> itemSynergyTiers = const <String, int>{},
+    String deathCauseId = 'unknown',
   }) {
     final pacing = run.telemetry.snapshot(run.elapsedSeconds);
     return SurvivalResultSnapshot(
@@ -319,6 +437,22 @@ final class SurvivalResultSnapshot {
       meaningfulEventCount: pacing.meaningfulEventCount,
       longestQuietSeconds: pacing.longestQuietSeconds,
       eventsPerMinute: pacing.eventsPerMinute,
+      selectedWeapon: selectedWeapon,
+      weaponBuildTiers: Map<String, int>.unmodifiable(weaponBuildTiers),
+      deathCauseId: deathCauseId,
+      damageTaken: run.damageTaken,
+      damageByCause: Map<String, int>.unmodifiable(run.damageByCause),
+      completedWeaponBuilds: weaponBuildTiers.values
+          .where((tier) => tier >= 3)
+          .length,
+      visitedRegionCount: run.visitedRegionCount,
+      regionEventsStarted: run.regionEventsStarted,
+      regionEventsCompleted: run.regionEventsCompleted,
+      regionEventsFailed: run.regionEventsFailed,
+      survivalBossesDefeated: run.survivalBossesDefeated,
+      finalBossDefeated: run.finalBossDefeated,
+      itemIds: List<String>.unmodifiable(itemIds),
+      itemSynergyTiers: Map<String, int>.unmodifiable(itemSynergyTiers),
     );
   }
 
@@ -341,8 +475,35 @@ final class SurvivalResultSnapshot {
   final int meaningfulEventCount;
   final double longestQuietSeconds;
   final double eventsPerMinute;
+  final PlayerWeapon selectedWeapon;
+  final Map<String, int> weaponBuildTiers;
+  final String deathCauseId;
+  final int damageTaken;
+  final Map<String, int> damageByCause;
+  final int completedWeaponBuilds;
+  final int visitedRegionCount;
+  final int regionEventsStarted;
+  final int regionEventsCompleted;
+  final int regionEventsFailed;
+  final int survivalBossesDefeated;
+  final bool finalBossDefeated;
+  final List<String> itemIds;
+  final Map<String, int> itemSynergyTiers;
 
   bool get hasPacingGap => longestQuietSeconds > 20;
+  SurvivalDifficultyStage get difficultyStage =>
+      SurvivalBalanceCurve.stageForSecond(elapsedSeconds.floor());
+  String? get topDamageCauseId {
+    if (damageByCause.isEmpty) return null;
+    final causes = damageByCause.keys.toList()..sort();
+    return causes.reduce(
+      (best, candidate) =>
+          damageByCause[candidate]! > damageByCause[best]! ? candidate : best,
+    );
+  }
+
+  double get weaponBuildCompletionRate =>
+      (completedWeaponBuilds / 3).clamp(0, 1).toDouble();
   List<String> get activeFusionIds =>
       SurvivalPatchFusions.activeFor(patchTiers);
 

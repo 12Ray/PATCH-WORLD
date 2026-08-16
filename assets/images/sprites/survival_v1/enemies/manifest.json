@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "framesPerEnemy": 8,
+  "frameRoles": [
+    "idle",
+    "locomotionA",
+    "locomotionB",
+    "movementAccent",
+    "telegraph",
+    "active",
+    "hurtRecovery",
+    "death"
+  ],
+  "enemies": {
+    "riftStalker": {
+      "asset": "rift-stalker.webp",
+      "displaySize": [70, 70],
+      "telegraphSeconds": 0.52,
+      "combatIdentity": "teleporting parryable blink strike"
+    },
+    "arcWarden": {
+      "asset": "arc-warden.webp",
+      "displaySize": [64, 64],
+      "telegraphSeconds": 0.48,
+      "combatIdentity": "orbiting six-direction radial barrage"
+    },
+    "mineLayer": {
+      "asset": "mine-layer.webp",
+      "displaySize": [78, 64],
+      "telegraphSeconds": 0.55,
+      "combatIdentity": "retreating delayed area-denial mine"
+    }
+  }
+}

@@ -38,6 +38,12 @@ void main() {
     expect(find.textContaining('Moving builds Heat'), findsOneWidget);
     expect(find.text('REROUTE x1'), findsOneWidget);
     expect(find.text('PATCH CHAIN // 2 PICKS REMAIN'), findsOneWidget);
+    for (final key in <String>['J', 'K', 'L']) {
+      expect(
+        find.byKey(ValueKey<String>('choice-shortcut-$key')),
+        findsOneWidget,
+      );
+    }
     expect(find.text('FRAME BURST'), findsNothing);
     await tester.tap(find.byKey(const ValueKey<String>('survival-reroute')));
     await tester.pump();

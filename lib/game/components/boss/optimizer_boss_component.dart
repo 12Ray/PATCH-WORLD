@@ -223,22 +223,28 @@ final class OptimizerBossComponent extends CircleComponent
         null => Vector2.zero(),
       };
       for (var index = 1; index <= 3; index += 1) {
-        await parent?.add(
+        final host = parent;
+        if (host == null) break;
+        await game.world.tryAddCombatEffect(
           PredictionStrikeComponent(
             position: game.world.player.position + direction * (52.0 * index),
             warningSeconds: 0.62 + index * 0.10,
           ),
+          host: host,
         );
       }
       return;
     }
     final count = phase == OptimizerPhase.predict ? 12 : 8;
-    await parent?.add(
+    final host = parent;
+    if (host == null) return;
+    await game.world.tryAddCombatEffect(
       OptimizerVolleyTelegraphComponent(
         position: position.clone(),
         laneCount: count,
         onResolved: () => unawaited(_spawnRadialVolley(count)),
       ),
+      host: host,
     );
   }
 

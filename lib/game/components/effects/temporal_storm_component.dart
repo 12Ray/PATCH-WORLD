@@ -6,12 +6,11 @@ import 'package:patch_world/game/patch_world_game.dart';
 
 final class TemporalStormComponent extends PositionComponent
     with HasGameReference<PatchWorldGame> {
-  TemporalStormComponent()
+  TemporalStormComponent({Vector2? worldSize})
     : super(
-        size: Vector2(
-          PatchWorldGame.logicalWidth,
-          PatchWorldGame.logicalHeight,
-        ),
+        size:
+            worldSize ??
+            Vector2(PatchWorldGame.logicalWidth, PatchWorldGame.logicalHeight),
         priority: 6,
       );
 

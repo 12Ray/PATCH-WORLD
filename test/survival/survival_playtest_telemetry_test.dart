@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/survival/survival_playtest_telemetry.dart';
 
 void main() {
@@ -56,5 +57,27 @@ void main() {
     expect(fiveOfFive.hasSelectionBias, isTrue);
     expect(fourOfFive.topPatchSelectionRate, 0.8);
     expect(fourOfFive.hasSelectionBias, isFalse);
+  });
+
+  test('session summary reports recent weapon selection rate', () {
+    final summary = SurvivalSessionSummary.fromEntries(<SurvivalSessionEntry>[
+      const SurvivalSessionEntry(
+        patchIds: <String>{'patch.a'},
+        weapon: PlayerWeapon.sword,
+      ),
+      const SurvivalSessionEntry(
+        patchIds: <String>{'patch.b'},
+        weapon: PlayerWeapon.gun,
+      ),
+      const SurvivalSessionEntry(
+        patchIds: <String>{'patch.c'},
+        weapon: PlayerWeapon.gun,
+      ),
+    ]);
+
+    expect(summary.runCount, 3);
+    expect(summary.topWeapon, PlayerWeapon.gun);
+    expect(summary.topWeaponSelectionRate, closeTo(2 / 3, .001));
+    expect(summary.hasWeaponSelectionBias, isFalse);
   });
 }

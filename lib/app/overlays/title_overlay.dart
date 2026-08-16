@@ -99,7 +99,7 @@ final class TitleOverlay extends StatelessWidget {
                           width: compact ? 220 : 300,
                           height: compact ? 34 : null,
                           child: OutlinedButton.icon(
-                            onPressed: game.startSurvivalRun,
+                            onPressed: game.openSurvivalWeaponSelection,
                             icon: const Icon(Icons.all_inclusive),
                             label: Text(game.localization.text('ui.survival')),
                           ),

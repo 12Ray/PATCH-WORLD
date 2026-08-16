@@ -1,8 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/survival/wave_director.dart';
 
 void main() {
-  test('director introduces sentinels, elites, and the three-minute boss', () {
+  test('director introduces sentinels and elites without legacy bosses', () {
     final director = SurvivalWaveDirector(seed: 7);
     final opening = director.planForSecond(
       second: 10,
@@ -21,9 +23,10 @@ void main() {
     );
 
     expect(opening.sentinels, 0);
+    expect(opening.crawlers, greaterThanOrEqualTo(4));
     expect(elite.sentinels, greaterThan(0));
     expect(elite.spawnElite, isTrue);
-    expect(boss.spawnComposite, isTrue);
+    expect(boss.spawnComposite, isFalse);
     expect(boss.threatBudget, greaterThan(elite.threatBudget));
   });
 
@@ -48,6 +51,22 @@ void main() {
     },
   );
 
+  test('expanded arena spawns stay in the nearby engagement band', () {
+    final director = SurvivalWaveDirector(seed: 42);
+    final point = director.chooseEngagementSpawnPoint(
+      width: 2880,
+      height: 1620,
+      playerX: 1440,
+      playerY: 810,
+    );
+
+    expect(point.isOutside(2880, 1620), isFalse);
+    final dx = point.x - 1440;
+    final dy = point.y - 810;
+    final distance = math.sqrt(dx * dx + dy * dy);
+    expect(distance, inInclusiveRange(540, 720));
+  });
+
   test('milestones cannot be skipped by a coarse wave interval', () {
     final director = SurvivalWaveDirector();
     final elite = director.milestonesBetween(
@@ -69,31 +88,37 @@ void main() {
 
     expect(elite.spawnElite, isTrue);
     expect(elite.spawnComposite, isFalse);
-    expect(composite.spawnElite, isFalse);
-    expect(composite.spawnComposite, isTrue);
-    expect(storm.activateTemporalStorm, isTrue);
+    expect(composite.spawnElite, isTrue);
+    expect(composite.spawnComposite, isFalse);
+    expect(storm.activateTemporalStorm, isFalse);
     expect(storm.spawnElite, isFalse);
-    expect(optimizer.spawnOptimizerFragment, isTrue);
-    expect(optimizer.spawnElite, isFalse);
+    expect(optimizer.spawnOptimizerFragment, isFalse);
+    expect(optimizer.spawnElite, isTrue);
   });
 
-  test('endless scaling adds a new pressure tier every sixty seconds', () {
-    final director = SurvivalWaveDirector(seed: 9);
-    final tenMinutes = director.planForSecond(
-      second: 600,
-      integrityRatio: 1,
-      recentKillsPerSecond: 1,
-    );
-    final twelveMinutes = director.planForSecond(
-      second: 720,
-      integrityRatio: 1,
-      recentKillsPerSecond: 1,
-    );
+  test(
+    'endless scaling starts after twenty minutes and tiers every minute',
+    () {
+      final director = SurvivalWaveDirector(seed: 9);
+      final twentyMinutes = director.planForSecond(
+        second: 1200,
+        integrityRatio: 1,
+        recentKillsPerSecond: 1,
+      );
+      final twentyTwoMinutes = director.planForSecond(
+        second: 1320,
+        integrityRatio: 1,
+        recentKillsPerSecond: 1,
+      );
 
-    expect(tenMinutes.endlessTier, 1);
-    expect(twelveMinutes.endlessTier, 3);
-    expect(twelveMinutes.threatBudget, greaterThan(tenMinutes.threatBudget));
-  });
+      expect(twentyMinutes.endlessTier, 1);
+      expect(twentyTwoMinutes.endlessTier, 3);
+      expect(
+        twentyTwoMinutes.threatBudget,
+        greaterThan(twentyMinutes.threatBudget),
+      );
+    },
+  );
 
   test('phase hounds join after two minutes without removing all crawlers', () {
     final director = SurvivalWaveDirector(seed: 12);

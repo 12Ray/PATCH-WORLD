@@ -2,7 +2,6 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
-import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
@@ -32,6 +31,7 @@ void main() {
             OverlayIds.hud: (_, _) => const SizedBox.shrink(),
             OverlayIds.touchControls: (_, _) => const SizedBox.shrink(),
             OverlayIds.survivalUpgrade: (_, _) => const SizedBox.shrink(),
+            OverlayIds.survivalWeaponUpgrade: (_, _) => const SizedBox.shrink(),
           },
         ),
       ),
@@ -85,12 +85,16 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(game.patchEffects.motionVentCharged, isTrue);
+    final ventTarget = CrawlerComponent(
+      entityId: 'weapon-vent-target',
+      position: game.world.player.position + Vector2(32, 0),
+      initialHealth: 99,
+      healthMaximum: 99,
+    );
+    await arena.add(ventTarget);
     game.world.player.tryAttack();
-    await tester.pump(const Duration(milliseconds: 16));
-    final ventPulse = game.world.children
-        .whereType<PatchPulseComponent>()
-        .first;
-    expect(ventPulse.damage, 5);
+    await _pumpUntil(tester, () => ventTarget.health < 99);
+    expect(99 - ventTarget.health, 5);
     for (var frame = 0; frame < 4; frame += 1) {
       await tester.pump(const Duration(milliseconds: 50));
     }
@@ -129,6 +133,14 @@ void main() {
     }
     expect(target.health, 2);
   });
+}
+
+Future<void> _pumpUntil(WidgetTester tester, bool Function() condition) async {
+  for (var frame = 0; frame < 60; frame += 1) {
+    await tester.pump(const Duration(milliseconds: 16));
+    if (condition()) return;
+  }
+  throw StateError('Timed out waiting for weapon impact');
 }
 
 Future<void> _waitForSurvival(WidgetTester tester, PatchWorldGame game) async {

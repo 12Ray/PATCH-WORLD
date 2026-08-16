@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/collisions.dart';
@@ -14,7 +15,8 @@ final class PlayerStrikeComponent extends PositionComponent
     this.damage = 1,
     this.activeSeconds = 0.12,
     this.strikeColor = const Color(0x7736E1FF),
-  }) : super(anchor: Anchor.center, priority: 31);
+    double rotation = 0,
+  }) : super(anchor: Anchor.center, priority: 31, angle: rotation);
 
   final String sourceId;
   final int damage;
@@ -38,9 +40,44 @@ final class PlayerStrikeComponent extends PositionComponent
 
   @override
   void update(double dt) {
+    _applyToOverlappingTargets();
     _remaining -= dt;
     if (_remaining <= 0) removeFromParent();
     super.update(dt);
+  }
+
+  void _applyToOverlappingTargets() {
+    if (!isMounted) return;
+    final cosine = math.cos(-angle);
+    final sine = math.sin(-angle);
+    for (final component in game.world.activeCombatTargets) {
+      final target = component as CombatTarget;
+      if (_hitTargets.contains(target)) continue;
+      final delta = component.position - position;
+      final localX = delta.x * cosine - delta.y * sine;
+      final localY = delta.x * sine + delta.y * cosine;
+      if (localX.abs() > size.x / 2 + component.size.x / 2 ||
+          localY.abs() > size.y / 2 + component.size.y / 2) {
+        continue;
+      }
+      _commitTarget(target);
+    }
+  }
+
+  void _commitTarget(CombatTarget target) {
+    if (!_hitTargets.add(target)) return;
+    game.combatSystem.applyPlayerAttack(
+      target,
+      sourceId: sourceId,
+      amount: damage,
+    );
+    final component = target as PositionComponent;
+    game.triggerPlayerWeaponImpactFeedback(
+      sourceId: sourceId,
+      position: component.position,
+      direction: Vector2(math.cos(angle), math.sin(angle)),
+      damage: damage,
+    );
   }
 
   @override
@@ -63,15 +100,7 @@ final class PlayerStrikeComponent extends PositionComponent
   ) {
     if (other is CombatTarget) {
       final target = other as CombatTarget;
-      if (!_hitTargets.add(target)) {
-        super.onCollisionStart(intersectionPoints, other);
-        return;
-      }
-      game.combatSystem.applyPlayerAttack(
-        target,
-        sourceId: sourceId,
-        amount: damage,
-      );
+      _commitTarget(target);
     }
     super.onCollisionStart(intersectionPoints, other);
   }

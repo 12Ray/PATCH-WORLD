@@ -26,12 +26,13 @@ do not raise a limit only to make CI green.
 
 ## Frame-pacing acceptance
 
-The gameplay target is 60 FPS on a 60 Hz display. Test a release or profile
-build at 1920×1080 with browser zoom at 100%, after one warm-up traversal.
+Test a release or profile build at 1920×1080 with browser zoom at 100%, after
+one warm-up traversal. Windows targets 60 FPS responsiveness; Web keeps a
+30 FPS floor on the supported browser path.
 
 - Sample at least 30 seconds in a combat room and 30 seconds in each boss room.
-- The requestAnimationFrame median must be at most 17.5 ms.
-- The 95th percentile must be at most 20 ms.
+- Windows median must be at most 17.5 ms and P95 at most 16.7 ms.
+- Web median must be at most 34 ms and P95 at most 33.4 ms.
 - Frames over 33.4 ms must remain below 1% of samples.
 - Weapon attack animation must keep the same collision box and displayed size
   across idle, anticipation, active, recovery, and locomotion transitions.

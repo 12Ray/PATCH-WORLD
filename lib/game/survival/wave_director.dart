@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:patch_world/game/survival/survival_balance.dart';
+
 final class SurvivalWavePlan {
   const SurvivalWavePlan({
     required this.crawlers,
@@ -55,19 +57,15 @@ final class SurvivalWaveDirector {
   }) {
     final previous = math.max(0, previousSecond);
     final current = math.max(previous, currentSecond);
-    final crossedComposite = current ~/ 180 > previous ~/ 180;
-    final crossedElite = current ~/ 90 > previous ~/ 90;
-    final crossedTemporalStorm = previous < 300 && current >= 300;
-    final crossedOptimizerFragment = previous < 450 && current >= 450;
+    final crossedElite = SurvivalBalanceCurve.crossedEliteBetween(
+      previousSecond: previous,
+      currentSecond: current,
+    );
     return SurvivalMilestonePlan(
-      spawnElite:
-          crossedElite &&
-          !crossedComposite &&
-          !crossedOptimizerFragment &&
-          !crossedTemporalStorm,
-      spawnComposite: crossedComposite && !crossedOptimizerFragment,
-      activateTemporalStorm: crossedTemporalStorm,
-      spawnOptimizerFragment: crossedOptimizerFragment,
+      spawnElite: crossedElite,
+      spawnComposite: false,
+      activateTemporalStorm: false,
+      spawnOptimizerFragment: false,
     );
   }
 
@@ -77,25 +75,22 @@ final class SurvivalWaveDirector {
     required double recentKillsPerSecond,
   }) {
     final safeSecond = math.max(0, second);
-    final endlessTier = safeSecond < 600 ? 0 : 1 + (safeSecond - 600) ~/ 60;
-    final pressure = 2.2 + safeSecond / 22 + endlessTier * 1.8;
+    final profile = SurvivalBalanceCurve.profileForSecond(safeSecond);
+    final endlessTier = profile.endlessTier;
+    final pressure = profile.threatPressure;
     final recoveryFactor = integrityRatio < 0.4 ? 0.72 : 1.0;
     final masteryFactor = recentKillsPerSecond > 1.8 ? 1.18 : 1.0;
     final budget = pressure * recoveryFactor * masteryFactor;
-    final composite = safeSecond > 0 && safeSecond % 180 == 0;
-    final elite = !composite && safeSecond > 0 && safeSecond % 90 == 0;
+    final elite = SurvivalBalanceCurve.crossedEliteBetween(
+      previousSecond: safeSecond - 1,
+      currentSecond: safeSecond,
+    );
 
-    var remaining = composite ? math.max(0, budget - 7) : budget;
-    final phaseHoundLimit = safeSecond < 120
-        ? 0
-        : safeSecond < 300
-        ? 1
-        : math.min(3, 2 + endlessTier ~/ 3);
+    var remaining = budget;
+    final phaseHoundLimit = safeSecond < 120 ? 0 : profile.phaseHoundCap;
     final phaseHounds = math.min(phaseHoundLimit, (remaining / 4).floor());
     remaining -= phaseHounds * 4;
-    final sentinelLimit = safeSecond < 45
-        ? 0
-        : 1 + safeSecond ~/ 150 + endlessTier ~/ 2;
+    final sentinelLimit = safeSecond < 45 ? 0 : profile.sentinelCap;
     final sentinels = math.min(sentinelLimit, (remaining / 3).floor());
     remaining -= sentinels * 3;
     final crawlers = math.max(1, remaining.floor());
@@ -104,7 +99,7 @@ final class SurvivalWaveDirector {
       sentinels: sentinels,
       phaseHounds: phaseHounds,
       spawnElite: elite,
-      spawnComposite: composite,
+      spawnComposite: false,
       threatBudget: budget,
       endlessTier: endlessTier,
     );
@@ -130,6 +125,54 @@ final class SurvivalWaveDirector {
     candidates.sort((a, b) {
       final aDistance = _distanceSquared(a.x, a.y, predictedX, predictedY);
       final bDistance = _distanceSquared(b.x, b.y, predictedX, predictedY);
+      return bDistance.compareTo(aDistance);
+    });
+    return candidates.first;
+  }
+
+  /// Picks an in-world spawn just beyond the normal camera view.
+  ///
+  /// The original edge spawn works for a single-screen arena, but makes an
+  /// expanded Nexus feel empty because enemies spend too long crossing the
+  /// world. This engagement band keeps the warning distance while returning
+  /// enemies to combat quickly.
+  SurvivalSpawnPoint chooseEngagementSpawnPoint({
+    required double width,
+    required double height,
+    required double playerX,
+    required double playerY,
+    double minimumDistance = 540,
+    double maximumDistance = 720,
+    double inset = 72,
+  }) {
+    final safeMinimum = math.max(0, minimumDistance);
+    final safeMaximum = math.max(safeMinimum, maximumDistance);
+    final candidates = <SurvivalSpawnPoint>[];
+    for (var index = 0; index < 16; index += 1) {
+      final angle = _random.nextDouble() * math.pi * 2;
+      final radius =
+          safeMinimum + _random.nextDouble() * (safeMaximum - safeMinimum);
+      candidates.add(
+        SurvivalSpawnPoint(
+          (playerX + math.cos(angle) * radius)
+              .clamp(inset, width - inset)
+              .toDouble(),
+          (playerY + math.sin(angle) * radius)
+              .clamp(inset, height - inset)
+              .toDouble(),
+        ),
+      );
+    }
+    final minimumSquared = safeMinimum * safeMinimum;
+    for (final candidate in candidates) {
+      if (_distanceSquared(candidate.x, candidate.y, playerX, playerY) >=
+          minimumSquared) {
+        return candidate;
+      }
+    }
+    candidates.sort((a, b) {
+      final aDistance = _distanceSquared(a.x, a.y, playerX, playerY);
+      final bDistance = _distanceSquared(b.x, b.y, playerX, playerY);
       return bDistance.compareTo(aDistance);
     });
     return candidates.first;

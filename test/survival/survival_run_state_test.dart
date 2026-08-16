@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
+import 'package:patch_world/game/survival/survival_balance.dart';
 import 'package:patch_world/game/survival/survival_run_state.dart';
 import 'package:patch_world/game/survival/survival_upgrade_request.dart';
 
@@ -358,5 +360,35 @@ void main() {
     expect(state.dataSurgeActive, isFalse);
     expect(state.dataSurgeDamageBonus, 0);
     expect(state.dataSurgeCooldownMultiplier, 1);
+  });
+
+  test('result records death cause, damage sources, and completed builds', () {
+    final run = SurvivalRunState();
+    run.update(500);
+    run
+      ..recordHit(causeId: 'enemy.arc_warden.radial', amount: 2)
+      ..recordHit(causeId: 'hazard.survival.reactorSpill', amount: 1)
+      ..recordHit(causeId: 'enemy.arc_warden.radial', amount: 1);
+
+    final result = SurvivalResultSnapshot.fromRun(
+      run,
+      isBestScore: false,
+      isBestTime: false,
+      selectedWeapon: PlayerWeapon.gun,
+      deathCauseId: 'enemy.arc_warden.radial',
+      weaponBuildTiers: const <String, int>{
+        'survivalBuild.gunRailDriver': 3,
+        'survivalBuild.gunDroneMagazine': 3,
+        'survivalBuild.gunRicochetProtocol': 2,
+      },
+    );
+
+    expect(result.damageTaken, 4);
+    expect(result.damageByCause['enemy.arc_warden.radial'], 3);
+    expect(result.topDamageCauseId, 'enemy.arc_warden.radial');
+    expect(result.deathCauseId, 'enemy.arc_warden.radial');
+    expect(result.completedWeaponBuilds, 2);
+    expect(result.weaponBuildCompletionRate, closeTo(2 / 3, .001));
+    expect(result.difficultyStage, SurvivalDifficultyStage.escalation);
   });
 }

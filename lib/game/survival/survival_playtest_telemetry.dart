@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:patch_world/game/combat/player_weapon.dart';
+
 enum SurvivalMeaningfulEvent {
   kill,
   hit,
@@ -16,6 +18,16 @@ enum SurvivalMeaningfulEvent {
   perfectDodge,
   houndBreak,
   phaseExecution,
+  stageTransition,
+  regionVisited,
+  regionEventStarted,
+  regionEventCompleted,
+  regionEventFailed,
+  bossIntro,
+  bossPhaseChanged,
+  bossDefeated,
+  itemAcquired,
+  itemSynergyUnlocked,
 }
 
 final class SurvivalPacingSnapshot {
@@ -68,6 +80,8 @@ final class SurvivalSessionSummary {
     required this.runCount,
     required this.topPatchId,
     required this.topPatchSelectionRate,
+    this.topWeapon,
+    this.topWeaponSelectionRate = 0,
   });
 
   factory SurvivalSessionSummary.fromPatchRuns(
@@ -103,9 +117,60 @@ final class SurvivalSessionSummary {
     );
   }
 
+  factory SurvivalSessionSummary.fromEntries(
+    Iterable<SurvivalSessionEntry> entries, {
+    int limit = 5,
+  }) {
+    final safeLimit = math.max(1, limit);
+    final allEntries = entries.toList(growable: false);
+    final start = math.max(0, allEntries.length - safeLimit);
+    final selected = allEntries.sublist(start);
+    final patchSummary = SurvivalSessionSummary.fromPatchRuns(
+      selected.map((entry) => entry.patchIds),
+      limit: safeLimit,
+    );
+    final weaponCounts = <PlayerWeapon, int>{};
+    for (final entry in selected) {
+      weaponCounts.update(
+        entry.weapon,
+        (count) => count + 1,
+        ifAbsent: () => 1,
+      );
+    }
+    PlayerWeapon? topWeapon;
+    var topWeaponCount = 0;
+    for (final weapon in PlayerWeapon.values) {
+      final count = weaponCounts[weapon] ?? 0;
+      if (count > topWeaponCount) {
+        topWeapon = weapon;
+        topWeaponCount = count;
+      }
+    }
+    return SurvivalSessionSummary(
+      runCount: selected.length,
+      topPatchId: patchSummary.topPatchId,
+      topPatchSelectionRate: patchSummary.topPatchSelectionRate,
+      topWeapon: topWeapon,
+      topWeaponSelectionRate: selected.isEmpty
+          ? 0
+          : topWeaponCount / selected.length,
+    );
+  }
+
   final int runCount;
   final String? topPatchId;
   final double topPatchSelectionRate;
+  final PlayerWeapon? topWeapon;
+  final double topWeaponSelectionRate;
 
   bool get hasSelectionBias => runCount >= 5 && topPatchSelectionRate > 0.8;
+  bool get hasWeaponSelectionBias =>
+      runCount >= 5 && topWeaponSelectionRate > 0.8;
+}
+
+final class SurvivalSessionEntry {
+  const SurvivalSessionEntry({required this.patchIds, required this.weapon});
+
+  final Set<String> patchIds;
+  final PlayerWeapon weapon;
 }

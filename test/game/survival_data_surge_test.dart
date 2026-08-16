@@ -4,8 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
 import 'package:patch_world/game/components/effects/data_shard_component.dart';
 import 'package:patch_world/game/components/effects/data_surge_ring_component.dart';
-import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
+import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -18,7 +19,7 @@ void main() {
   tearDown(() => SharedPreferencesAsyncPlatform.instance = null);
 
   testWidgets(
-    'six data charge triggers surge, preserves remainder, and buffs pulse',
+    'six data charge triggers surge, preserves remainder, and buffs weapon',
     (tester) async {
       final game = PatchWorldGame();
       await tester.pumpWidget(
@@ -30,6 +31,8 @@ void main() {
               OverlayIds.hud: (_, _) => const SizedBox.shrink(),
               OverlayIds.touchControls: (_, _) => const SizedBox.shrink(),
               OverlayIds.survivalUpgrade: (_, _) => const SizedBox.shrink(),
+              OverlayIds.survivalWeaponUpgrade: (_, _) =>
+                  const SizedBox.shrink(),
             },
           ),
         ),
@@ -63,12 +66,19 @@ void main() {
         isNotEmpty,
       );
 
-      game.world.player.tryAttack();
-      await tester.pump(const Duration(milliseconds: 16));
-      expect(
-        game.world.children.whereType<PatchPulseComponent>().first.damage,
-        2,
+      final arena = game.world.activeRoom! as SurvivalArenaController;
+      final target = CrawlerComponent(
+        entityId: 'data-surge-weapon-target',
+        position: game.world.player.position + Vector2(32, 0),
+        initialHealth: 99,
+        healthMaximum: 99,
       );
+      await arena.add(target);
+      game.world.player.tryAttack();
+      for (var frame = 0; frame < 60 && target.health == 99; frame += 1) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(99 - target.health, 2);
       game.survivalRun.update(2.01);
       expect(game.survivalRun.dataSurgeActive, isFalse);
     },
