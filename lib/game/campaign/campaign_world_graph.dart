@@ -376,14 +376,9 @@ final class CampaignWorldGraph {
         to: CampaignNodeId.chronoJailer,
       ),
       CampaignWorldConnection(
-        from: CampaignNodeId.overflowWarden,
+        from: CampaignNodeId.chronoJailer,
         to: CampaignNodeId.collisionCompression,
-      ),
-      CampaignWorldConnection(
-        from: CampaignNodeId.bootSector,
-        to: CampaignNodeId.collisionCompression,
-        requirement: CampaignRouteRequirement.unlockedShortcut,
-        unlockId: collisionHubAccessId,
+        bidirectional: false,
       ),
       CampaignWorldConnection(
         from: CampaignNodeId.collisionCompression,

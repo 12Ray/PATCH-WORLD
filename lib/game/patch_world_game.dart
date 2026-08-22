@@ -299,8 +299,48 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   bool get weaponSelectionForSurvival => _weaponSelectionForSurvival;
   bool get isRoomTransitionInProgress => _roomTransitionInProgress;
 
-  RoomId get _campaignEntryRoom =>
-      initialRoom == RoomId.bootSector ? RoomId.bootSector : RoomId.damageLab;
+  CampaignNodeId get _campaignStartNode => switch (initialRoom) {
+    RoomId.bootSector => CampaignNodeId.bootSector,
+    RoomId.damageLab => CampaignWorldGraph.damageMainPath.first,
+    RoomId.temporalHall => CampaignWorldGraph.temporalMainPath.first,
+    RoomId.collisionArchive => CampaignWorldGraph.collisionMainPath.first,
+    RoomId.optimizerCore => CampaignNodeId.optimizerCore,
+    _ => CampaignNodeId.bootSector,
+  };
+
+  RoomId _roomIdForCampaignNode(CampaignNodeId nodeId) => switch (nodeId) {
+    CampaignNodeId.bootSector => RoomId.bootSector,
+    CampaignNodeId.damageWorkshop ||
+    CampaignNodeId.damageAssembly ||
+    CampaignNodeId.damageOverflow ||
+    CampaignNodeId.overflowWarden ||
+    CampaignNodeId.damageDashCache ||
+    CampaignNodeId.damageUpperArchive ||
+    CampaignNodeId.damageTurretControl => RoomId.damageLab,
+    CampaignNodeId.temporalAscent ||
+    CampaignNodeId.temporalFracture ||
+    CampaignNodeId.temporalPendulum ||
+    CampaignNodeId.chronoJailer ||
+    CampaignNodeId.temporalDashRift ||
+    CampaignNodeId.temporalUpperLoop ||
+    CampaignNodeId.temporalRelayControl => RoomId.temporalHall,
+    CampaignNodeId.collisionCompression ||
+    CampaignNodeId.collisionFracture ||
+    CampaignNodeId.collisionMerge ||
+    CampaignNodeId.kernelChimera ||
+    CampaignNodeId.collisionVectorCache ||
+    CampaignNodeId.collisionUpperMatrix ||
+    CampaignNodeId.collisionPrismControl => RoomId.collisionArchive,
+    CampaignNodeId.optimizerCore => RoomId.optimizerCore,
+  };
+
+  Future<void> _loadCampaignStartNode() async {
+    currentRoom = _roomIdForCampaignNode(_campaignStartNode);
+    await world.loadCampaignNode(
+      _campaignStartNode,
+      entry: CampaignNodeEntry.west,
+    );
+  }
 
   void setCinematicInputLocked(bool value) {
     if (_cinematicInputLocked == value) return;
@@ -531,7 +571,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
     input.clearAll();
     resumeEngine();
+    await _loadCampaignStartNode();
     syncCampaignExploration();
+    publishUiSnapshot(force: true);
   }
 
   Future<void> _prewarmCampaignArt() async {
@@ -1484,13 +1526,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       return damageLabProgress.bossDefeated;
     }
     if (currentNode == CampaignNodeId.overflowWarden &&
-        (targetNode == CampaignNodeId.temporalAscent ||
-            targetNode == CampaignNodeId.collisionCompression)) {
+        targetNode == CampaignNodeId.temporalAscent) {
       return damageLabProgress.bossDefeated && damageLabProgress.patchApplied;
     }
     if (currentNode == CampaignNodeId.bootSector &&
-        (targetNode == CampaignNodeId.temporalAscent ||
-            targetNode == CampaignNodeId.collisionCompression)) {
+        targetNode == CampaignNodeId.temporalAscent) {
       return damageLabProgress.patchApplied;
     }
     if (currentNode == CampaignNodeId.temporalAscent &&
@@ -1511,6 +1551,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
     if (currentNode == CampaignNodeId.chronoJailer &&
         targetNode == CampaignNodeId.bootSector) {
+      return temporalHallProgress.bossDefeated &&
+          temporalHallProgress.patchApplied;
+    }
+    if (currentNode == CampaignNodeId.chronoJailer &&
+        targetNode == CampaignNodeId.collisionCompression) {
       return temporalHallProgress.bossDefeated &&
           temporalHallProgress.patchApplied;
     }
@@ -1747,7 +1792,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     patchEffects.resetForRoomRestart();
     enemyTempo.resetForRoomRestart();
     ruleEngine.setRules(const <GameRule>[DamageSignInvertedRule()]);
-    currentRoom = _campaignEntryRoom;
+    currentRoom = _roomIdForCampaignNode(_campaignStartNode);
     mode = PatchWorldMode.campaign;
     final weapon = _selectedRunWeapon ?? PlayerWeapon.sword;
     _selectedRunWeapon = weapon;
@@ -1758,7 +1803,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     // Ending pauses Flame. Resume before awaiting component removal/addition,
     // otherwise the previous room can never finish its removal lifecycle.
     resumeEngine();
-    await world.loadRoom(currentRoom);
+    await world.loadCampaignNode(
+      _campaignStartNode,
+      entry: CampaignNodeEntry.west,
+    );
     unawaited(audio.startArchiveBgm(restart: true));
     publishUiSnapshot(force: true);
     resumeEngine();
@@ -1806,12 +1854,15 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       patchEffects.resetForRoomRestart();
       enemyTempo.resetForRoomRestart();
       ruleEngine.setRules(const <GameRule>[DamageSignInvertedRule()]);
-      currentRoom = _campaignEntryRoom;
+      currentRoom = _roomIdForCampaignNode(_campaignStartNode);
       mode = PatchWorldMode.campaign;
       _selectedRunWeapon = null;
       _consecutiveRoomDeaths = 0;
       resumeEngine();
-      await world.loadRoom(currentRoom);
+      await world.loadCampaignNode(
+        _campaignStartNode,
+        entry: CampaignNodeEntry.west,
+      );
       unawaited(audio.startArchiveBgm(restart: true));
       publishUiSnapshot(force: true);
       overlays.add(OverlayIds.title);

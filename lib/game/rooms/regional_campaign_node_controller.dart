@@ -1428,6 +1428,14 @@ final class RegionalCampaignNodeController extends Component
       await _spawnClearedRoomDoors();
     }
     if (isBossRoom && progress.bossDefeated && progress.patchApplied) {
+      if (nodeId == CampaignNodeId.chronoJailer) {
+        await _spawnDoor(
+          target: CampaignNodeId.collisionCompression,
+          position: Vector2(700, _floorY),
+          labelLocalizationKey: 'interaction.enterCollisionArchive',
+          targetEntry: CampaignNodeEntry.west,
+        );
+      }
       await _spawnHubLiftDoor();
     }
   }

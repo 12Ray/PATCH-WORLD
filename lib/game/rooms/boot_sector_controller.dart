@@ -106,18 +106,7 @@ final class BootSectorController extends Component
           entry: CampaignNodeEntry.west,
         ),
       );
-      final collisionDoor = CampaignDoorComponent(
-        position: Vector2(300, 484),
-        labelLocalizationKey: 'interaction.enterCollisionArchive',
-        onInteract: () => game.travelToCampaignNode(
-          CampaignNodeId.collisionCompression,
-          entry: CampaignNodeEntry.west,
-        ),
-      );
-      _regionalDoors.addAll(<CampaignDoorComponent>[
-        temporalDoor,
-        collisionDoor,
-      ]);
+      _regionalDoors.addAll(<CampaignDoorComponent>[temporalDoor]);
       await addAll(_regionalDoors);
     }
     final optimizerGate = CoreSignatureGateComponent(
@@ -147,7 +136,7 @@ final class BootSectorController extends Component
           CampaignRegion.damageLab,
           game.campaignWorld,
         );
-        if (game.damageLabProgress.patchApplied) {
+        if (game.temporalHallProgress.bossDefeated) {
           game.campaignExploration
             ..revealRegion(CampaignRegion.temporalHall, game.campaignWorld)
             ..revealRegion(CampaignRegion.collisionArchive, game.campaignWorld);

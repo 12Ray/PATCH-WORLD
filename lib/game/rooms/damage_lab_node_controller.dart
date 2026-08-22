@@ -873,15 +873,7 @@ final class DamageLabNodeController extends Component
         entry: CampaignNodeEntry.west,
       ),
     );
-    final collisionDoor = CampaignDoorComponent(
-      position: Vector2(430, _floorY),
-      labelLocalizationKey: 'interaction.enterCollisionArchive',
-      onInteract: () => game.travelToCampaignNode(
-        CampaignNodeId.collisionCompression,
-        entry: CampaignNodeEntry.west,
-      ),
-    );
-    _branchDoors.addAll(<CampaignDoorComponent>[temporalDoor, collisionDoor]);
+    _branchDoors.addAll(<CampaignDoorComponent>[temporalDoor]);
     await addAll(_branchDoors);
   }
 
