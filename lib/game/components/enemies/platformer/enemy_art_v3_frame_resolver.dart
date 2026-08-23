@@ -1,5 +1,13 @@
 import 'package:patch_world/game/components/enemies/platformer/enemy_combat_state.dart';
 
+/// Combat Motion v2 owns the four action-specific poses (frames 4-7).
+/// Art v3 remains responsible for locomotion, the shared anticipation pose,
+/// signature attack animation, and recovery animation.
+bool usesCombatMotionAttackFrame({
+  required EnemyCombatState state,
+  required int motionFrame,
+}) => state == EnemyCombatState.attacking && motionFrame >= 4;
+
 int resolveArtV3EnemyFrame({
   required EnemyCombatState state,
   required double visualClock,

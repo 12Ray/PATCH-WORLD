@@ -16,15 +16,18 @@ final class CoreSignatureGateComponent extends PositionComponent
     required super.position,
     required this.acquiredSignatures,
     required this.requiredSignatures,
+    this.routeUnlocked = true,
   }) : assert(acquiredSignatures >= 0),
        assert(acquiredSignatures <= requiredSignatures),
        super(size: Vector2(138, 132), anchor: Anchor.bottomCenter, priority: 5);
 
   final int acquiredSignatures;
   final int requiredSignatures;
+  final bool routeUnlocked;
   double _clock = 0;
 
-  bool get isUnlocked => acquiredSignatures >= requiredSignatures;
+  bool get isUnlocked =>
+      routeUnlocked && acquiredSignatures >= requiredSignatures;
 
   @override
   Future<void> onLoad() async {

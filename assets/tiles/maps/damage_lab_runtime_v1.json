@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 1,
+  "rooms": [
+    {
+      "node": "damageWorkshop",
+      "size": [1920, 1080],
+      "killPlaneY": 1160,
+      "backdropAligned": true,
+      "environmentAsset": "assets/images/rooms/damage-lab-environment-v3.webp",
+      "camera": {
+        "zoom": 0.92,
+        "horizontalLead": 96,
+        "horizontalDeadZone": 112,
+        "verticalDeadZone": 58,
+        "followResponsiveness": 5.2
+      },
+      "spawns": {
+        "west": [310, 474],
+        "east": [1810, 474]
+      },
+      "anchors": {
+        "backDoor": [105, 510],
+        "forwardDoor": [1820, 510],
+        "checkpoint": [330, 510],
+        "qaRecord": [1580, 504],
+        "repairStation": [560, 510],
+        "maintenanceShortcut": [1540, 1015]
+      },
+      "surfaces": [
+        {"id": "workshop.boundary.west", "rect": [0, 0, 24, 1080], "boundary": true, "renderArtwork": false},
+        {"id": "workshop.airlock.west", "rect": [24, 510, 186, 28], "renderArtwork": false},
+        {"id": "workshop.route.west", "rect": [210, 510, 740, 28], "renderArtwork": false},
+        {"id": "workshop.route.dip-a", "rect": [950, 545, 96, 28], "renderArtwork": false},
+        {"id": "workshop.route.dip-b", "rect": [1032, 580, 96, 28], "renderArtwork": false},
+        {"id": "workshop.route.climb-a", "rect": [1128, 545, 96, 28], "renderArtwork": false},
+        {"id": "workshop.route.east", "rect": [1210, 510, 686, 28], "renderArtwork": false},
+        {"id": "workshop.boundary.east", "rect": [1896, 0, 24, 1080], "boundary": true, "renderArtwork": false},
+        {"id": "workshop.upper.entry", "rect": [620, 420, 175, 24], "renderArtwork": false},
+        {"id": "workshop.upper.step-a", "rect": [455, 330, 130, 24], "renderArtwork": false},
+        {"id": "workshop.upper.step-b", "rect": [285, 245, 110, 24], "renderArtwork": false},
+        {"id": "workshop.upper.step-c", "rect": [430, 190, 140, 24], "renderArtwork": false},
+        {"id": "workshop.upper.archive", "rect": [590, 140, 850, 28], "renderArtwork": false},
+        {"id": "workshop.upper.return-a", "rect": [785, 300, 92, 24], "renderArtwork": false},
+        {"id": "workshop.upper.return-b", "rect": [900, 245, 86, 24], "renderArtwork": false},
+        {"id": "workshop.upper.return-c", "rect": [1020, 305, 110, 24], "renderArtwork": false},
+        {"id": "workshop.upper.return-d", "rect": [1150, 360, 110, 24], "renderArtwork": false},
+        {"id": "workshop.upper.east-a", "rect": [1500, 215, 170, 24], "renderArtwork": false},
+        {"id": "workshop.upper.east-b", "rect": [1650, 300, 160, 24], "renderArtwork": false},
+        {"id": "workshop.upper.east-c", "rect": [1730, 385, 166, 24], "renderArtwork": false},
+        {"id": "workshop.upper.east-return", "rect": [1650, 430, 180, 24], "renderArtwork": false},
+        {"id": "workshop.lower.step-a", "rect": [420, 600, 140, 24], "renderArtwork": false},
+        {"id": "workshop.lower.step-b", "rect": [280, 690, 140, 24], "renderArtwork": false},
+        {"id": "workshop.lower.step-c", "rect": [140, 780, 140, 24], "renderArtwork": false},
+        {"id": "workshop.lower.step-d", "rect": [80, 870, 140, 24], "renderArtwork": false},
+        {"id": "workshop.lower.step-e", "rect": [260, 930, 140, 24], "renderArtwork": false},
+        {"id": "workshop.lower.maintenance-west", "rect": [40, 990, 700, 90], "renderArtwork": false},
+        {"id": "workshop.channel.descent-a", "rect": [860, 620, 110, 24], "renderArtwork": false},
+        {"id": "workshop.channel.descent-b", "rect": [780, 650, 160, 24], "renderArtwork": false},
+        {"id": "workshop.channel.descent-c", "rect": [850, 740, 160, 24], "renderArtwork": false},
+        {"id": "workshop.channel.descent-d", "rect": [920, 830, 160, 24], "renderArtwork": false},
+        {"id": "workshop.channel.descent-e", "rect": [980, 930, 150, 24], "renderArtwork": false},
+        {"id": "workshop.channel.island-a", "rect": [1060, 990, 100, 24], "renderArtwork": false},
+        {"id": "workshop.channel.island-b", "rect": [980, 1040, 150, 40], "renderArtwork": false},
+        {"id": "workshop.lower.east-a", "rect": [1420, 600, 170, 24], "renderArtwork": false},
+        {"id": "workshop.lower.east-b", "rect": [1510, 690, 170, 24], "renderArtwork": false},
+        {"id": "workshop.lower.east-c", "rect": [1450, 780, 180, 24], "renderArtwork": false},
+        {"id": "workshop.lower.east-d", "rect": [1330, 870, 190, 24], "renderArtwork": false},
+        {"id": "workshop.lower.east-e", "rect": [1380, 950, 180, 24], "renderArtwork": false},
+        {"id": "workshop.lower.maintenance-east", "rect": [1280, 1015, 616, 65], "renderArtwork": false}
+      ],
+      "traversal": [
+        {"id": "damage.workshop.airlock-entry", "fromSurfaceId": "workshop.airlock.west", "toSurfaceId": "workshop.route.west"},
+        {"id": "damage.workshop.central-dip-a", "fromSurfaceId": "workshop.route.west", "toSurfaceId": "workshop.route.dip-a"},
+        {"id": "damage.workshop.central-dip-b", "fromSurfaceId": "workshop.route.dip-a", "toSurfaceId": "workshop.route.dip-b"},
+        {"id": "damage.workshop.central-climb-a", "fromSurfaceId": "workshop.route.dip-b", "toSurfaceId": "workshop.route.climb-a"},
+        {"id": "damage.workshop.central-climb-b", "fromSurfaceId": "workshop.route.climb-a", "toSurfaceId": "workshop.route.east"}
+      ],
+      "enemies": [
+        {"id": "workshop.patch-mite", "archetype": "patchMite", "position": [760, 474]},
+        {"id": "workshop.checksum-hopper", "archetype": "checksumHopper", "position": [1390, 474]}
+      ],
+      "features": [],
+      "secretDoors": []
+    },
+    {
+      "node": "damageAssembly",
+      "size": [1920, 1080],
+      "killPlaneY": 1160,
+      "backdropAligned": true,
+      "environmentAsset": "assets/images/rooms/damage-lab-maintenance-v1.webp",
+      "camera": {
+        "zoom": 0.92,
+        "horizontalLead": 96,
+        "horizontalDeadZone": 112,
+        "verticalDeadZone": 58,
+        "followResponsiveness": 5.2
+      },
+      "spawns": {
+        "west": [140, 529],
+        "east": [1780, 529]
+      },
+      "anchors": {
+        "backDoor": [105, 565],
+        "forwardDoor": [1815, 565],
+        "checkpoint": [1510, 565],
+        "qaRecord": [980, 784]
+      },
+      "surfaces": [
+        {"id": "assembly.boundary.west", "rect": [0, 0, 24, 1080], "boundary": true, "renderArtwork": false},
+        {"id": "assembly.route.west", "rect": [40, 565, 500, 30], "renderArtwork": false},
+        {"id": "assembly.route.ascent-a", "rect": [500, 490, 180, 24], "renderArtwork": false},
+        {"id": "assembly.route.crown", "rect": [660, 415, 260, 28], "renderArtwork": false},
+        {"id": "assembly.route.descent-a", "rect": [900, 490, 180, 24], "renderArtwork": false},
+        {"id": "assembly.route.east", "rect": [1040, 565, 840, 30], "renderArtwork": false},
+        {"id": "assembly.upper.west", "rect": [40, 290, 520, 28], "renderArtwork": false},
+        {"id": "assembly.upper.step-a", "rect": [470, 410, 150, 24], "renderArtwork": false},
+        {"id": "assembly.upper.step-b", "rect": [620, 335, 140, 24], "renderArtwork": false},
+        {"id": "assembly.upper.step-c", "rect": [770, 270, 150, 24], "renderArtwork": false},
+        {"id": "assembly.upper.archive", "rect": [920, 220, 150, 24], "renderArtwork": false},
+        {"id": "assembly.upper.return-a", "rect": [1070, 270, 150, 24], "renderArtwork": false},
+        {"id": "assembly.upper.return-b", "rect": [1220, 335, 140, 24], "renderArtwork": false},
+        {"id": "assembly.upper.return-c", "rect": [1360, 410, 150, 24], "renderArtwork": false},
+        {"id": "assembly.upper.east", "rect": [1510, 290, 370, 28], "renderArtwork": false},
+        {"id": "assembly.lower.west", "rect": [40, 805, 610, 28], "renderArtwork": false},
+        {"id": "assembly.lower.center", "rect": [820, 790, 320, 28], "renderArtwork": false},
+        {"id": "assembly.lower.step-a", "rect": [650, 875, 150, 24], "renderArtwork": false},
+        {"id": "assembly.lower.step-b", "rect": [800, 945, 170, 24], "renderArtwork": false},
+        {"id": "assembly.lower.floor-center", "rect": [970, 1005, 170, 24], "renderArtwork": false},
+        {"id": "assembly.lower.return-a", "rect": [1140, 945, 170, 24], "renderArtwork": false},
+        {"id": "assembly.lower.return-b", "rect": [1310, 875, 150, 24], "renderArtwork": false},
+        {"id": "assembly.lower.east", "rect": [1460, 805, 420, 28], "renderArtwork": false},
+        {"id": "assembly.floor.west", "rect": [40, 1020, 520, 60], "renderArtwork": false},
+        {"id": "assembly.floor.east", "rect": [1360, 1020, 520, 60], "renderArtwork": false},
+        {"id": "assembly.boundary.east", "rect": [1896, 0, 24, 1080], "boundary": true, "renderArtwork": false}
+      ],
+      "traversal": [
+        {"id": "damage.assembly.ascent-a", "fromSurfaceId": "assembly.route.west", "toSurfaceId": "assembly.route.ascent-a"},
+        {"id": "damage.assembly.ascent-b", "fromSurfaceId": "assembly.route.ascent-a", "toSurfaceId": "assembly.route.crown"},
+        {"id": "damage.assembly.descent-a", "fromSurfaceId": "assembly.route.crown", "toSurfaceId": "assembly.route.descent-a"},
+        {"id": "damage.assembly.descent-b", "fromSurfaceId": "assembly.route.descent-a", "toSurfaceId": "assembly.route.east"}
+      ],
+      "enemies": [
+        {"id": "assembly.patch-mite", "archetype": "patchMite", "position": [350, 529]},
+        {"id": "assembly.pulse-turret", "archetype": "pulseTurret", "position": [500, 529]},
+        {"id": "assembly.checksum-hopper", "archetype": "checksumHopper", "position": [800, 379]},
+        {"id": "assembly.repair-leech", "archetype": "repairLeech", "position": [1500, 529]}
+      ],
+      "features": [
+        {"id": "assembly.jump-pad.west", "kind": "jumpPad", "position": [490, 553]},
+        {"id": "assembly.jump-pad.east", "kind": "jumpPad", "position": [1375, 553]}
+      ],
+      "secretDoors": [
+        {"weapon": "sword", "position": [600, 805]},
+        {"weapon": "gauntlet", "position": [995, 220]},
+        {"weapon": "gun", "position": [1530, 805]}
+      ],
+      "terrainPulse": {
+        "routeId": "terrain.damage-assembly.upper-bypass",
+        "bridge": [1110, 408, 190, 20],
+        "node": [1080, 553]
+      }
+    },
+    {
+      "node": "damageOverflow",
+      "size": [1920, 1080],
+      "killPlaneY": 1160,
+      "backdropAligned": true,
+      "environmentAsset": "assets/images/rooms/damage-lab-hazard-v1.webp",
+      "camera": {
+        "zoom": 0.92,
+        "horizontalLead": 96,
+        "horizontalDeadZone": 112,
+        "verticalDeadZone": 58,
+        "followResponsiveness": 5.2
+      },
+      "spawns": {
+        "west": [140, 614],
+        "east": [1780, 614]
+      },
+      "anchors": {
+        "backDoor": [105, 650],
+        "forwardDoor": [1815, 650],
+        "qaRecord": [1510, 644],
+        "loadoutEvent": [1500, 900],
+        "maintenanceShortcut": [260, 900],
+        "questReward": [1580, 844]
+      },
+      "surfaces": [
+        {"id": "overflow.boundary.west", "rect": [0, 0, 24, 1080], "boundary": true, "renderArtwork": false},
+        {"id": "overflow.route.west", "rect": [40, 650, 500, 30], "renderArtwork": false},
+        {"id": "overflow.route.arena", "rect": [540, 650, 850, 30], "renderArtwork": false},
+        {"id": "overflow.route.east", "rect": [1390, 650, 490, 30], "renderArtwork": false},
+        {"id": "overflow.upper.west", "rect": [40, 205, 650, 28], "renderArtwork": false},
+        {"id": "overflow.upper.step-a", "rect": [240, 545, 170, 24], "renderArtwork": false},
+        {"id": "overflow.upper.step-b", "rect": [430, 470, 160, 24], "renderArtwork": false},
+        {"id": "overflow.upper.step-c", "rect": [610, 395, 150, 24], "renderArtwork": false},
+        {"id": "overflow.upper.step-d", "rect": [780, 320, 150, 24], "renderArtwork": false},
+        {"id": "overflow.upper.step-e", "rect": [950, 245, 170, 24], "renderArtwork": false},
+        {"id": "overflow.upper.east", "rect": [1120, 205, 760, 28], "renderArtwork": false},
+        {"id": "overflow.upper.return-a", "rect": [1300, 395, 170, 24], "renderArtwork": false},
+        {"id": "overflow.upper.return-b", "rect": [1480, 470, 170, 24], "renderArtwork": false},
+        {"id": "overflow.lower.west", "rect": [40, 900, 450, 28], "renderArtwork": false},
+        {"id": "overflow.lower.island-a", "rect": [540, 865, 360, 28], "renderArtwork": false},
+        {"id": "overflow.lower.island-b", "rect": [980, 900, 360, 28], "renderArtwork": false},
+        {"id": "overflow.lower.east", "rect": [1450, 850, 430, 28], "renderArtwork": false},
+        {"id": "overflow.trench.island-a", "rect": [460, 1020, 140, 24], "renderArtwork": false},
+        {"id": "overflow.trench.island-b", "rect": [720, 1020, 140, 24], "renderArtwork": false},
+        {"id": "overflow.trench.island-c", "rect": [980, 1020, 140, 24], "renderArtwork": false},
+        {"id": "overflow.trench.island-d", "rect": [1240, 1020, 140, 24], "renderArtwork": false},
+        {"id": "overflow.boundary.east", "rect": [1896, 0, 24, 1080], "boundary": true, "renderArtwork": false}
+      ],
+      "traversal": [
+        {"id": "damage.overflow.west-laboratory", "fromSurfaceId": "overflow.route.west", "toSurfaceId": "overflow.route.west"},
+        {"id": "damage.overflow.test-arena", "fromSurfaceId": "overflow.route.west", "toSurfaceId": "overflow.route.arena"},
+        {"id": "damage.overflow.preboss-airlock", "fromSurfaceId": "overflow.route.arena", "toSurfaceId": "overflow.route.east"}
+      ],
+      "enemies": [
+        {"id": "overflow.pulse-turret", "archetype": "pulseTurret", "position": [600, 614]},
+        {"id": "overflow.repair-leech", "archetype": "repairLeech", "position": [930, 614]},
+        {"id": "overflow.checksum-hopper", "archetype": "checksumHopper", "position": [1200, 614]},
+        {"id": "overflow.patch-mite", "archetype": "patchMite", "position": [1500, 614]}
+      ],
+      "features": [
+        {"id": "overflow.laser.west", "kind": "pulsingLaser", "position": [860, 390], "size": [12, 260], "sourceId": "hazard.damage-lab.overflow.laser-west", "phaseOffset": 0},
+        {"id": "overflow.laser.center", "kind": "pulsingLaser", "position": [1040, 390], "size": [12, 260], "sourceId": "hazard.damage-lab.overflow.laser-center", "phaseOffset": 0.8},
+        {"id": "overflow.laser.east", "kind": "pulsingLaser", "position": [1220, 390], "size": [12, 260], "sourceId": "hazard.damage-lab.overflow.laser-east", "phaseOffset": 1.6},
+        {"id": "overflow.trench.spikes-west", "kind": "spikeHazard", "position": [600, 1040], "size": [120, 20], "sourceId": "hazard.damage-lab.overflow.trench-west"},
+        {"id": "overflow.trench.spikes-center", "kind": "spikeHazard", "position": [860, 1040], "size": [120, 20], "sourceId": "hazard.damage-lab.overflow.trench-center"},
+        {"id": "overflow.trench.spikes-east", "kind": "spikeHazard", "position": [1120, 1040], "size": [120, 20], "sourceId": "hazard.damage-lab.overflow.trench-east"}
+      ],
+      "secretDoors": []
+    },
+    {
+      "node": "overflowWarden",
+      "size": [960, 540],
+      "killPlaneY": 620,
+      "backdropAligned": false,
+      "camera": {
+        "zoom": 1,
+        "horizontalLead": 0,
+        "horizontalDeadZone": 0,
+        "verticalDeadZone": 0,
+        "followResponsiveness": 1000
+      },
+      "spawns": {
+        "west": [166, 448],
+        "east": [794, 448]
+      },
+      "anchors": {
+        "backDoor": [70, 484],
+        "bossSpawn": [620, 428],
+        "bossReward": [700, 478],
+        "exitTerminal": [850, 478],
+        "regionBranchDoor": [250, 484]
+      },
+      "surfaces": [
+        {"id": "warden.boundary.west", "rect": [0, 0, 24, 540], "boundary": true},
+        {"id": "warden.boundary.east", "rect": [936, 0, 24, 540], "boundary": true},
+        {"id": "warden.arena.floor", "rect": [0, 484, 960, 56]},
+        {"id": "warden.arena.ledge-west", "rect": [150, 396, 160, 20]},
+        {"id": "warden.arena.ledge-east", "rect": [650, 396, 160, 20]}
+      ],
+      "traversal": [
+        {"id": "damage.warden.arena-floor", "fromSurfaceId": "warden.arena.floor", "toSurfaceId": "warden.arena.floor"}
+      ],
+      "enemies": [],
+      "features": [
+        {"id": "warden.seal.west", "kind": "bossSeal", "position": [96, 172], "size": [18, 312]},
+        {"id": "warden.seal.east", "kind": "bossSeal", "position": [846, 172], "size": [18, 312]}
+      ],
+      "secretDoors": []
+    }
+  ]
+}

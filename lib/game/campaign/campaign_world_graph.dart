@@ -51,6 +51,7 @@ enum CampaignRouteRequirement {
   gunRangedSwitch,
   unlockedShortcut,
   allCoreSignatures,
+  optimizerGateReady,
 }
 
 final class CampaignNodeDefinition {
@@ -98,6 +99,7 @@ final class CampaignWorldConnection {
     required PlayerWeapon weapon,
     required Set<String> unlockedShortcutIds,
     required bool hasAllCoreSignatures,
+    bool optimizerGateReady = false,
   }) => switch (requirement) {
     CampaignRouteRequirement.universal => true,
     CampaignRouteRequirement.swordDash => weapon == PlayerWeapon.sword,
@@ -107,6 +109,7 @@ final class CampaignWorldConnection {
     CampaignRouteRequirement.unlockedShortcut =>
       unlockId != null && unlockedShortcutIds.contains(unlockId),
     CampaignRouteRequirement.allCoreSignatures => hasAllCoreSignatures,
+    CampaignRouteRequirement.optimizerGateReady => optimizerGateReady,
   };
 }
 
@@ -378,7 +381,12 @@ final class CampaignWorldGraph {
       CampaignWorldConnection(
         from: CampaignNodeId.chronoJailer,
         to: CampaignNodeId.collisionCompression,
-        bidirectional: false,
+      ),
+      CampaignWorldConnection(
+        from: CampaignNodeId.bootSector,
+        to: CampaignNodeId.collisionCompression,
+        requirement: CampaignRouteRequirement.unlockedShortcut,
+        unlockId: collisionHubAccessId,
       ),
       CampaignWorldConnection(
         from: CampaignNodeId.collisionCompression,
@@ -422,7 +430,7 @@ final class CampaignWorldGraph {
       CampaignWorldConnection(
         from: CampaignNodeId.bootSector,
         to: CampaignNodeId.optimizerCore,
-        requirement: CampaignRouteRequirement.allCoreSignatures,
+        requirement: CampaignRouteRequirement.optimizerGateReady,
       ),
     ],
   );
@@ -440,18 +448,68 @@ final class CampaignWorldGraph {
     CampaignNodeId.damageOverflow,
     CampaignNodeId.overflowWarden,
   ];
+  static const List<CampaignNodeId> damageSubQuestPath = <CampaignNodeId>[
+    CampaignNodeId.damageWorkshop,
+    CampaignNodeId.damageAssembly,
+    CampaignNodeId.damageOverflow,
+  ];
+  static const CampaignNodeId damageLabBossNode = CampaignNodeId.overflowWarden;
   static const List<CampaignNodeId> temporalMainPath = <CampaignNodeId>[
     CampaignNodeId.temporalAscent,
     CampaignNodeId.temporalFracture,
     CampaignNodeId.temporalPendulum,
     CampaignNodeId.chronoJailer,
   ];
+  static const List<CampaignNodeId> temporalSubQuestPath = <CampaignNodeId>[
+    CampaignNodeId.temporalAscent,
+    CampaignNodeId.temporalFracture,
+    CampaignNodeId.temporalPendulum,
+  ];
+  static const CampaignNodeId temporalBossNode = CampaignNodeId.chronoJailer;
   static const List<CampaignNodeId> collisionMainPath = <CampaignNodeId>[
     CampaignNodeId.collisionCompression,
     CampaignNodeId.collisionFracture,
     CampaignNodeId.collisionMerge,
     CampaignNodeId.kernelChimera,
   ];
+  static const List<CampaignNodeId> collisionSubQuestPath = <CampaignNodeId>[
+    CampaignNodeId.collisionCompression,
+    CampaignNodeId.collisionFracture,
+    CampaignNodeId.collisionMerge,
+  ];
+  static const CampaignNodeId collisionBossNode = CampaignNodeId.kernelChimera;
+
+  static const Map<CampaignNodeId, CampaignNodeId> linearNextNode =
+      <CampaignNodeId, CampaignNodeId>{
+        CampaignNodeId.damageWorkshop: CampaignNodeId.damageAssembly,
+        CampaignNodeId.damageAssembly: CampaignNodeId.damageOverflow,
+        CampaignNodeId.damageOverflow: CampaignNodeId.overflowWarden,
+        CampaignNodeId.overflowWarden: CampaignNodeId.temporalAscent,
+        CampaignNodeId.temporalAscent: CampaignNodeId.temporalFracture,
+        CampaignNodeId.temporalFracture: CampaignNodeId.temporalPendulum,
+        CampaignNodeId.temporalPendulum: CampaignNodeId.chronoJailer,
+        CampaignNodeId.chronoJailer: CampaignNodeId.collisionCompression,
+        CampaignNodeId.collisionCompression: CampaignNodeId.collisionFracture,
+        CampaignNodeId.collisionFracture: CampaignNodeId.collisionMerge,
+        CampaignNodeId.collisionMerge: CampaignNodeId.kernelChimera,
+      };
+
+  static bool isLinearChapterTransition(
+    CampaignNodeId from,
+    CampaignNodeId to,
+  ) => linearNextNode[from] == to;
+
+  static bool isChapterBossNode(CampaignNodeId nodeId) =>
+      nodeId == damageLabBossNode ||
+      nodeId == temporalBossNode ||
+      nodeId == collisionBossNode;
+
+  static int chapterIndexForNode(CampaignNodeId nodeId) {
+    if (damageMainPath.contains(nodeId)) return 1;
+    if (temporalMainPath.contains(nodeId)) return 2;
+    if (collisionMainPath.contains(nodeId)) return 3;
+    return 0;
+  }
 
   final Map<CampaignNodeId, CampaignNodeDefinition> nodes;
   final List<CampaignWorldConnection> connections;

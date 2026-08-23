@@ -25,6 +25,7 @@ final class EnemyProjectileComponent extends CircleComponent
     Color? projectileColor,
     this.gravity = 0,
     this.remainingBounces = 0,
+    this.impactImpulse = 0,
     double projectileRadius = 7,
   }) : projectileColor = projectileColor ?? attackTier.color,
        super(
@@ -43,6 +44,7 @@ final class EnemyProjectileComponent extends CircleComponent
   final String? assetSlug;
   final Color projectileColor;
   final double gravity;
+  final double impactImpulse;
   int remainingBounces;
   late double _lifetime = lifetimeSeconds;
   @override
@@ -230,6 +232,9 @@ final class EnemyProjectileComponent extends CircleComponent
       }
       if (!isReflected) {
         other.takeDamage(damage, causeId: sourceId);
+        if (impactImpulse != 0 && velocity.length2 > 0) {
+          other.applyExternalImpulse(velocity.normalized() * impactImpulse);
+        }
         removeFromParent();
       }
     } else if (isReflected && other is CombatTarget) {

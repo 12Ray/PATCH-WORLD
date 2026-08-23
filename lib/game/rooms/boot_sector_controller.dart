@@ -109,10 +109,23 @@ final class BootSectorController extends Component
       _regionalDoors.addAll(<CampaignDoorComponent>[temporalDoor]);
       await addAll(_regionalDoors);
     }
+    if (game.temporalHallProgress.patchApplied) {
+      final collisionDoor = CampaignDoorComponent(
+        position: Vector2(300, 484),
+        labelLocalizationKey: 'interaction.enterCollisionArchive',
+        onInteract: () => game.travelToCampaignNode(
+          CampaignNodeId.collisionCompression,
+          entry: CampaignNodeEntry.west,
+        ),
+      );
+      _regionalDoors.add(collisionDoor);
+      await add(collisionDoor);
+    }
     final optimizerGate = CoreSignatureGateComponent(
       position: Vector2(690, 484),
       acquiredSignatures: game.campaignExploration.coreSignatures.length,
       requiredSignatures: 3,
+      routeUnlocked: game.isOptimizerGateReady,
     );
     _optimizerGate = optimizerGate;
     await add(optimizerGate);
@@ -136,10 +149,17 @@ final class BootSectorController extends Component
           CampaignRegion.damageLab,
           game.campaignWorld,
         );
-        if (game.temporalHallProgress.bossDefeated) {
-          game.campaignExploration
-            ..revealRegion(CampaignRegion.temporalHall, game.campaignWorld)
-            ..revealRegion(CampaignRegion.collisionArchive, game.campaignWorld);
+        if (game.damageLabProgress.patchApplied) {
+          game.campaignExploration.revealRegion(
+            CampaignRegion.temporalHall,
+            game.campaignWorld,
+          );
+        }
+        if (game.temporalHallProgress.patchApplied) {
+          game.campaignExploration.revealRegion(
+            CampaignRegion.collisionArchive,
+            game.campaignWorld,
+          );
         }
         game.openCampaignMap();
       },

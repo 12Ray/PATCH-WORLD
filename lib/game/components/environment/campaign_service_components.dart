@@ -4,10 +4,9 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
-import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/components/presentation/item_discovery_presentation_component.dart';
-import 'package:patch_world/game/items/run_item_state.dart';
+import 'package:patch_world/game/items/campaign_loadout_reward_catalog.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 
 final class CampaignRepairStationComponent extends PositionComponent
@@ -97,13 +96,13 @@ final class LoadoutEventTerminalComponent extends PositionComponent
     with HasGameReference<PatchWorldGame> {
   LoadoutEventTerminalComponent({
     required super.position,
-    required this.rewardFor,
+    required this.eventId,
     required this.onResolved,
     this.resolved = false,
     this.accentColor = const Color(0xFFFFD35A),
   }) : super(size: Vector2(94, 80), anchor: Anchor.bottomCenter, priority: 18);
 
-  final RunItemId Function(PlayerWeapon weapon) rewardFor;
+  final CampaignLoadoutEventId eventId;
   final VoidCallback onResolved;
   final Color accentColor;
   bool resolved;
@@ -113,20 +112,19 @@ final class LoadoutEventTerminalComponent extends PositionComponent
     if (player.position.distanceTo(position) > 94) return false;
     if (resolved) return true;
     resolved = true;
-    final item = rewardFor(player.selectedWeapon);
-    final acquired = game.runItems.acquire(item);
-    if (!acquired) {
-      player.increaseMaximumIntegrity(1);
-    } else {
-      player.restoreIntegrity(1);
-    }
+    final item = CampaignLoadoutRewardCatalog.rewardFor(
+      eventId,
+      player.selectedWeapon,
+    );
+    final result = game.runItems.acquire(item);
+    player.restoreIntegrity(1);
     onResolved();
     final owner = parent;
     if (owner != null) {
       owner.add(
         ItemDiscoveryPresentationComponent(
-          item: item,
-          rewardTier: ItemRewardTier.quest,
+          result: result,
+          rewardTier: ItemRewardTier.loadoutEvent,
         ),
       );
     }

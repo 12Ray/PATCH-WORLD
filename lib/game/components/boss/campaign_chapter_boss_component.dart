@@ -6,10 +6,12 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 import 'package:patch_world/game/combat/attack_tier.dart';
+import 'package:patch_world/game/components/boss/campaign_chapter_boss_pattern_catalog.dart';
 import 'package:patch_world/game/components/effects/enemy_damage_volume_component.dart';
 import 'package:patch_world/game/components/projectiles/enemy_projectile_component.dart';
 import 'package:patch_world/game/core/health_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
 
 enum CampaignChapterBossKind { chronoJailer, kernelChimera }
@@ -65,20 +67,32 @@ final class CampaignChapterBossComponent extends PositionComponent
 
   SpriteComponent? _visual;
   List<Sprite>? _frames;
+  late final CampaignChapterBossPatternSet _patternSet =
+      CampaignChapterBossPatternCatalog.forBossId(kind.name);
+  final CampaignBossAttackCycle _attackCycle = CampaignBossAttackCycle();
   double _clock = 0;
   double _attackCooldown = .9;
-  double _telegraphRemaining = 0;
   double _defeatRemaining = 0;
-  String? _pendingAttack;
   final List<String> _recentAttacks = <String>[];
+  final Set<Component> _spawnedHazards = <Component>{};
+  Vector2? _recordedAttackOrigin;
+  Vector2? _recordedAttackTarget;
+  Vector2? _splitEchoWorld;
+  double? _activeDamageWindowCap;
   int _decisionCursor = 0;
   bool _resolved = false;
+  bool _defeatDispatched = false;
 
   @override
   String get entityId => 'boss.${kind.name}';
   int get health => healthState.current;
   int get maxHealth => healthState.max;
   bool get hasArtV3Visual => _frames?.length == 8;
+  CampaignBossAttackVisualPhase get attackVisualPhase => _attackCycle.phase;
+  String? get visualAttackId => _attackCycle.attack?.id;
+  double get attackVisualSecondsRemaining => _attackCycle.remaining;
+  String get patternFingerprint => _patternSet.fingerprint;
+  int get diagnosticVisualFrameIndex => _resolveVisualFrameIndex();
   bool get isActive => switch (phase) {
     CampaignChapterBossPhase.phaseOne ||
     CampaignChapterBossPhase.phaseTwo ||
@@ -130,6 +144,7 @@ final class CampaignChapterBossComponent extends PositionComponent
       final image = await game.images.load(
         'sprites/art_v3/enemies/${kind.assetSlug}.png',
       );
+      if (isRemoving) return;
       _frames = List<Sprite>.generate(
         8,
         (index) => Sprite(
@@ -201,7 +216,11 @@ final class CampaignChapterBossComponent extends PositionComponent
     _resolved = true;
     phase = CampaignChapterBossPhase.defeated;
     onPhaseChanged?.call(phase);
-    _pendingAttack = null;
+    _attackCycle.reset();
+    _recordedAttackOrigin = null;
+    _recordedAttackTarget = null;
+    _splitEchoWorld = null;
+    _removeSpawnedHazards();
     _defeatRemaining = 1.1;
     game.triggerImpactFeedback();
     game.publishUiSnapshot(force: true);
@@ -209,10 +228,17 @@ final class CampaignChapterBossComponent extends PositionComponent
 
   @override
   void update(double dt) {
-    final enemyDt = isMounted ? game.clock.enemyDt : dt;
+    final sampledEnemyDt = isMounted ? game.clock.enemyDt : dt;
+    final enemyDt = sampledEnemyDt > 0 && sampledEnemyDt.isFinite
+        ? sampledEnemyDt
+        : 0.0;
     _clock += enemyDt;
     if (phase == CampaignChapterBossPhase.defeated) {
-      final presentationDt = isMounted ? game.clock.realDt : dt;
+      final sampledPresentationDt = isMounted ? game.clock.realDt : dt;
+      final presentationDt =
+          sampledPresentationDt > 0 && sampledPresentationDt.isFinite
+          ? sampledPresentationDt
+          : 0.0;
       _defeatRemaining = math.max(0, _defeatRemaining - presentationDt);
       final progress = 1 - _defeatRemaining / 1.1;
       scale.setAll(1 + math.sin(progress * math.pi * 7).abs() * .13);
@@ -227,25 +253,47 @@ final class CampaignChapterBossComponent extends PositionComponent
       super.update(dt);
       return;
     }
-    _attackCooldown = math.max(0, _attackCooldown - enemyDt);
-    _telegraphRemaining = math.max(0, _telegraphRemaining - enemyDt);
-    if (_pendingAttack != null && _telegraphRemaining <= 0) {
-      final attack = _pendingAttack!;
-      _pendingAttack = null;
-      _executeAttack(attack);
-      _attackCooldown = switch (phase) {
-        CampaignChapterBossPhase.phaseThree => .68,
-        CampaignChapterBossPhase.phaseTwo => .88,
-        _ => 1.08,
-      };
-    } else if (_pendingAttack == null && _attackCooldown <= 0) {
-      _telegraph(_chooseAttack());
+    if (enemyDt > 0) {
+      _attackCooldown = math.max(0, _attackCooldown - enemyDt);
+      final advancingAttack = _attackCycle.attack;
+      final events = _attackCycle.advance(enemyDt);
+      if (advancingAttack != null) {
+        final hasLiveExecutionWindow = campaignBossHasLiveExecutionWindow(
+          events,
+          _attackCycle.phase,
+        );
+        for (final event in events) {
+          switch (event) {
+            case CampaignBossAttackCycleEvent.execute:
+              if (hasLiveExecutionWindow) {
+                _activeDamageWindowCap = _attackCycle.remaining;
+                try {
+                  _executeAttack(advancingAttack.id);
+                } finally {
+                  _activeDamageWindowCap = null;
+                }
+              }
+              _attackCooldown = switch (phase) {
+                CampaignChapterBossPhase.phaseThree => .72,
+                CampaignChapterBossPhase.phaseTwo => .92,
+                _ => 1.12,
+              };
+            case CampaignBossAttackCycleEvent.activeEnded:
+              _finishAttackMotion(advancingAttack.id);
+            case CampaignBossAttackCycleEvent.recovered:
+              _clearAttackDiagnostics();
+          }
+        }
+      }
+      if (_attackCycle.isIdle && _attackCooldown <= 0) {
+        _telegraph(_chooseAttack());
+      }
     }
     _syncVisual();
     super.update(dt);
   }
 
-  String _chooseAttack() {
+  CampaignChapterBossAttackSpec _chooseAttack() {
     final distance = game.world.player.position.distanceTo(position);
     final candidates = switch (kind) {
       CampaignChapterBossKind.chronoJailer => <String>[
@@ -271,126 +319,406 @@ final class CampaignChapterBossComponent extends PositionComponent
     _decisionCursor += 1;
     _recentAttacks.insert(0, chosen);
     if (_recentAttacks.length > 3) _recentAttacks.removeLast();
-    return chosen;
+    return _patternSet.byId(chosen);
   }
 
-  void _telegraph(String attack) {
-    _pendingAttack = attack;
-    _telegraphRemaining = switch (attack) {
-      'timeCage' || 'vectorCage' => .78,
-      'rewindCharge' || 'mergeSlam' => .58,
-      _ => .45,
-    };
-    unawaited(game.audio.playEnemyAttack('${kind.name}.telegraph.$attack'));
+  void _telegraph(CampaignChapterBossAttackSpec attack) {
+    if (!_attackCycle.start(attack)) return;
+    _recordedAttackOrigin = position.clone();
+    _recordedAttackTarget = game.world.player.position.clone();
+    _splitEchoWorld = null;
+    unawaited(
+      game.audio.playEnemyAttack('${kind.name}.telegraph.${attack.id}'),
+    );
   }
 
   void _executeAttack(String attack) {
     final owner = parent;
-    if (owner == null) return;
+    if (owner == null || isRemoving) return;
     unawaited(game.audio.playEnemyAttack('${kind.name}.$attack'));
     switch (attack) {
-      case 'rewindCharge' || 'mergeSlam':
-        final direction = (game.world.player.position.x - position.x).sign;
-        final facing = direction == 0 ? 1.0 : direction.toDouble();
-        unawaited(
-          _addToOwner(
-            owner,
-            EnemyDamageVolumeComponent(
-              position: position + Vector2(facing * 98, 10),
-              size: Vector2(190, 76),
-              sourceId: 'enemy.${kind.name}.$attack',
-              activeSeconds: .24,
-              volumeColor: kind.accentColor.withAlpha(125),
-            ),
-          ),
-        );
+      case 'rewindCharge':
+        _executeRewindCharge(owner);
+      case 'mergeSlam':
+        _executeMergeSlam(owner);
       case 'clockSweep':
-        unawaited(
-          _addToOwner(
-            owner,
-            EnemyDamageVolumeComponent(
-              position: position + Vector2(0, 30),
-              size: Vector2(330, 38),
-              sourceId: 'enemy.chronoJailer.clockSweep',
-              activeSeconds: .2,
-              volumeColor: kind.accentColor.withAlpha(115),
-            ),
-          ),
-        );
-      case 'clockFan' || 'splitKernel' || 'polarityCross':
-        final angles = attack == 'polarityCross'
-            ? <double>[-math.pi / 2, 0, math.pi / 2, math.pi]
-            : <double>[-.34, -.17, 0, .17, .34];
-        for (final angle in angles) {
-          final direction = attack == 'polarityCross'
-              ? (Vector2(1, 0)..rotate(angle))
-              : game.world.player.position - position;
-          if (direction.length2 == 0) direction.x = 1;
-          direction.normalize();
-          if (attack != 'polarityCross') direction.rotate(angle);
-          unawaited(
-            _addToOwner(
-              owner,
-              EnemyProjectileComponent(
-                position: position.clone(),
-                velocity: direction * (attack == 'splitKernel' ? 300 : 270),
-                sourceId: 'enemy.${kind.name}.$attack',
-                attackTier: angle == 0
-                    ? AttackTier.parryable
-                    : AttackTier.normal,
-                projectileRadius: angle == 0 ? 9 : 6,
-                assetSlug: kind.assetSlug,
-              ),
-            ),
-          );
-        }
-      case 'timeCage' || 'vectorCage':
-        final target = game.world.player.position.clone();
-        for (final offset in <Vector2>[
-          Vector2(-105, 0),
-          Vector2(105, 0),
-          Vector2(0, -105),
-        ]) {
-          unawaited(
-            _addToOwner(
-              owner,
-              EnemyDamageVolumeComponent(
-                position: target + offset,
-                size: offset.y == 0 ? Vector2(34, 150) : Vector2(180, 30),
-                sourceId: 'enemy.${kind.name}.$attack',
-                activeSeconds: .28,
-                volumeColor: kind.accentColor.withAlpha(120),
-              ),
-            ),
-          );
-        }
-      case 'hourglassMine' || 'gravityShard':
-        final direction = game.world.player.position - position;
-        if (direction.length2 == 0) direction.x = 1;
-        direction.normalize();
-        unawaited(
-          _addToOwner(
-            owner,
-            EnemyProjectileComponent(
-              position: position + Vector2(direction.x * 32, -20),
-              velocity: Vector2(direction.x * 220, -260),
-              sourceId: 'enemy.${kind.name}.$attack',
-              attackTier: AttackTier.enhanced,
-              gravity: 620,
-              remainingBounces: 1,
-              projectileRadius: 10,
-              assetSlug: kind.assetSlug,
-            ),
-          ),
-        );
+        _executeClockSweep(owner);
+      case 'clockFan':
+        _executeClockFan(owner);
+      case 'splitKernel':
+        _executeSplitKernel(owner);
+      case 'polarityCross':
+        _executePolarityCross(owner);
+      case 'timeCage':
+        _executeTimeCage(owner);
+      case 'vectorCage':
+        _executeVectorCage(owner);
+      case 'hourglassMine':
+        _executeHourglassMine(owner);
+      case 'gravityShard':
+        _executeGravityShard(owner);
     }
   }
 
+  void _executeRewindCharge(Component owner) {
+    final origin = _attackOrigin;
+    final target = _attackTarget;
+    final horizontal = target.x - origin.x;
+    final facing = horizontal == 0 ? 1.0 : horizontal.sign.toDouble();
+    final destination = _clampArenaPosition(
+      target + Vector2(-facing * 116, -18),
+    );
+    _spawnDamageSegment(
+      owner,
+      origin,
+      destination,
+      thickness: 56,
+      sourceId: 'enemy.chronoJailer.rewindCharge',
+      activeSeconds: .28,
+    );
+    position.setFrom(destination);
+  }
+
+  void _executeMergeSlam(Component owner) {
+    final target = _attackTarget;
+    final slamPosition = _clampArenaPosition(target + Vector2(0, -112));
+    position.setFrom(slamPosition);
+    _spawnDamageVolume(
+      owner,
+      position: target + Vector2(0, -42),
+      size: Vector2(86, 178),
+      sourceId: 'enemy.kernelChimera.mergeSlam.core',
+      activeSeconds: .32,
+    );
+    for (final direction in <double>[-1, 1]) {
+      _spawnDamageVolume(
+        owner,
+        position: target + Vector2(direction * 116, 34),
+        size: Vector2(190, 28),
+        sourceId: 'enemy.kernelChimera.mergeSlam.wave',
+        activeSeconds: .28,
+      );
+    }
+  }
+
+  void _executeClockSweep(Component owner) {
+    final center = _attackOrigin + Vector2(0, 16);
+    final aim = _normalizedDirection(center, _attackTarget);
+    final baseAngle = math.atan2(aim.y, aim.x);
+    for (final offset in <double>[0, math.pi * 2 / 3, math.pi * 4 / 3]) {
+      final direction = Vector2(1, 0)..rotate(baseAngle + offset);
+      _spawnDamageSegment(
+        owner,
+        center + direction * 16,
+        center + direction * 178,
+        thickness: offset == 0 ? 34 : 25,
+        sourceId: 'enemy.chronoJailer.clockSweep',
+        activeSeconds: .30,
+      );
+    }
+  }
+
+  void _executeClockFan(Component owner) {
+    final source = _attackOrigin;
+    final aim = _normalizedDirection(source, _attackTarget);
+    for (final angle in <double>[-.38, -.19, 0, .19, .38]) {
+      final direction = aim.clone()..rotate(angle);
+      _spawnProjectile(
+        owner,
+        position: source,
+        velocity: direction * 280,
+        sourceId: 'enemy.chronoJailer.clockFan',
+        attackTier: angle == 0 ? AttackTier.parryable : AttackTier.normal,
+        radius: angle == 0 ? 9 : 6,
+      );
+    }
+  }
+
+  void _executeTimeCage(Component owner) {
+    final target = _attackTarget;
+    final openRight = _attackOrigin.x <= target.x;
+    for (final entry in <({Vector2 offset, Vector2 size})>[
+      (offset: Vector2(openRight ? -104 : 104, 0), size: Vector2(30, 164)),
+      (offset: Vector2(0, -102), size: Vector2(180, 28)),
+      (offset: Vector2(0, 102), size: Vector2(180, 28)),
+    ]) {
+      _spawnDamageVolume(
+        owner,
+        position: target + entry.offset,
+        size: entry.size,
+        sourceId: 'enemy.chronoJailer.timeCage',
+        activeSeconds: .30,
+      );
+    }
+  }
+
+  void _executeHourglassMine(Component owner) {
+    final source = _attackOrigin;
+    final target = _attackTarget;
+    final facing = target.x >= source.x ? 1.0 : -1.0;
+    for (final side in <double>[-1, 1]) {
+      final crossingSpeed = 225 - side * facing * 42;
+      _spawnProjectile(
+        owner,
+        position: source + Vector2(side * 36, -18),
+        velocity: Vector2(facing * crossingSpeed, -275 + side * 32),
+        sourceId: 'enemy.chronoJailer.hourglassMine',
+        attackTier: side < 0 ? AttackTier.enhanced : AttackTier.parryable,
+        radius: 10,
+        gravity: 640,
+        remainingBounces: 1,
+      );
+    }
+    position.setFrom(_clampArenaPosition(source + Vector2(-facing * 48, -12)));
+  }
+
+  void _executeSplitKernel(Component owner) {
+    final target = _attackTarget;
+    final left = _clampArenaPosition(target + Vector2(-132, -28));
+    final right = _clampArenaPosition(target + Vector2(132, -28));
+    position.setFrom(left);
+    _splitEchoWorld = right;
+    for (final source in <Vector2>[left, right]) {
+      final aim = _normalizedDirection(source, target);
+      for (final angle in <double>[-.24, 0, .24]) {
+        final direction = aim.clone()..rotate(angle);
+        _spawnProjectile(
+          owner,
+          position: source,
+          velocity: direction * 305,
+          sourceId: 'enemy.kernelChimera.splitKernel',
+          attackTier: angle == 0 ? AttackTier.parryable : AttackTier.normal,
+          radius: angle == 0 ? 9 : 6,
+        );
+      }
+    }
+  }
+
+  void _executePolarityCross(Component owner) {
+    final target = _attackTarget;
+    final left = _clampArenaPosition(target + Vector2(-82, -10));
+    final right = _clampArenaPosition(target + Vector2(82, 10));
+    position.setFrom(right);
+    _splitEchoWorld = left;
+    for (final source in <Vector2>[left, right]) {
+      for (var index = 0; index < 4; index += 1) {
+        final direction = Vector2(1, 0)..rotate(index * math.pi / 2);
+        final pointsInward = source.x < target.x
+            ? direction.x > .5
+            : direction.x < -.5;
+        _spawnProjectile(
+          owner,
+          position: source,
+          velocity: direction * 288,
+          sourceId: 'enemy.kernelChimera.polarityCross',
+          attackTier: pointsInward ? AttackTier.parryable : AttackTier.normal,
+          radius: pointsInward ? 9 : 6,
+        );
+      }
+    }
+  }
+
+  void _executeVectorCage(Component owner) {
+    final target = _attackTarget;
+    final top = target + Vector2(0, -112);
+    final right = target + Vector2(112, 0);
+    final bottom = target + Vector2(0, 112);
+    final left = target + Vector2(-112, 0);
+    position.setFrom(_clampArenaPosition(target + Vector2(126, 72)));
+    for (final edge in <({Vector2 start, Vector2 end})>[
+      (start: top, end: right),
+      (start: right, end: bottom),
+      (start: bottom, end: left),
+    ]) {
+      _spawnDamageSegment(
+        owner,
+        edge.start,
+        edge.end,
+        thickness: 25,
+        sourceId: 'enemy.kernelChimera.vectorCage',
+        activeSeconds: .32,
+      );
+    }
+  }
+
+  void _executeGravityShard(Component owner) {
+    final target = _attackTarget;
+    final left = _clampArenaPosition(target + Vector2(-126, -12));
+    final right = _clampArenaPosition(target + Vector2(126, -12));
+    position.setFrom(right);
+    _splitEchoWorld = left;
+    for (final source in <Vector2>[left, right]) {
+      final inward = source.x < target.x ? 1.0 : -1.0;
+      for (final verticalOffset in <double>[-32, 22]) {
+        _spawnProjectile(
+          owner,
+          position: source + Vector2(0, verticalOffset),
+          velocity: Vector2(inward * 205, -285 - verticalOffset * .7),
+          sourceId: 'enemy.kernelChimera.gravityShard',
+          attackTier: verticalOffset < 0
+              ? AttackTier.enhanced
+              : AttackTier.parryable,
+          radius: 10,
+          gravity: 650,
+          remainingBounces: 1,
+        );
+      }
+    }
+  }
+
+  Vector2 get _attackOrigin =>
+      _recordedAttackOrigin?.clone() ?? position.clone();
+
+  Vector2 get _attackTarget =>
+      _recordedAttackTarget?.clone() ?? game.world.player.position.clone();
+
+  Vector2 _normalizedDirection(Vector2 from, Vector2 to) {
+    final direction = to - from;
+    if (direction.length2 == 0) direction.x = 1;
+    direction.normalize();
+    return direction;
+  }
+
+  Vector2 _clampArenaPosition(Vector2 desired) {
+    final room = game.world.activeRoom;
+    if (room == null || room is! PlatformerRoomGeometry) return desired;
+    final geometry = room as PlatformerRoomGeometry;
+    const minimumX = 64.0;
+    const minimumY = 64.0;
+    final maximumX = math.max(minimumX, geometry.worldSize.x - minimumX);
+    final maximumY = math.max(
+      minimumY,
+      math.min(geometry.worldSize.y - 70, geometry.killPlaneY - 70),
+    );
+    return Vector2(
+      desired.x.clamp(minimumX, maximumX).toDouble(),
+      desired.y.clamp(minimumY, maximumY).toDouble(),
+    );
+  }
+
+  void _spawnDamageSegment(
+    Component owner,
+    Vector2 start,
+    Vector2 end, {
+    required double thickness,
+    required String sourceId,
+    required double activeSeconds,
+  }) {
+    final cappedSeconds = math.min(
+      activeSeconds,
+      _activeDamageWindowCap ?? activeSeconds,
+    );
+    if (cappedSeconds <= 0) return;
+    final delta = end - start;
+    if (delta.length2 == 0) return;
+    final volume = EnemyDamageVolumeComponent(
+      position: (start + end) / 2,
+      size: Vector2(delta.length, thickness),
+      sourceId: sourceId,
+      activeSeconds: cappedSeconds,
+      volumeColor: kind.accentColor.withAlpha(120),
+    )..angle = math.atan2(delta.y, delta.x);
+    unawaited(_addToOwner(owner, volume));
+  }
+
+  void _spawnDamageVolume(
+    Component owner, {
+    required Vector2 position,
+    required Vector2 size,
+    required String sourceId,
+    required double activeSeconds,
+  }) {
+    final cappedSeconds = math.min(
+      activeSeconds,
+      _activeDamageWindowCap ?? activeSeconds,
+    );
+    if (cappedSeconds <= 0) return;
+    unawaited(
+      _addToOwner(
+        owner,
+        EnemyDamageVolumeComponent(
+          position: position,
+          size: size,
+          sourceId: sourceId,
+          activeSeconds: cappedSeconds,
+          volumeColor: kind.accentColor.withAlpha(120),
+        ),
+      ),
+    );
+  }
+
+  void _spawnProjectile(
+    Component owner, {
+    required Vector2 position,
+    required Vector2 velocity,
+    required String sourceId,
+    required AttackTier attackTier,
+    required double radius,
+    double gravity = 0,
+    int remainingBounces = 0,
+  }) {
+    unawaited(
+      _addToOwner(
+        owner,
+        EnemyProjectileComponent(
+          position: position.clone(),
+          velocity: velocity,
+          sourceId: sourceId,
+          attackTier: attackTier,
+          gravity: gravity,
+          remainingBounces: remainingBounces,
+          projectileRadius: radius,
+          assetSlug: kind.assetSlug,
+        ),
+      ),
+    );
+  }
+
+  void _finishAttackMotion(String attack) {
+    if (switch (attack) {
+      'rewindCharge' ||
+      'mergeSlam' ||
+      'hourglassMine' ||
+      'splitKernel' ||
+      'polarityCross' ||
+      'vectorCage' ||
+      'gravityShard' => true,
+      _ => false,
+    }) {
+      final origin = _recordedAttackOrigin;
+      if (origin != null && !isRemoving) position.setFrom(origin);
+    }
+    _splitEchoWorld = null;
+  }
+
+  void _clearAttackDiagnostics() {
+    _recordedAttackOrigin = null;
+    _recordedAttackTarget = null;
+    _splitEchoWorld = null;
+  }
+
   Future<void> _addToOwner(Component owner, Component child) async {
+    if (_resolved || isRemoving || parent != owner || owner.isRemoving) return;
     await owner.add(child);
+    if ((_resolved || isRemoving || parent != owner || owner.isRemoving) &&
+        child.parent == owner) {
+      child.removeFromParent();
+      return;
+    }
+    _spawnedHazards.add(child);
+    unawaited(child.removed.then((_) => _spawnedHazards.remove(child)));
+  }
+
+  void _removeSpawnedHazards() {
+    for (final hazard in _spawnedHazards.toList(growable: false)) {
+      if (!hazard.isRemoving) hazard.removeFromParent();
+    }
+    _spawnedHazards.clear();
   }
 
   void _finishDefeat() {
+    if (_defeatDispatched || isRemoving) return;
+    _defeatDispatched = true;
     game.world.spawnDataShards(position, count: 8, corrupted: false);
     onDefeated();
     removeFromParent();
@@ -400,23 +728,40 @@ final class CampaignChapterBossComponent extends PositionComponent
     final visual = _visual;
     final frames = _frames;
     if (visual == null || frames == null) return;
-    final frameIndex = switch (phase) {
-      CampaignChapterBossPhase.dormant => 0,
-      CampaignChapterBossPhase.intro => 2 + ((_clock * 6).floor() % 2),
-      CampaignChapterBossPhase.phaseOne => _pendingAttack == null ? 0 : 4,
-      CampaignChapterBossPhase.phaseTwo => _pendingAttack == null ? 1 : 5,
-      CampaignChapterBossPhase.phaseThree => _pendingAttack == null ? 3 : 6,
-      CampaignChapterBossPhase.defeated => 7,
-    };
+    final frameIndex = _resolveVisualFrameIndex();
     visual.sprite = frames[frameIndex];
     visual.position.setValues(
       size.x / 2,
       size.y / 2 + math.sin(_clock * 3.1) * 1.5,
     );
-    final pulse = _pendingAttack == null
-        ? 1.0
-        : 1 + math.sin(_clock * 18).abs() * .07;
+    final pulse = switch (_attackCycle.phase) {
+      CampaignBossAttackVisualPhase.idle => 1.0,
+      CampaignBossAttackVisualPhase.telegraph =>
+        1 + math.sin(_clock * 18).abs() * .07,
+      CampaignBossAttackVisualPhase.active => 1.08,
+      CampaignBossAttackVisualPhase.recovery =>
+        1 + math.sin(_clock * 9).abs() * .025,
+    };
     visual.scale.setAll(pulse);
+  }
+
+  int _resolveVisualFrameIndex() {
+    if (phase == CampaignChapterBossPhase.dormant) return 0;
+    if (phase == CampaignChapterBossPhase.intro) {
+      return 2 + ((_clock * 6).floor() % 2);
+    }
+    if (phase == CampaignChapterBossPhase.defeated) return 7;
+    final attackFrame = resolveCampaignBossAttackFrame(
+      _attackCycle.phase,
+      _clock,
+    );
+    if (attackFrame >= 0) return attackFrame;
+    return switch (phase) {
+      CampaignChapterBossPhase.phaseOne => 0,
+      CampaignChapterBossPhase.phaseTwo => 1,
+      CampaignChapterBossPhase.phaseThree => 3,
+      _ => 0,
+    };
   }
 
   @override
@@ -430,16 +775,202 @@ final class CampaignChapterBossComponent extends PositionComponent
         Paint()..color = kind.accentColor.withAlpha(170),
       );
     }
-    if (_pendingAttack != null) {
+    switch (_attackCycle.phase) {
+      case CampaignBossAttackVisualPhase.idle:
+        break;
+      case CampaignBossAttackVisualPhase.telegraph:
+        _renderPatternTelegraph(canvas);
+        canvas.drawCircle(
+          Offset(size.x / 2, size.y / 2),
+          52 + math.sin(_clock * 20).abs() * 7,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 4
+            ..color = kind.accentColor,
+        );
+      case CampaignBossAttackVisualPhase.active:
+        canvas.drawArc(
+          Rect.fromCircle(center: Offset(size.x / 2, size.y / 2), radius: 58),
+          -math.pi / 2,
+          math.pi * 1.55,
+          false,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 5
+            ..strokeCap = StrokeCap.round
+            ..color = kind.accentColor,
+        );
+        final origin = _recordedAttackOrigin;
+        if (origin != null && origin.distanceTo(position) > 8) {
+          canvas.drawLine(
+            _localOffset(origin),
+            Offset(size.x / 2, size.y / 2),
+            Paint()
+              ..strokeWidth = 3
+              ..color = kind.accentColor.withAlpha(110),
+          );
+        }
+      case CampaignBossAttackVisualPhase.recovery:
+        canvas.drawCircle(
+          Offset(size.x / 2, size.y / 2),
+          48,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2
+            ..color = kind.accentColor.withAlpha(95),
+        );
+    }
+    final echo = _splitEchoWorld;
+    if (echo != null) {
       canvas.drawCircle(
-        Offset(size.x / 2, size.y / 2),
-        52 + math.sin(_clock * 20).abs() * 7,
+        _localOffset(echo),
+        34,
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 4
-          ..color = kind.accentColor,
+          ..strokeWidth = 5
+          ..color = kind.accentColor.withAlpha(145),
       );
     }
     super.render(canvas);
+  }
+
+  void _renderPatternTelegraph(Canvas canvas) {
+    final attack = _attackCycle.attack?.id;
+    final target = _recordedAttackTarget;
+    if (attack == null || target == null) return;
+    final center = Offset(size.x / 2, size.y / 2);
+    final targetOffset = _localOffset(target);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..color = kind.accentColor.withAlpha(155);
+    switch (attack) {
+      case 'rewindCharge':
+        canvas.drawLine(center, targetOffset, paint..strokeWidth = 8);
+        canvas.drawCircle(center, 24, paint..strokeWidth = 2.5);
+      case 'clockFan':
+        final aim = _normalizedDirection(position, target);
+        for (final angle in <double>[-.38, 0, .38]) {
+          final direction = aim.clone()..rotate(angle);
+          canvas.drawLine(
+            center,
+            center + Offset(direction.x, direction.y) * 190,
+            paint,
+          );
+        }
+      case 'timeCage':
+        final openRight = (_recordedAttackOrigin?.x ?? position.x) <= target.x;
+        canvas.drawLine(
+          targetOffset + const Offset(-104, -102),
+          targetOffset + const Offset(104, -102),
+          paint..strokeWidth = 5,
+        );
+        canvas.drawLine(
+          targetOffset + const Offset(-104, 102),
+          targetOffset + const Offset(104, 102),
+          paint,
+        );
+        final wallX = openRight ? -104.0 : 104.0;
+        canvas.drawLine(
+          targetOffset + Offset(wallX, -102),
+          targetOffset + Offset(wallX, 102),
+          paint,
+        );
+      case 'hourglassMine':
+        canvas.drawArc(
+          Rect.fromCenter(center: center, width: 260, height: 190),
+          math.pi * .12,
+          math.pi * .76,
+          false,
+          paint,
+        );
+        canvas.drawArc(
+          Rect.fromCenter(center: center, width: 260, height: 190),
+          math.pi * .88,
+          math.pi * .76,
+          false,
+          paint,
+        );
+      case 'clockSweep':
+        final aim = _normalizedDirection(position, target);
+        final baseAngle = math.atan2(aim.y, aim.x);
+        for (final offset in <double>[0, math.pi * 2 / 3, math.pi * 4 / 3]) {
+          final direction = Vector2(1, 0)..rotate(baseAngle + offset);
+          canvas.drawLine(
+            center,
+            center + Offset(direction.x, direction.y) * 178,
+            paint,
+          );
+        }
+      case 'mergeSlam':
+        canvas.drawRect(
+          Rect.fromCenter(center: targetOffset, width: 86, height: 178),
+          paint..strokeWidth = 5,
+        );
+        canvas.drawLine(
+          targetOffset + const Offset(-210, 48),
+          targetOffset + const Offset(210, 48),
+          paint,
+        );
+      case 'splitKernel':
+        for (final side in <double>[-1, 1]) {
+          canvas.drawCircle(
+            targetOffset + Offset(side * 132, -28),
+            34,
+            paint..strokeWidth = 4,
+          );
+        }
+        canvas.drawLine(
+          targetOffset + const Offset(-132, -28),
+          targetOffset + const Offset(132, -28),
+          paint..strokeWidth = 2.5,
+        );
+      case 'polarityCross':
+        for (final side in <double>[-1, 1]) {
+          final polarityCenter = targetOffset + Offset(side * 82, side * 10);
+          canvas.drawLine(
+            polarityCenter - const Offset(62, 0),
+            polarityCenter + const Offset(62, 0),
+            paint,
+          );
+          canvas.drawLine(
+            polarityCenter - const Offset(0, 62),
+            polarityCenter + const Offset(0, 62),
+            paint,
+          );
+        }
+      case 'vectorCage':
+        final path = Path()
+          ..moveTo(targetOffset.dx, targetOffset.dy - 112)
+          ..lineTo(targetOffset.dx + 112, targetOffset.dy)
+          ..lineTo(targetOffset.dx, targetOffset.dy + 112)
+          ..lineTo(targetOffset.dx - 112, targetOffset.dy);
+        canvas.drawPath(path, paint..strokeWidth = 5);
+      case 'gravityShard':
+        for (final side in <double>[-1, 1]) {
+          canvas.drawArc(
+            Rect.fromCenter(
+              center: targetOffset + Offset(side * 68, 24),
+              width: 190,
+              height: 170,
+            ),
+            side < 0 ? math.pi * 1.08 : math.pi * .16,
+            math.pi * .76,
+            false,
+            paint,
+          );
+        }
+    }
+  }
+
+  Offset _localOffset(Vector2 worldPosition) => Offset(
+    size.x / 2 + worldPosition.x - position.x,
+    size.y / 2 + worldPosition.y - position.y,
+  );
+
+  @override
+  void onRemove() {
+    _removeSpawnedHazards();
+    super.onRemove();
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,7 +10,10 @@ import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
+import 'package:patch_world/game/components/environment/qa_record_terminal_component.dart';
+import 'package:patch_world/game/components/items/item_pedestal_component.dart';
 import 'package:patch_world/game/core/run_state.dart';
+import 'package:patch_world/game/items/run_item_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/boss_room_controller.dart';
 import 'package:patch_world/game/rooms/damage_lab_node_controller.dart';
@@ -42,8 +47,15 @@ void main() {
       await _mountGame(tester, game);
 
       for (final weapon in PlayerWeapon.values) {
-        await tester.runAsync(() => game.selectStartingWeapon(weapon));
-        await tester.pump(const Duration(milliseconds: 16));
+        unawaited(game.selectStartingWeapon(weapon));
+        await _waitUntil(
+          tester,
+          () =>
+              !game.overlays.isActive(OverlayIds.title) &&
+              game.world.isReady &&
+              game.world.player.selectedWeapon == weapon,
+          description: '${weapon.name} campaign start',
+        );
 
         final encountered = <PlatformerEnemyArchetype>{};
         await _completeCampaign(tester, game, weapon, encountered);
@@ -68,6 +80,8 @@ void main() {
         expect(game.damageLabProgress.clearedEncounterIds, isEmpty);
         expect(game.temporalHallProgress.clearedEncounterIds, isEmpty);
         expect(game.collisionArchiveProgress.clearedEncounterIds, isEmpty);
+        expect(game.temporalHallProgress.completedObjectiveIds, isEmpty);
+        expect(game.collisionArchiveProgress.completedObjectiveIds, isEmpty);
         expect(game.weaponBuild.totalChoices, 0);
       }
 
@@ -93,6 +107,7 @@ Future<void> _completeCampaign(
     CampaignNodeId.damageWorkshop,
   );
   await _clearEncounter(tester, game, encountered);
+  await _collectSubQuestRecord(tester, game);
   await _useDoor(
     tester,
     game,
@@ -100,6 +115,7 @@ Future<void> _completeCampaign(
     CampaignNodeId.damageAssembly,
   );
   await _clearEncounter(tester, game, encountered);
+  await _collectSubQuestRecord(tester, game);
   await _useDoor(
     tester,
     game,
@@ -107,6 +123,8 @@ Future<void> _completeCampaign(
     CampaignNodeId.damageOverflow,
   );
   await _clearEncounter(tester, game, encountered);
+  await _collectSubQuestRecord(tester, game);
+  await _claimSubQuestReward(tester, game, RunItemId.conduitHeart);
   expect(
     game.campaignExploration.unlockedShortcutIds,
     contains(CampaignWorldGraph.damageMaintenanceShortcutId),
@@ -147,6 +165,7 @@ Future<void> _completeCampaign(
     CampaignNodeId.temporalAscent,
   );
   await _clearEncounter(tester, game, encountered);
+  await _collectSubQuestRecord(tester, game);
   await _useDoor(
     tester,
     game,
@@ -154,6 +173,7 @@ Future<void> _completeCampaign(
     CampaignNodeId.temporalFracture,
   );
   await _clearEncounter(tester, game, encountered);
+  await _collectSubQuestRecord(tester, game);
   await _useDoor(
     tester,
     game,
@@ -161,6 +181,8 @@ Future<void> _completeCampaign(
     CampaignNodeId.temporalPendulum,
   );
   await _clearEncounter(tester, game, encountered);
+  await _collectSubQuestRecord(tester, game);
+  await _claimSubQuestReward(tester, game, RunItemId.echoClock);
   await _useDoor(
     tester,
     game,
@@ -180,17 +202,11 @@ Future<void> _completeCampaign(
   await _useDoor(
     tester,
     game,
-    'interaction.returnHubLift',
-    CampaignNodeId.bootSector,
-  );
-
-  await _useDoor(
-    tester,
-    game,
     'interaction.enterCollisionArchive',
     CampaignNodeId.collisionCompression,
   );
   await _clearEncounter(tester, game, encountered);
+  await _collectSubQuestRecord(tester, game);
   await _useDoor(
     tester,
     game,
@@ -198,6 +214,7 @@ Future<void> _completeCampaign(
     CampaignNodeId.collisionFracture,
   );
   await _clearEncounter(tester, game, encountered);
+  await _collectSubQuestRecord(tester, game);
   await _useDoor(
     tester,
     game,
@@ -205,6 +222,8 @@ Future<void> _completeCampaign(
     CampaignNodeId.collisionMerge,
   );
   await _clearEncounter(tester, game, encountered);
+  await _collectSubQuestRecord(tester, game);
+  await _claimSubQuestReward(tester, game, RunItemId.vectorBoots);
   await _useDoor(
     tester,
     game,
@@ -283,8 +302,35 @@ Future<void> _clearEncounter(
       game.selectRoomOneBuildUpgrade(choices[activeRoom.encounterId]),
       isTrue,
     );
+  } else if (activeRoom is RegionalCampaignNodeController) {
+    await _completeRegionalRoomObjective(tester, game, activeRoom);
   }
   await _pumpFrames(tester, 3, const Duration(milliseconds: 16));
+}
+
+Future<void> _completeRegionalRoomObjective(
+  WidgetTester tester,
+  PatchWorldGame game,
+  RegionalCampaignNodeController room,
+) async {
+  for (final nodeIndex in room.roomObjectiveSpec.activationOrder) {
+    final node = room.objectiveNodes.singleWhere(
+      (candidate) => candidate.nodeIndex == nodeIndex,
+    );
+    for (var attempt = 0; attempt < 160; attempt += 1) {
+      game.world.player.position.setFrom(node.position);
+      expect(game.world.tryInteract(game.world.player), isTrue);
+      await tester.pump(const Duration(milliseconds: 50));
+      if (node.activated || room.roomObjectiveComplete) break;
+    }
+    expect(
+      node.activated || room.roomObjectiveComplete,
+      isTrue,
+      reason: '${room.nodeId.name} objective node $nodeIndex did not sync.',
+    );
+  }
+  expect(room.roomObjectiveComplete, isTrue);
+  expect(room.roomExitUnlocked, isTrue);
 }
 
 Future<void> _defeatDamageBoss(WidgetTester tester, PatchWorldGame game) async {
@@ -294,6 +340,33 @@ Future<void> _defeatDamageBoss(WidgetTester tester, PatchWorldGame game) async {
   room.boss!.receiveHealing(99);
   await _pumpFrames(tester, 30, const Duration(milliseconds: 100));
   expect(game.damageLabProgress.bossDefeated, isTrue);
+}
+
+Future<void> _collectSubQuestRecord(
+  WidgetTester tester,
+  PatchWorldGame game,
+) async {
+  final terminal = game.world.activeRoom!.children
+      .whereType<QaRecordTerminalComponent>()
+      .single;
+  game.world.player.position.setFrom(terminal.position);
+  expect(game.world.tryInteract(game.world.player), isTrue);
+  await _pumpFrames(tester, 2, const Duration(milliseconds: 16));
+}
+
+Future<void> _claimSubQuestReward(
+  WidgetTester tester,
+  PatchWorldGame game,
+  RunItemId expectedItem,
+) async {
+  await _pumpFrames(tester, 3, const Duration(milliseconds: 16));
+  final pedestal = game.world.activeRoom!.children
+      .whereType<ItemPedestalComponent>()
+      .singleWhere((candidate) => candidate.item == expectedItem);
+  game.world.player.position.setFrom(pedestal.position);
+  expect(game.world.tryInteract(game.world.player), isTrue);
+  await tester.pump(const Duration(milliseconds: 16));
+  expect(game.runItems.contains(expectedItem), isTrue);
 }
 
 Future<void> _defeatRegionalBoss(

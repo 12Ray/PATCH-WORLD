@@ -109,6 +109,49 @@ void main() {
       expect(visual.scale.y, closeTo(1, .001));
     },
   );
+
+  test('typed clip rejects missing frame registration', () async {
+    final image = await _testImage();
+    final sprite = Sprite(image, srcSize: Vector2.all(2));
+
+    expect(
+      () => SpritePlaybackClip(
+        frames: <Sprite>[sprite, sprite],
+        frameTransforms: const <SpriteFrameTransform>[SpriteFrameTransform()],
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test(
+    'combat clip advances on simulation time and preserves recovery',
+    () async {
+      final image = await _testImage();
+      final idle = Sprite(image, srcSize: Vector2.all(2));
+      final attackA = Sprite(image, srcSize: Vector2.all(2));
+      final attackB = Sprite(image, srcSize: Vector2.all(2));
+      var simulationDt = 0.0;
+      final visual = EntitySpriteVisual(
+        sprite: idle,
+        size: Vector2.all(16),
+        parentSize: Vector2.all(32),
+        bobAmplitude: 0,
+        rotationAmplitude: 0,
+        animationDeltaResolver: (_) => simulationDt,
+      );
+      visual.setDefaultAnimation(<Sprite>[idle], fps: 6);
+      final clip = SpritePlaybackClip(frames: <Sprite>[attackA, attackB]);
+      visual.playClipOnce(clip, durationSeconds: .2);
+
+      visual.update(.5);
+      expect(visual.sprite, same(attackA));
+      simulationDt = .1;
+      visual.update(.5);
+      expect(visual.sprite, same(attackB));
+      visual.update(.5);
+      expect(visual.sprite, same(idle));
+    },
+  );
 }
 
 Future<Image> _testImage() async {

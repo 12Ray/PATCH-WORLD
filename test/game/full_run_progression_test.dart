@@ -5,7 +5,7 @@ import 'package:patch_world/app/overlay_ids.dart';
 import 'package:patch_world/game/core/run_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/boss_room_controller.dart';
-import 'package:patch_world/game/rooms/room_one_controller.dart';
+import 'package:patch_world/game/rooms/damage_lab_node_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -50,7 +50,7 @@ void main() {
 
     game.returnToTitle();
     await _waitForRoom(tester, game, RoomId.damageLab, requireRunning: false);
-    expect(game.world.activeRoom, isA<RoomOneController>());
+    expect(game.world.activeRoom, isA<DamageLabNodeController>());
     expect(game.runState.selectedPatchIds, isEmpty);
     expect(game.overlays.isActive(OverlayIds.title), isTrue);
     expect(game.paused, isTrue);

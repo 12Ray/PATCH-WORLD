@@ -82,6 +82,73 @@ enum PlayerCombatAnimation {
   };
 }
 
+/// One timing source for the visible clip, legal retrigger, and gameplay hit.
+///
+/// Build/item modifiers can shorten the weapon interval. Keeping the authored
+/// four phases inside the same derived duration prevents a new attack from
+/// resetting the previous clip before its recovery frame is shown. The 30 FPS
+/// ceiling also keeps longer composed actions readable instead of skipping
+/// most of their frames in one update.
+final class PlayerCombatPlaybackContract {
+  const PlayerCombatPlaybackContract._({
+    required this.state,
+    required this.effectiveIntervalSeconds,
+    required this.durationSeconds,
+    required this.frameCount,
+    required this.eventFrame,
+  });
+
+  factory PlayerCombatPlaybackContract.forAction({
+    required PlayerCombatAnimation state,
+    required double effectiveIntervalSeconds,
+    int? frameCount,
+    int? eventFrame,
+  }) {
+    final resolvedFrameCount = frameCount ?? state.frameCount;
+    final resolvedEventFrame = eventFrame ?? state.eventFrame;
+    if (!effectiveIntervalSeconds.isFinite || effectiveIntervalSeconds <= 0) {
+      throw ArgumentError.value(
+        effectiveIntervalSeconds,
+        'effectiveIntervalSeconds',
+        'must be finite and greater than zero',
+      );
+    }
+    if (resolvedFrameCount <= 0) {
+      throw ArgumentError.value(frameCount, 'frameCount', 'must be positive');
+    }
+    if (resolvedEventFrame < 0 || resolvedEventFrame >= resolvedFrameCount) {
+      throw ArgumentError.value(
+        eventFrame,
+        'eventFrame',
+        'must address a frame in the clip',
+      );
+    }
+    final minimumDuration = resolvedFrameCount / maximumPlaybackFps;
+    final duration = effectiveIntervalSeconds < minimumDuration
+        ? minimumDuration
+        : effectiveIntervalSeconds;
+    return PlayerCombatPlaybackContract._(
+      state: state,
+      effectiveIntervalSeconds: effectiveIntervalSeconds,
+      durationSeconds: duration,
+      frameCount: resolvedFrameCount,
+      eventFrame: resolvedEventFrame,
+    );
+  }
+
+  static const double maximumPlaybackFps = 30;
+
+  final PlayerCombatAnimation state;
+  final double effectiveIntervalSeconds;
+  final double durationSeconds;
+  final int frameCount;
+  final int eventFrame;
+
+  double get secondsPerFrame => durationSeconds / frameCount;
+  double get fps => frameCount / durationSeconds;
+  double get impactDelaySeconds => eventFrame * secondsPerFrame;
+}
+
 extension PlayerWeaponCombatAsset on PlayerWeapon {
   String combatAnimationAssetPath(PlayerCombatAnimation state) =>
       'sprites/art_v3/hero/$assetName-${state.assetSuffix}.png';

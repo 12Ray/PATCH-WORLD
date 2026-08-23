@@ -23,6 +23,8 @@ from build_art_v3_player_sheets import (
     SOURCE_DIR,
     _align_frames,
     _alpha_coverage,
+    DISPLAY_SIZE,
+    SOURCE_BASELINE,
 )
 
 
@@ -117,12 +119,12 @@ def _sequence(
         "asset": f"{weapon}-{state.asset_suffix}.png",
         "state": state.key,
         "sourceFrameSize": [FRAME_SIZE, FRAME_SIZE],
-        "displaySize": [54, 54],
+        "displaySize": [DISPLAY_SIZE, DISPLAY_SIZE],
         "frames": state.frames,
         "fps": state.fps,
         "loop": state.loop,
         "pivot": [0.5, 0.5],
-        "baseline": 0.86,
+        "baseline": SOURCE_BASELINE,
         "eventFrame": None,
         "alphaCoverage": coverage,
         "sourceGrid": [GRID_SIZE, GRID_SIZE],

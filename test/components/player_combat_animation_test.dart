@@ -54,6 +54,47 @@ void main() {
     expect(() => PlayerCombatAnimation.attackForIndex(7), throwsArgumentError);
   });
 
+  test('playback contract keeps cooldown, phases, and impact synchronized', () {
+    final contract = PlayerCombatPlaybackContract.forAction(
+      state: PlayerCombatAnimation.attack3,
+      effectiveIntervalSeconds: .70,
+    );
+
+    expect(contract.durationSeconds, .70);
+    expect(contract.secondsPerFrame, closeTo(.175, .000001));
+    expect(contract.impactDelaySeconds, closeTo(.175, .000001));
+    expect(contract.fps, closeTo(4 / .70, .000001));
+  });
+
+  test('playback contract caps extreme modifiers at readable 30 FPS', () {
+    final contract = PlayerCombatPlaybackContract.forAction(
+      state: PlayerCombatAnimation.attack1,
+      effectiveIntervalSeconds: .08,
+    );
+
+    expect(contract.durationSeconds, closeTo(4 / 30, .000001));
+    expect(contract.fps, 30);
+    expect(contract.impactDelaySeconds, closeTo(1 / 30, .000001));
+  });
+
+  test('playback contract rejects invalid timing and event frames', () {
+    expect(
+      () => PlayerCombatPlaybackContract.forAction(
+        state: PlayerCombatAnimation.attack1,
+        effectiveIntervalSeconds: 0,
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => PlayerCombatPlaybackContract.forAction(
+        state: PlayerCombatAnimation.attack1,
+        effectiveIntervalSeconds: .3,
+        eventFrame: 4,
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test(
     'ability composition retains every authored transition and action frame',
     () {

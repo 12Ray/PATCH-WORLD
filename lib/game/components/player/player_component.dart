@@ -84,6 +84,9 @@ final class PlayerComponent extends RectangleComponent
   double _attackCooldown = 0;
   double _hitInvulnerability = 0;
   int _dataShardCharge = 0;
+  final Completer<void> _visualLoadAttempted = Completer<void>();
+  Object? _visualLoadError;
+  bool _registrationMetadataLoaded = false;
   EntitySpriteVisual? _visual;
   List<Sprite>? _idleFrames;
   List<Sprite>? _moveFrames;
@@ -94,22 +97,24 @@ final class PlayerComponent extends RectangleComponent
   final Map<PlayerWeapon, Map<PlayerAnimationState, List<Sprite>>>
   _weaponLocomotionFrames =
       <PlayerWeapon, Map<PlayerAnimationState, List<Sprite>>>{};
-  final Map<PlayerWeapon, Map<PlayerCombatAnimation, List<Sprite>>>
-  _weaponCombatFrames =
-      <PlayerWeapon, Map<PlayerCombatAnimation, List<Sprite>>>{};
+  final Map<PlayerWeapon, Map<PlayerCombatAnimation, SpritePlaybackClip>>
+  _weaponCombatClips =
+      <PlayerWeapon, Map<PlayerCombatAnimation, SpritePlaybackClip>>{};
   final Map<
     PlayerWeapon,
     Map<PlayerCombatAnimation, List<SpriteFrameTransform>>
   >
   _combatFrameTransforms =
       <PlayerWeapon, Map<PlayerCombatAnimation, List<SpriteFrameTransform>>>{};
+  final Map<PlayerWeapon, List<SpriteFrameTransform>> _abilityFrameTransforms =
+      <PlayerWeapon, List<SpriteFrameTransform>>{};
   final List<_PendingWeaponImpact> _pendingWeaponImpacts =
       <_PendingWeaponImpact>[];
-  List<Sprite>? _gauntletDoubleJumpFrames;
-  List<Sprite>? _swordDashFrames;
-  List<Sprite>? _gunRailFrames;
-  final Map<PlayerWeapon, List<Sprite>> _composedAbilityFrames =
-      <PlayerWeapon, List<Sprite>>{};
+  SpritePlaybackClip? _gauntletDoubleJumpClip;
+  SpritePlaybackClip? _swordDashClip;
+  SpritePlaybackClip? _gunRailClip;
+  final Map<PlayerWeapon, SpritePlaybackClip> _composedAbilityClips =
+      <PlayerWeapon, SpritePlaybackClip>{};
   PlayerAnimationState? _activeMovementAnimation;
   PlayerWeapon selectedWeapon = PlayerWeapon.sword;
   int _weaponComboStep = 0;
@@ -124,12 +129,18 @@ final class PlayerComponent extends RectangleComponent
   double _dashEmpowerWindow = 0;
   double _dashDirection = 1;
   double _survivalSpecialCooldown = 0;
+  double _presentationActionRemaining = 0;
   int _airJumpsRemaining = 1;
   int _traversalAirDashesRemaining = 1;
   double _wallContactDirection = 0;
   String? lastDamageCauseId;
 
   bool get canAttack => _attackCooldown <= 0 && !isRemoving;
+  bool get hasActiveWeaponAction =>
+      _attackCooldown > 0 ||
+      _pendingWeaponImpacts.isNotEmpty ||
+      _dashRemaining > 0 ||
+      _presentationActionRemaining > 0;
   bool get canParry => _parryRecovery <= 0 && !isRemoving;
   bool get isParrying => _parryWindow > 0;
   bool get hasParryCounter => _counterWindow > 0;
@@ -163,13 +174,40 @@ final class PlayerComponent extends RectangleComponent
   bool get isTouchingWall => _wallContactDirection != 0;
   bool get isDashing => _dashRemaining > 0;
   bool get isGrounded => _platformerMotion.grounded;
-  bool get hasCompleteArtV3Visuals => PlayerWeapon.values.every(
-    (weapon) =>
-        _weaponLocomotionFrames[weapon]?.length ==
-            PlayerAnimationState.values.length &&
-        _weaponCombatFrames[weapon]?.length ==
-            PlayerCombatAnimation.values.length,
-  );
+  bool get hasCompleteArtV3Visuals =>
+      _visualLoadError == null &&
+      _registrationMetadataLoaded &&
+      _visual != null &&
+      PlayerWeapon.values.every((weapon) {
+        final combat = _weaponCombatClips[weapon];
+        final ability = _composedAbilityClips[weapon];
+        return _weaponLocomotionFrames[weapon]?.length ==
+                PlayerAnimationState.values.length &&
+            combat?.length == PlayerCombatAnimation.values.length &&
+            combat!.values.every((clip) => clip.hasFrameTransforms) &&
+            ability != null &&
+            ability.hasFrameTransforms;
+      });
+
+  /// Completes after the visual pipeline either loads or falls back.
+  ///
+  /// Run startup awaits this future so a damaged optional asset cannot leave
+  /// the weapon-selection screen hanging forever.
+  Future<void> get visualLoadAttempted => _visualLoadAttempted.future;
+
+  /// Completes only for a fully registered Art v3 presentation.
+  ///
+  /// Callers that can render the QA fallback should await
+  /// [visualLoadAttempted] and inspect [hasCompleteArtV3Visuals] instead.
+  Future<void> get visualReady async {
+    await visualLoadAttempted;
+    if (!hasCompleteArtV3Visuals) {
+      throw StateError(
+        'Player Art v3 registration did not load completely: '
+        '${_visualLoadError ?? 'one or more authored clips are missing'}',
+      );
+    }
+  }
 
   @override
   Future<void> onLoad() async {
@@ -199,13 +237,24 @@ final class PlayerComponent extends RectangleComponent
         parentSize: size,
         bobAmplitude: 1.1,
         bobSpeed: 4.2,
+        animationDeltaResolver: (rawDt) =>
+            isMounted ? game.clock.simulationDt : rawDt,
       );
       if (isRemoving) return;
       _visual = visual;
       add(visual);
       await _loadAnimations(visual);
-    } catch (_) {
+      if (!hasCompleteArtV3Visuals) {
+        _visualLoadError = StateError(
+          'One or more player animation clips lack complete registration',
+        );
+        paint.color = const Color(0xFF36E1FF);
+      }
+    } catch (error) {
+      _visualLoadError = error;
       paint.color = const Color(0xFF36E1FF);
+    } finally {
+      if (!_visualLoadAttempted.isCompleted) _visualLoadAttempted.complete();
     }
   }
 
@@ -247,19 +296,22 @@ final class PlayerComponent extends RectangleComponent
         }
       }
       _weaponLocomotionFrames[weapon] = locomotion;
-      final combat = <PlayerCombatAnimation, List<Sprite>>{};
+      final combat = <PlayerCombatAnimation, SpritePlaybackClip>{};
       for (final state in PlayerCombatAnimation.values) {
         try {
           final stateImage = await game.images.load(
             weapon.combatAnimationAssetPath(state),
           );
-          combat[state] = _frames(stateImage, state.frameCount);
+          combat[state] = SpritePlaybackClip(
+            frames: _frames(stateImage, state.frameCount),
+            frameTransforms: _combatFrameTransforms[weapon]?[state],
+          );
         } catch (_) {
           // Each Art v3 strip is optional so one damaged file cannot prevent
           // the remaining authored combat motions from loading.
         }
       }
-      _weaponCombatFrames[weapon] = combat;
+      _weaponCombatClips[weapon] = combat;
     }
     final gauntletSpin = await game.images.load(
       'sprites/abilities/gauntlet-double-jump-spin.png',
@@ -271,62 +323,162 @@ final class PlayerComponent extends RectangleComponent
       'sprites/abilities/gun-charged-rail.png',
     );
     if (isRemoving) return;
-    _gauntletDoubleJumpFrames = _frames(gauntletSpin, 6);
-    _swordDashFrames = _frames(swordDash, 6);
-    _gunRailFrames = _frames(gunRail, 6);
-    _composedAbilityFrames[PlayerWeapon.sword] = composeAbilityMotionFrames(
-      abilityFrames: _swordDashFrames!,
-      transitionFrames:
-          _weaponCombatFrames[PlayerWeapon.sword]?[PlayerCombatAnimation
+    _gauntletDoubleJumpClip = _abilityClip(PlayerWeapon.gauntlet, gauntletSpin);
+    _swordDashClip = _abilityClip(PlayerWeapon.sword, swordDash);
+    _gunRailClip = _abilityClip(PlayerWeapon.gun, gunRail);
+    _composedAbilityClips[PlayerWeapon.sword] = _composeAbilityMotionClip(
+      abilityClip: _swordDashClip!,
+      transitionClip:
+          _weaponCombatClips[PlayerWeapon.sword]?[PlayerCombatAnimation
               .abilityTransition],
     );
-    _composedAbilityFrames[PlayerWeapon.gauntlet] = composeAbilityMotionFrames(
-      abilityFrames: _gauntletDoubleJumpFrames!,
-      transitionFrames:
-          _weaponCombatFrames[PlayerWeapon.gauntlet]?[PlayerCombatAnimation
+    _composedAbilityClips[PlayerWeapon.gauntlet] = _composeAbilityMotionClip(
+      abilityClip: _gauntletDoubleJumpClip!,
+      transitionClip:
+          _weaponCombatClips[PlayerWeapon.gauntlet]?[PlayerCombatAnimation
               .abilityTransition],
     );
-    _composedAbilityFrames[PlayerWeapon.gun] = composeAbilityMotionFrames(
-      abilityFrames: _gunRailFrames!,
-      transitionFrames:
-          _weaponCombatFrames[PlayerWeapon.gun]?[PlayerCombatAnimation
+    _composedAbilityClips[PlayerWeapon.gun] = _composeAbilityMotionClip(
+      abilityClip: _gunRailClip!,
+      transitionClip:
+          _weaponCombatClips[PlayerWeapon.gun]?[PlayerCombatAnimation
               .abilityTransition],
-      authoredActionFrames:
-          _weaponCombatFrames[PlayerWeapon.gun]?[PlayerCombatAnimation.attack4],
+      authoredActionClip:
+          _weaponCombatClips[PlayerWeapon.gun]?[PlayerCombatAnimation.attack4],
     );
     _syncMovementAnimation(force: true);
   }
 
   Future<void> _loadCombatFrameTransforms() async {
-    try {
-      final source = await rootBundle.loadString(
-        'assets/images/sprites/art_v3/hero/combat_frame_transforms.json',
+    final source = await rootBundle.loadString(
+      'assets/images/sprites/art_v3/hero/manifest.json',
+    );
+    final decoded = jsonDecode(source) as Map<String, dynamic>;
+    final combat = decoded['combat'] as Map<String, dynamic>?;
+    final abilities = decoded['abilities'] as Map<String, dynamic>?;
+    if (combat == null || abilities == null) {
+      throw const FormatException(
+        'Player manifest must contain combat and abilities registration',
       );
-      final decoded = jsonDecode(source) as Map<String, dynamic>;
-      for (final weapon in PlayerWeapon.values) {
-        final weaponData = decoded[weapon.assetName] as Map<String, dynamic>?;
-        if (weaponData == null) continue;
-        final states = <PlayerCombatAnimation, List<SpriteFrameTransform>>{};
-        for (final state in PlayerCombatAnimation.values) {
-          final entries = weaponData[state.assetSuffix] as List<dynamic>?;
-          if (entries == null || entries.length != state.frameCount) continue;
-          states[state] = entries
-              .map((entry) {
-                final data = entry as Map<String, dynamic>;
-                return SpriteFrameTransform(
-                  dx: (data['dx'] as num?)?.toDouble() ?? 0,
-                  dy: (data['dy'] as num?)?.toDouble() ?? 0,
-                  scale: (data['scale'] as num?)?.toDouble() ?? 1,
-                );
-              })
-              .toList(growable: false);
-        }
-        _combatFrameTransforms[weapon] = states;
-      }
-    } catch (_) {
-      // Rendering remains functional if optional normalization metadata is
-      // missing; authored sprites are still displayed at their fixed box.
     }
+
+    final parsedCombat =
+        <
+          PlayerWeapon,
+          Map<PlayerCombatAnimation, List<SpriteFrameTransform>>
+        >{};
+    final parsedAbilities = <PlayerWeapon, List<SpriteFrameTransform>>{};
+    for (final weapon in PlayerWeapon.values) {
+      final weaponData = combat[weapon.assetName] as Map<String, dynamic>?;
+      if (weaponData == null) {
+        throw FormatException('Missing combat manifest for ${weapon.name}');
+      }
+      final states = <PlayerCombatAnimation, List<SpriteFrameTransform>>{};
+      for (final state in PlayerCombatAnimation.values) {
+        final sequence = weaponData[state.name] as Map<String, dynamic>?;
+        if (sequence == null ||
+            sequence['frames'] != state.frameCount ||
+            sequence['eventFrame'] != state.eventFrame) {
+          throw FormatException(
+            'Invalid combat contract for ${weapon.name}.${state.name}',
+          );
+        }
+        states[state] = _parseFrameTransforms(
+          sequence,
+          expectedFrames: state.frameCount,
+          contractName: '${weapon.name}.${state.name}',
+        );
+      }
+      parsedCombat[weapon] = states;
+
+      final ability = abilities[weapon.assetName] as Map<String, dynamic>?;
+      if (ability == null || ability['frames'] != 6) {
+        throw FormatException('Invalid ability contract for ${weapon.name}');
+      }
+      parsedAbilities[weapon] = _parseFrameTransforms(
+        ability,
+        expectedFrames: 6,
+        contractName: '${weapon.name}.ability',
+      );
+    }
+    _combatFrameTransforms
+      ..clear()
+      ..addAll(parsedCombat);
+    _abilityFrameTransforms
+      ..clear()
+      ..addAll(parsedAbilities);
+    _registrationMetadataLoaded = true;
+  }
+
+  List<SpriteFrameTransform> _parseFrameTransforms(
+    Map<String, dynamic> sequence, {
+    required int expectedFrames,
+    required String contractName,
+  }) {
+    final displaySize = sequence['displaySize'] as List<dynamic>?;
+    final entries = sequence['frameTransforms'] as List<dynamic>?;
+    if (displaySize == null ||
+        displaySize.length != 2 ||
+        displaySize.any((value) => value != presentationSize) ||
+        entries == null ||
+        entries.length != expectedFrames) {
+      throw FormatException('Incomplete frame registration for $contractName');
+    }
+    return entries
+        .map((entry) {
+          final data = entry as Map<String, dynamic>;
+          final dx = (data['dx'] as num?)?.toDouble();
+          final dy = (data['dy'] as num?)?.toDouble();
+          final scale = (data['scale'] as num?)?.toDouble();
+          if (dx == null ||
+              dy == null ||
+              scale == null ||
+              !dx.isFinite ||
+              !dy.isFinite ||
+              !scale.isFinite ||
+              scale <= 0) {
+            throw FormatException('Invalid frame transform for $contractName');
+          }
+          return SpriteFrameTransform(dx: dx, dy: dy, scale: scale);
+        })
+        .toList(growable: false);
+  }
+
+  SpritePlaybackClip _abilityClip(PlayerWeapon weapon, Image image) =>
+      SpritePlaybackClip(
+        frames: _frames(image, 6),
+        frameTransforms: _abilityFrameTransforms[weapon],
+      );
+
+  SpritePlaybackClip _composeAbilityMotionClip({
+    required SpritePlaybackClip abilityClip,
+    SpritePlaybackClip? transitionClip,
+    SpritePlaybackClip? authoredActionClip,
+  }) {
+    List<SpriteFrameTransform> transformsFor(SpritePlaybackClip clip) =>
+        clip.frameTransforms ??
+        List<SpriteFrameTransform>.filled(
+          clip.frames.length,
+          const SpriteFrameTransform(),
+          growable: false,
+        );
+
+    return SpritePlaybackClip(
+      frames: composeAbilityMotionFrames<Sprite>(
+        abilityFrames: abilityClip.frames,
+        transitionFrames: transitionClip?.frames,
+        authoredActionFrames: authoredActionClip?.frames,
+      ),
+      frameTransforms: composeAbilityMotionFrames<SpriteFrameTransform>(
+        abilityFrames: transformsFor(abilityClip),
+        transitionFrames: transitionClip == null
+            ? null
+            : transformsFor(transitionClip),
+        authoredActionFrames: authoredActionClip == null
+            ? null
+            : transformsFor(authoredActionClip),
+      ),
+    );
   }
 
   List<Sprite> _frames(Image image, int count) => List.generate(
@@ -371,9 +523,9 @@ final class PlayerComponent extends RectangleComponent
           speedMultiplier: effectiveAirJumpSpeedMultiplier,
         )) {
       _airJumpsRemaining -= 1;
-      final spinFrames = _gauntletDoubleJumpFrames;
-      if (spinFrames != null) {
-        _playAbilityMotion(spinFrames, weapon: PlayerWeapon.gauntlet);
+      final spinClip = _gauntletDoubleJumpClip;
+      if (spinClip != null) {
+        _playAbilityMotion(spinClip, weapon: PlayerWeapon.gauntlet);
       }
       _visual?.squash(seconds: 0.12);
       if (isMounted) {
@@ -400,6 +552,7 @@ final class PlayerComponent extends RectangleComponent
     _dashCooldown = 0;
     _dashContactImmunity = 0;
     _dashEmpowerWindow = 0;
+    _presentationActionRemaining = 0;
     _airJumpsRemaining = 1;
     _traversalAirDashesRemaining = 1;
     _wallContactDirection = 0;
@@ -461,6 +614,7 @@ final class PlayerComponent extends RectangleComponent
     _dashContactImmunity = 0;
     _dashEmpowerWindow = 0;
     _survivalSpecialCooldown = 0;
+    _presentationActionRemaining = 0;
     if (isMounted) game.publishUiSnapshot(force: true);
   }
 
@@ -480,15 +634,16 @@ final class PlayerComponent extends RectangleComponent
     _dashRemaining = dashDurationSeconds;
     _dashCooldown = effectiveDashCooldownSeconds;
     _dashContactImmunity = dashContactImmunitySeconds;
-    if (game.weaponBuild.tier(WeaponBuildUpgradeId.swordDashCircuit) > 0) {
+    if (game.weaponBuild.tier(WeaponBuildUpgradeId.swordDashCircuit) > 0 ||
+        game.runItems.enablesSwordDashEmpowerWindow) {
       _dashEmpowerWindow = 1.25;
     }
     if (!_platformerMotion.grounded) _airJumpsRemaining = 0;
     _visual?.flash(const Color(0xFF36E1FF), seconds: 0.10);
     _visual?.actionLunge(direction: direction, seconds: .15, travel: 20);
-    final dashFrames = _swordDashFrames;
-    if (dashFrames != null) {
-      _playAbilityMotion(dashFrames, weapon: PlayerWeapon.sword);
+    final dashClip = _swordDashClip;
+    if (dashClip != null) {
+      _playAbilityMotion(dashClip, weapon: PlayerWeapon.sword);
     }
     if (isMounted) {
       game.patchEffects.onPlayerDashed();
@@ -551,9 +706,9 @@ final class PlayerComponent extends RectangleComponent
           seconds: .16,
           travel: 24,
         );
-        final frames = _swordDashFrames;
-        if (frames != null) {
-          _playAbilityMotion(frames, weapon: PlayerWeapon.sword);
+        final clip = _swordDashClip;
+        if (clip != null) {
+          _playAbilityMotion(clip, weapon: PlayerWeapon.sword);
         }
         game.patchEffects.onPlayerDashed();
         unawaited(game.audio.playSwordDash());
@@ -573,9 +728,9 @@ final class PlayerComponent extends RectangleComponent
             strikeColor: const Color(0xAAFF4FD8),
           ),
         );
-        final frames = _gauntletDoubleJumpFrames;
-        if (frames != null) {
-          _playAbilityMotion(frames, weapon: PlayerWeapon.gauntlet);
+        final clip = _gauntletDoubleJumpClip;
+        if (clip != null) {
+          _playAbilityMotion(clip, weapon: PlayerWeapon.gauntlet);
         }
         _visual?.squash(seconds: .20);
         unawaited(
@@ -615,9 +770,9 @@ final class PlayerComponent extends RectangleComponent
             ),
           );
         }
-        final frames = _gunRailFrames;
-        if (frames != null) {
-          _playAbilityMotion(frames, weapon: PlayerWeapon.gun);
+        final clip = _gunRailClip;
+        if (clip != null) {
+          _playAbilityMotion(clip, weapon: PlayerWeapon.gun);
         }
         unawaited(game.audio.playWeaponAttack(PlayerWeapon.gun, heavy: true));
     }
@@ -760,30 +915,26 @@ final class PlayerComponent extends RectangleComponent
               ) *
               game.survivalItems.attackCooldownMultiplierFor(selectedWeapon)
         : 1.0;
-    _attackCooldown =
+    final effectiveInterval =
         (counter ? 0.18 : selectedWeapon.baseCooldown) *
         game.runItems.attackCooldownMultiplierFor(selectedWeapon) *
         game.weaponBuild.attackCooldownMultiplierFor(selectedWeapon) *
         survivalCooldownMultiplier;
     final isGunRail = selectedWeapon == PlayerWeapon.gun && motionIndex == 4;
-    final railFrames = _gunRailFrames;
-    if (isGunRail && railFrames != null) {
-      _playAbilityMotion(
-        railFrames,
-        weapon: PlayerWeapon.gun,
-        authoredActionFrames:
-            _weaponCombatFrames[PlayerWeapon.gun]?[PlayerCombatAnimation
-                .attack4],
-      );
-    } else {
-      _playCombatMotion(
-        counter
-            ? PlayerCombatAnimation.counter
-            : PlayerCombatAnimation.attackForIndex(motionIndex),
-        fallbackIndex: motionIndex,
-        fallbackFps: counter ? 16 : 13,
-      );
-    }
+    final combatMotion = counter
+        ? PlayerCombatAnimation.counter
+        : PlayerCombatAnimation.attackForIndex(motionIndex);
+    final playback = PlayerCombatPlaybackContract.forAction(
+      state: combatMotion,
+      effectiveIntervalSeconds: effectiveInterval,
+    );
+    _attackCooldown = playback.durationSeconds;
+    _playCombatMotion(
+      combatMotion,
+      fallbackIndex: motionIndex,
+      fallbackFps: counter ? 16 : 13,
+      playback: playback,
+    );
     final attackDirection = game.mode == PatchWorldMode.survival
         ? _aimDirection.normalized()
         : Vector2(_facing, 0);
@@ -803,12 +954,9 @@ final class PlayerComponent extends RectangleComponent
       seconds: counter ? 0.16 : 0.08,
     );
 
-    final combatMotion = counter
-        ? PlayerCombatAnimation.counter
-        : PlayerCombatAnimation.attackForIndex(motionIndex);
     _pendingWeaponImpacts.add(
       _PendingWeaponImpact(
-        remaining: combatMotion.eventFrame / combatMotion.fps(selectedWeapon),
+        remaining: playback.impactDelaySeconds,
         weapon: selectedWeapon,
         motionIndex: motionIndex,
         counter: counter,
@@ -900,7 +1048,11 @@ final class PlayerComponent extends RectangleComponent
                 (game.mode == PatchWorldMode.survival
                     ? game.survivalWeaponBuild.swordReachMultiplier *
                           game.survivalItems.swordReachMultiplier
-                    : 1),
+                    : game.runItems.weaponReachMultiplierFor(
+                        weapon: weapon,
+                        motionIndex: motionIndex,
+                        dashEmpowered: impact.dashEmpowered,
+                      )),
             rotation: rotation,
             sourceId: counter
                 ? 'player.sword.parryCounter'
@@ -922,7 +1074,11 @@ final class PlayerComponent extends RectangleComponent
                   (game.mode == PatchWorldMode.survival
                       ? game.survivalWeaponBuild.gauntletReachMultiplier *
                             game.survivalItems.gauntletReachMultiplier
-                      : 1),
+                      : game.runItems.weaponReachMultiplierFor(
+                          weapon: weapon,
+                          motionIndex: motionIndex,
+                          dashEmpowered: impact.dashEmpowered,
+                        )),
               rotation: rotation,
               sourceId: counter
                   ? 'player.gauntlet.parryCounter'
@@ -943,7 +1099,11 @@ final class PlayerComponent extends RectangleComponent
                   (game.mode == PatchWorldMode.survival
                       ? game.survivalWeaponBuild.gauntletReachMultiplier *
                             game.survivalItems.gauntletReachMultiplier
-                      : 1),
+                      : game.runItems.weaponReachMultiplierFor(
+                          weapon: weapon,
+                          motionIndex: motionIndex,
+                          dashEmpowered: impact.dashEmpowered,
+                        )),
               rotation: rotation,
               sourceId: 'player.gauntlet.combo.$motionIndex',
               damage: damage,
@@ -973,7 +1133,9 @@ final class PlayerComponent extends RectangleComponent
                                     .survivalWeaponBuild
                                     .gunProjectileSpeedMultiplier *
                                 game.survivalItems.gunProjectileSpeedMultiplier
-                          : 1)),
+                          : game.runItems.projectileSpeedMultiplierFor(
+                              weapon,
+                            ))),
               sourceId: counter
                   ? 'player.gun.parryCounter'
                   : 'player.gun.combo.$motionIndex',
@@ -987,11 +1149,18 @@ final class PlayerComponent extends RectangleComponent
               maxHits: game.mode == PatchWorldMode.survival
                   ? game.survivalWeaponBuild.gunMaxHits +
                         game.survivalItems.gunBonusHits
-                  : 1,
+                  : 1 +
+                        game.runItems.projectileMaxHitsBonusFor(
+                          weapon,
+                          motionIndex,
+                        ),
               ricochetRadians: game.mode == PatchWorldMode.survival
                   ? game.survivalWeaponBuild.gunRicochetRadians +
                         game.survivalItems.gunRicochetRadians
-                  : 0,
+                  : game.runItems.projectileRicochetRadiansFor(
+                      weapon,
+                      motionIndex,
+                    ),
               blastRadius: game.mode == PatchWorldMode.survival
                   ? game.survivalItems.explosionRadiusFor(
                       PlayerWeapon.gun,
@@ -1093,33 +1262,46 @@ final class PlayerComponent extends RectangleComponent
     PlayerCombatAnimation state, {
     required int fallbackIndex,
     required double fallbackFps,
+    PlayerCombatPlaybackContract? playback,
   }) {
-    final frames = _weaponCombatFrames[selectedWeapon]?[state];
-    if (frames != null) {
-      _visual?.playOnce(
-        frames,
-        fps: state.fps(selectedWeapon),
-        frameTransforms: _combatFrameTransforms[selectedWeapon]?[state],
+    final clip = _weaponCombatClips[selectedWeapon]?[state];
+    if (clip != null) {
+      final duration =
+          playback?.durationSeconds ??
+          clip.frames.length / state.fps(selectedWeapon);
+      _presentationActionRemaining = math.max(
+        _presentationActionRemaining,
+        duration,
       );
+      _visual?.playClipOnce(clip, durationSeconds: duration);
       return;
     }
+    _presentationActionRemaining = math.max(
+      _presentationActionRemaining,
+      4 / fallbackFps,
+    );
     _playWeaponMotion(fallbackIndex, fps: fallbackFps);
   }
 
   void _playAbilityMotion(
-    List<Sprite> abilityFrames, {
+    SpritePlaybackClip abilityClip, {
     required PlayerWeapon weapon,
-    List<Sprite>? authoredActionFrames,
+    SpritePlaybackClip? authoredActionClip,
   }) {
     final state = PlayerCombatAnimation.abilityTransition;
-    final frames =
-        _composedAbilityFrames[weapon] ??
-        composeAbilityMotionFrames<Sprite>(
-          abilityFrames: abilityFrames,
-          transitionFrames: _weaponCombatFrames[weapon]?[state],
-          authoredActionFrames: authoredActionFrames,
+    final clip =
+        _composedAbilityClips[weapon] ??
+        _composeAbilityMotionClip(
+          abilityClip: abilityClip,
+          transitionClip: _weaponCombatClips[weapon]?[state],
+          authoredActionClip: authoredActionClip,
         );
-    _visual?.playOnce(frames, fps: state.fps(weapon));
+    final duration = clip.frames.length / state.fps(weapon);
+    _presentationActionRemaining = math.max(
+      _presentationActionRemaining,
+      duration,
+    );
+    _visual?.playClipOnce(clip, durationSeconds: duration);
   }
 
   void _playWeaponMotion(int index, {required double fps}) {
@@ -1171,6 +1353,10 @@ final class PlayerComponent extends RectangleComponent
     _hitInvulnerability = hitInvulnerabilitySeconds;
     final hurtFrames = _hurtFrames;
     if (hurtFrames != null) {
+      _presentationActionRemaining = math.max(
+        _presentationActionRemaining,
+        hurtFrames.length / 10,
+      );
       _visual?.playOnce(hurtFrames, fps: 10);
     }
     _visual?.flash(const Color(0xFFFF6464), seconds: 0.18);
@@ -1242,6 +1428,10 @@ final class PlayerComponent extends RectangleComponent
     _dashContactImmunity = math.max(0, _dashContactImmunity - statusDt);
     _dashEmpowerWindow = math.max(0, _dashEmpowerWindow - statusDt);
     _survivalSpecialCooldown = math.max(0, _survivalSpecialCooldown - statusDt);
+    _presentationActionRemaining = math.max(
+      0,
+      _presentationActionRemaining - simulationDt,
+    );
     if (_weaponComboReset <= 0) _weaponComboStep = 0;
 
     _previousPosition.setFrom(position);

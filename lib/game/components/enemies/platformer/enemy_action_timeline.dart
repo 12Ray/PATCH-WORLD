@@ -7,10 +7,11 @@ final class EnemyActionTick {
   final EnemyActionPhase current;
 
   bool get enteredActive =>
-      previous != EnemyActionPhase.active && current == EnemyActionPhase.active;
+      previous.index < EnemyActionPhase.active.index &&
+      current.index >= EnemyActionPhase.active.index;
   bool get enteredRecovery =>
-      previous != EnemyActionPhase.recovery &&
-      current == EnemyActionPhase.recovery;
+      previous.index < EnemyActionPhase.recovery.index &&
+      current.index >= EnemyActionPhase.recovery.index;
   bool get completed => current == EnemyActionPhase.completed;
 }
 

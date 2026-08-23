@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -27,8 +28,8 @@ void main() {
       expect(sequence['fps'], 6, reason: entry.key);
       expect(sequence['loop'], isTrue, reason: entry.key);
       expect(sequence['pivot'], <num>[0.5, 0.5], reason: entry.key);
-      expect(sequence['baseline'], 0.86, reason: entry.key);
-      expect(sequence['displaySize'], <num>[54, 54], reason: entry.key);
+      expect(sequence['baseline'], 0.9375, reason: entry.key);
+      expect(sequence['displaySize'], <num>[46, 46], reason: entry.key);
       expect(sequence['standingFrame'], 0, reason: entry.key);
       expect(sequence['promptVersion'], 'art-v3-pass0-2026-08-11');
 
@@ -102,7 +103,7 @@ void main() {
           greaterThanOrEqualTo(0.30),
           reason:
               '$firstName and $secondName must remain distinguishable at the '
-              '54x54 gameplay display size',
+              '46x46 gameplay display size',
         );
       }
     }
@@ -135,8 +136,8 @@ void main() {
         expect(sequence['fps'], contract.fps, reason: reason);
         expect(sequence['loop'], contract.loop, reason: reason);
         expect(sequence['pivot'], <num>[0.5, 0.5], reason: reason);
-        expect(sequence['baseline'], 0.86, reason: reason);
-        expect(sequence['displaySize'], <num>[54, 54], reason: reason);
+        expect(sequence['baseline'], 0.9375, reason: reason);
+        expect(sequence['displaySize'], <num>[46, 46], reason: reason);
         expect(sequence['sourceGrid'], <num>[4, 4], reason: reason);
         expect(
           sequence['promptVersion'],
@@ -205,6 +206,7 @@ void main() {
         jsonDecode(File('$directory/manifest.json').readAsStringSync())
             as Map<String, dynamic>;
     final combat = manifest['combat'] as Map<String, dynamic>;
+    final idleSequences = manifest['sequences'] as Map<String, dynamic>;
     const expectedStates = <String>{
       'attack1',
       'attack2',
@@ -222,6 +224,12 @@ void main() {
     expect(combat.keys.toSet(), <String>{'sword', 'gauntlet', 'gun'});
     for (final weaponEntry in combat.entries) {
       final states = weaponEntry.value as Map<String, dynamic>;
+      final idleReferencePixels = await _idleBodyPixelReference(
+        directory: directory,
+        sequence: idleSequences[weaponEntry.key] as Map<String, dynamic>,
+      );
+      double? registeredRootX;
+      double? registeredFootY;
       expect(states.keys.toSet(), expectedStates, reason: weaponEntry.key);
       for (final stateEntry in states.entries) {
         final sequence = stateEntry.value as Map<String, dynamic>;
@@ -231,13 +239,117 @@ void main() {
         expect(sequence['fps'], greaterThan(0), reason: reason);
         expect(sequence['loop'], isFalse, reason: reason);
         expect(sequence['pivot'], <num>[0.5, 0.5], reason: reason);
-        expect(sequence['eventFrame'], 0, reason: reason);
+        final expectedEventFrame =
+            stateEntry.key.startsWith('attack') || stateEntry.key == 'counter'
+            ? 1
+            : 0;
+        expect(sequence['eventFrame'], expectedEventFrame, reason: reason);
         final activeFrame = sequence['activeFrame'] as List<dynamic>;
         expect(activeFrame.first, 0, reason: reason);
         expect(activeFrame.last, inInclusiveRange(0, 3), reason: reason);
         expect(
+          expectedEventFrame,
+          inInclusiveRange(activeFrame.first as int, activeFrame.last as int),
+          reason: '$reason eventFrame must be active',
+        );
+        expect(
           sequence['promptVersion'],
           'art-v3-pass2-2026-08-11',
+          reason: reason,
+        );
+        expect(sequence['displaySize'], <num>[46, 46], reason: reason);
+        expect(sequence['baseline'], 0.9375, reason: reason);
+        expect(sequence['scalePolicy'], 'idle-body-area-v1', reason: reason);
+        final manifestReferencePixels = sequence['referenceBodyPixels'] as int;
+        expect(
+          manifestReferencePixels / idleReferencePixels,
+          closeTo(1, 0.01),
+          reason: reason,
+        );
+        expect(
+          sequence['registrationVersion'],
+          'art-v3-body-component-v2-2026-08-23',
+          reason: reason,
+        );
+        final transforms = sequence['frameTransforms'] as List<dynamic>;
+        final bodyRoots = sequence['bodyRoots'] as List<dynamic>;
+        final bodyBounds = sequence['bodyBounds'] as List<dynamic>;
+        final bodyPixelCounts = sequence['bodyPixelCounts'] as List<dynamic>;
+        expect(transforms, hasLength(4), reason: reason);
+        expect(bodyRoots, hasLength(4), reason: reason);
+        expect(bodyBounds, hasLength(4), reason: reason);
+        expect(bodyPixelCounts, hasLength(4), reason: reason);
+        final frameScales = <double>[];
+        for (var frame = 0; frame < 4; frame += 1) {
+          final transform = transforms[frame] as Map<String, dynamic>;
+          final root = bodyRoots[frame] as Map<String, dynamic>;
+          expect((transform['dx'] as num).toDouble().isFinite, isTrue);
+          expect((transform['dy'] as num).toDouble().isFinite, isTrue);
+          final scale = (transform['scale'] as num).toDouble();
+          expect(
+            scale,
+            inInclusiveRange(1.15, 2.4),
+            reason: '$reason frame $frame',
+          );
+          frameScales.add(scale);
+          expect(root['x'], inInclusiveRange(0, 255));
+          expect(root['y'], inInclusiveRange(0, 255));
+          expect(
+            bodyBounds[frame],
+            everyElement(inInclusiveRange(0, 256)),
+            reason: '$reason frame $frame',
+          );
+          expect(
+            bodyPixelCounts[frame],
+            greaterThan(64),
+            reason: '$reason frame $frame',
+          );
+          expect(
+            scale,
+            closeTo(
+              math.sqrt(
+                manifestReferencePixels / (bodyPixelCounts[frame] as int),
+              ),
+              0.0001,
+            ),
+            reason: '$reason frame $frame idle-area scale',
+          );
+          final rootX =
+              ((root['x'] as num).toDouble() - 128) * 46 / 256 * scale +
+              (transform['dx'] as num).toDouble();
+          final footY =
+              ((root['y'] as num).toDouble() - 128) * 46 / 256 * scale +
+              (transform['dy'] as num).toDouble();
+          registeredRootX ??= rootX;
+          expect(rootX, closeTo(registeredRootX, .004), reason: reason);
+          final airborneSwordFinisher =
+              weaponEntry.key == 'sword' &&
+              stateEntry.key == 'attack6' &&
+              frame < 3;
+          if (!airborneSwordFinisher) {
+            registeredFootY ??= footY;
+            expect(footY, closeTo(registeredFootY, .004), reason: reason);
+          } else {
+            final authoredOffset = const <double>[-6, -11, -6][frame];
+            expect(
+              footY,
+              closeTo(registeredFootY! + authoredOffset, .004),
+              reason: reason,
+            );
+          }
+        }
+        expect(
+          frameScales.toSet(),
+          hasLength(greaterThan(1)),
+          reason: '$reason must use measured per-frame body scale',
+        );
+        expect(
+          sequence['presentationScale'],
+          closeTo(
+            frameScales.reduce((first, second) => first + second) /
+                frameScales.length,
+            0.0001,
+          ),
           reason: reason,
         );
 
@@ -253,11 +365,15 @@ void main() {
         final fingerprints = <int>{};
         for (var frame = 0; frame < 4; frame += 1) {
           var visible = 0;
+          var deepestVisible = -1;
           var fingerprint = 17;
           for (var y = 0; y < 256; y += 1) {
             for (var x = 0; x < 256; x += 1) {
               final pixel = (y * image.width + frame * 256 + x) * 4;
-              if (rgba[pixel + 3] > 16) visible += 1;
+              if (rgba[pixel + 3] > 16) {
+                visible += 1;
+                deepestVisible = y;
+              }
               fingerprint =
                   0x1fffffff &
                   (fingerprint * 31 + rgba[pixel] + rgba[pixel + 3]);
@@ -274,6 +390,53 @@ void main() {
             0,
             reason: reason,
           );
+          final detected = _detectBodyLandmark(
+            rgba: rgba,
+            stripWidth: image.width,
+            frame: frame,
+            sourceSize: 256,
+          );
+          final root = bodyRoots[frame] as Map<String, dynamic>;
+          expect(
+            detected.rootX,
+            closeTo(root['x'] as int, 1),
+            reason: '$reason frame $frame',
+          );
+          expect(
+            detected.footY,
+            closeTo(root['y'] as int, 1),
+            reason: '$reason frame $frame',
+          );
+          final manifestBounds = bodyBounds[frame] as List<dynamic>;
+          for (var coordinate = 0; coordinate < 4; coordinate += 1) {
+            expect(
+              detected.bounds[coordinate],
+              closeTo(manifestBounds[coordinate] as int, 2),
+              reason: '$reason frame $frame bound $coordinate',
+            );
+          }
+          expect(
+            detected.pixelCount / (bodyPixelCounts[frame] as int),
+            closeTo(1, 0.015),
+            reason: '$reason frame $frame',
+          );
+          final normalizedBodySize =
+              math.sqrt(detected.pixelCount) * frameScales[frame];
+          expect(
+            normalizedBodySize / math.sqrt(idleReferencePixels),
+            closeTo(1, 0.015),
+            reason: '$reason frame $frame idle-relative body size',
+          );
+          if (weaponEntry.key == 'gauntlet' &&
+              stateEntry.key == 'counter' &&
+              (frame == 0 || frame == 3)) {
+            expect(deepestVisible, greaterThanOrEqualTo(250));
+            expect(
+              detected.footY,
+              lessThan(190),
+              reason: 'detached bottom VFX must not become the body foot',
+            );
+          }
           fingerprints.add(fingerprint);
         }
         expect(fingerprints, hasLength(4), reason: reason);
@@ -282,6 +445,181 @@ void main() {
       }
     }
   });
+}
+
+final class _DetectedBodyLandmark {
+  const _DetectedBodyLandmark({
+    required this.rootX,
+    required this.footY,
+    required this.bounds,
+    required this.pixelCount,
+  });
+
+  final int rootX;
+  final int footY;
+  final List<int> bounds;
+  final int pixelCount;
+}
+
+Future<int> _idleBodyPixelReference({
+  required String directory,
+  required Map<String, dynamic> sequence,
+}) async {
+  final bytes = File('$directory/${sequence['asset']}').readAsBytesSync();
+  final codec = await instantiateImageCodec(bytes);
+  final decoded = await codec.getNextFrame();
+  final image = decoded.image;
+  final data = await image.toByteData(format: ImageByteFormat.rawRgba);
+  expect(data, isNotNull);
+  final rgba = data!.buffer.asUint8List();
+  final counts = <int>[];
+  for (var frame = 0; frame < (sequence['frames'] as int); frame += 1) {
+    counts.add(
+      _detectBodyLandmark(
+        rgba: rgba,
+        stripWidth: image.width,
+        frame: frame,
+        sourceSize: 256,
+      ).pixelCount,
+    );
+  }
+  image.dispose();
+  codec.dispose();
+  return _quantileInt(counts, 0.5);
+}
+
+_DetectedBodyLandmark _detectBodyLandmark({
+  required Uint8List rgba,
+  required int stripWidth,
+  required int frame,
+  required int sourceSize,
+}) {
+  final pixelCount = sourceSize * sourceSize;
+  final raw = Uint8List(pixelCount);
+  for (var y = 0; y < sourceSize; y += 1) {
+    for (var x = 0; x < sourceSize; x += 1) {
+      final local = y * sourceSize + x;
+      final pixel = (y * stripWidth + frame * sourceSize + x) * 4;
+      final red = rgba[pixel];
+      final green = rgba[pixel + 1];
+      final blue = rgba[pixel + 2];
+      final alpha = rgba[pixel + 3];
+      if (alpha > 64 && red + green + blue < 405 && green <= red + 18) {
+        raw[local] = 1;
+      }
+    }
+  }
+
+  final dense = Uint8List(pixelCount);
+  for (var y = 0; y < sourceSize; y += 1) {
+    for (var x = 0; x < sourceSize; x += 1) {
+      final local = y * sourceSize + x;
+      if (raw[local] == 0) continue;
+      var neighbors = 0;
+      for (
+        var neighborY = math.max(0, y - 1);
+        neighborY <= math.min(sourceSize - 1, y + 1);
+        neighborY += 1
+      ) {
+        for (
+          var neighborX = math.max(0, x - 1);
+          neighborX <= math.min(sourceSize - 1, x + 1);
+          neighborX += 1
+        ) {
+          if (raw[neighborY * sourceSize + neighborX] != 0) {
+            neighbors += 1;
+          }
+        }
+      }
+      if (neighbors >= 6) dense[local] = 1;
+    }
+  }
+
+  final visited = Uint8List(pixelCount);
+  List<int>? bestComponent;
+  var bestScore = -1.0;
+  for (var start = 0; start < pixelCount; start += 1) {
+    if (dense[start] == 0 || visited[start] != 0) continue;
+    final pending = <int>[start];
+    final component = <int>[];
+    visited[start] = 1;
+    var pendingIndex = 0;
+    var sumX = 0;
+    var sumY = 0;
+    while (pendingIndex < pending.length) {
+      final local = pending[pendingIndex++];
+      component.add(local);
+      final x = local % sourceSize;
+      final y = local ~/ sourceSize;
+      sumX += x;
+      sumY += y;
+      for (
+        var neighborY = math.max(0, y - 1);
+        neighborY <= math.min(sourceSize - 1, y + 1);
+        neighborY += 1
+      ) {
+        for (
+          var neighborX = math.max(0, x - 1);
+          neighborX <= math.min(sourceSize - 1, x + 1);
+          neighborX += 1
+        ) {
+          final neighbor = neighborY * sourceSize + neighborX;
+          if (dense[neighbor] != 0 && visited[neighbor] == 0) {
+            visited[neighbor] = 1;
+            pending.add(neighbor);
+          }
+        }
+      }
+    }
+    if (component.length < 64) continue;
+    final centerX = sumX / component.length;
+    final centerY = sumY / component.length;
+    final distance =
+        math.pow((centerX - sourceSize / 2) / sourceSize, 2) +
+        math.pow((centerY - sourceSize * 0.515) / sourceSize, 2);
+    final score = component.length / (1 + 0.35 * distance);
+    if (score > bestScore) {
+      bestScore = score;
+      bestComponent = component;
+    }
+  }
+  if (bestComponent == null) {
+    throw StateError('Sprite frame does not contain a body component');
+  }
+
+  final xs = <int>[];
+  final ys = <int>[];
+  for (final local in bestComponent) {
+    xs.add(local % sourceSize);
+    ys.add(local ~/ sourceSize);
+  }
+  final lowerCut = _quantileInt(ys, 0.82);
+  final lowerXs = <int>[];
+  for (var index = 0; index < bestComponent.length; index += 1) {
+    if (ys[index] >= lowerCut) lowerXs.add(xs[index]);
+  }
+  return _DetectedBodyLandmark(
+    rootX: _quantileInt(lowerXs, 0.5),
+    footY: _quantileInt(ys, 0.99),
+    bounds: <int>[
+      _quantileInt(xs, 0.01),
+      _quantileInt(ys, 0.01),
+      _quantileInt(xs, 0.99) + 1,
+      _quantileInt(ys, 0.99) + 1,
+    ],
+    pixelCount: bestComponent.length,
+  );
+}
+
+int _quantileInt(List<int> values, double fraction) {
+  final ordered = values.toList()..sort();
+  final position = (ordered.length - 1) * fraction;
+  final floor = position.floor();
+  final remainder = position - floor;
+  final index = (remainder - 0.5).abs() < 1e-12
+      ? (floor.isEven ? floor : floor + 1)
+      : position.round();
+  return ordered[index];
 }
 
 Set<int> _sampleSilhouette({

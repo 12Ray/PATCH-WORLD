@@ -28,12 +28,15 @@ final class ItemPedestalComponent extends PositionComponent
     if (_collected || player.position.distanceTo(position) > 90) return false;
     _collected = true;
     onCollected(item);
-    game.runItems.acquire(item);
+    final result = game.runItems.acquire(item);
     game.world.player.restoreIntegrity(1);
     final owner = parent;
     if (owner != null) {
       owner.add(
-        ItemDiscoveryPresentationComponent(item: item, rewardTier: rewardTier),
+        ItemDiscoveryPresentationComponent(
+          result: result,
+          rewardTier: rewardTier,
+        ),
       );
     }
     unawaited(game.audio.playHeal());

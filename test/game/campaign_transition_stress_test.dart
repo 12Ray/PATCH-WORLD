@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,10 +39,8 @@ void main() {
     (tester) async {
       final game = PatchWorldGame(initialRoom: RoomId.bootSector);
       await _mountGame(tester, game);
-      await tester.runAsync(
-        () => game.selectStartingWeapon(PlayerWeapon.sword),
-      );
-      await tester.pump(const Duration(milliseconds: 16));
+      unawaited(game.selectStartingWeapon(PlayerWeapon.sword));
+      await _waitForCampaignStart(tester, game, PlayerWeapon.sword);
 
       expect(game.campaignExploration.currentNode, CampaignNodeId.bootSector);
       expect(
@@ -230,4 +230,23 @@ Future<void> _waitForNode(
     }
   }
   throw StateError('Timed out waiting for ${target.name}.');
+}
+
+Future<void> _waitForCampaignStart(
+  WidgetTester tester,
+  PatchWorldGame game,
+  PlayerWeapon weapon,
+) async {
+  for (var attempt = 0; attempt < 180; attempt += 1) {
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 4)),
+    );
+    if (!game.overlays.isActive(OverlayIds.title) &&
+        game.world.isReady &&
+        game.world.player.selectedWeapon == weapon) {
+      return;
+    }
+  }
+  throw StateError('Timed out waiting for ${weapon.name} campaign start.');
 }

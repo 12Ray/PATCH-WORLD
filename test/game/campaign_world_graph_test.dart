@@ -90,6 +90,106 @@ void main() {
         expect(state.canTraverse(shortcut, weapon: weapon), isTrue);
       }
     });
+
+    test('main chapter routes follow ROOM1(3 sub-quests) → ROOM2 → ROOM3', () {
+      final graph = CampaignWorldGraph.standard();
+
+      expect(CampaignWorldGraph.damageSubQuestPath, const <CampaignNodeId>[
+        CampaignNodeId.damageWorkshop,
+        CampaignNodeId.damageAssembly,
+        CampaignNodeId.damageOverflow,
+      ]);
+      expect(CampaignWorldGraph.temporalSubQuestPath, const <CampaignNodeId>[
+        CampaignNodeId.temporalAscent,
+        CampaignNodeId.temporalFracture,
+        CampaignNodeId.temporalPendulum,
+      ]);
+      expect(CampaignWorldGraph.collisionSubQuestPath, const <CampaignNodeId>[
+        CampaignNodeId.collisionCompression,
+        CampaignNodeId.collisionFracture,
+        CampaignNodeId.collisionMerge,
+      ]);
+      expect(
+        CampaignWorldGraph.damageMainPath.last,
+        CampaignWorldGraph.damageLabBossNode,
+      );
+      expect(
+        CampaignWorldGraph.temporalMainPath.last,
+        CampaignWorldGraph.temporalBossNode,
+      );
+      expect(
+        CampaignWorldGraph.collisionMainPath.last,
+        CampaignWorldGraph.collisionBossNode,
+      );
+
+      final chapterChains = <List<CampaignNodeId>>[
+        CampaignWorldGraph.damageMainPath,
+        CampaignWorldGraph.temporalMainPath,
+        CampaignWorldGraph.collisionMainPath,
+      ];
+
+      for (final chapter in chapterChains) {
+        for (var index = 0; index < chapter.length - 1; index++) {
+          final from = chapter[index];
+          final to = chapter[index + 1];
+          expect(
+            CampaignWorldGraph.isLinearChapterTransition(from, to),
+            isTrue,
+            reason:
+                'Expected ${from.name} -> ${to.name} to stay in linear room progression.',
+          );
+          expect(graph.connectionBetween(from, to), isNotNull);
+        }
+      }
+
+      expect(
+        CampaignWorldGraph.isLinearChapterTransition(
+          CampaignNodeId.overflowWarden,
+          CampaignNodeId.temporalAscent,
+        ),
+        isTrue,
+        reason: 'ROOM1 boss should connect into ROOM2 entry.',
+      );
+      expect(
+        CampaignWorldGraph.isLinearChapterTransition(
+          CampaignNodeId.chronoJailer,
+          CampaignNodeId.collisionCompression,
+        ),
+        isTrue,
+        reason: 'ROOM2 boss should connect into ROOM3 entry.',
+      );
+
+      final collisionHubShortcut = graph.connectionBetween(
+        CampaignNodeId.bootSector,
+        CampaignNodeId.collisionCompression,
+      );
+      expect(
+        collisionHubShortcut.requirement,
+        CampaignRouteRequirement.unlockedShortcut,
+      );
+      expect(
+        collisionHubShortcut.unlockId,
+        CampaignWorldGraph.collisionHubAccessId,
+      );
+      expect(
+        graph
+            .connectionBetween(
+              CampaignNodeId.chronoJailer,
+              CampaignNodeId.collisionCompression,
+            )
+            .bidirectional,
+        isTrue,
+        reason: 'The linear first-clear route must still support backtracking.',
+      );
+      expect(
+        () => graph.connectionBetween(
+          CampaignNodeId.overflowWarden,
+          CampaignNodeId.collisionCompression,
+        ),
+        throwsStateError,
+        reason: 'ROOM3 must not be reachable before ROOM2 is cleared.',
+      );
+    });
   });
 
   group('campaign exploration state', () {
@@ -158,7 +258,7 @@ void main() {
       expect(state.activatedTerrainNodeIds, contains('terrain.test.bridge'));
     });
 
-    test('optimizer route unlocks after all three core signatures', () {
+    test('optimizer route requires cores and all three applied patches', () {
       final graph = CampaignWorldGraph.standard();
       final state = CampaignExplorationState();
       final gate = graph.connectionBetween(
@@ -172,7 +272,16 @@ void main() {
         ..collectCoreSignature(CampaignRegion.temporalHall)
         ..collectCoreSignature(CampaignRegion.collisionArchive);
       expect(state.hasAllCoreSignatures, isTrue);
-      expect(state.canTraverse(gate, weapon: PlayerWeapon.gun), isTrue);
+      expect(gate.requirement, CampaignRouteRequirement.optimizerGateReady);
+      expect(state.canTraverse(gate, weapon: PlayerWeapon.gun), isFalse);
+      expect(
+        state.canTraverse(
+          gate,
+          weapon: PlayerWeapon.gun,
+          optimizerGateReady: true,
+        ),
+        isTrue,
+      );
     });
 
     test('weapon-specific routes never leak to another loadout', () {

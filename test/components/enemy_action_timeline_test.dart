@@ -39,4 +39,36 @@ void main() {
     expect(action.elapsed, 0);
     expect(action.phase, EnemyActionPhase.telegraph);
   });
+
+  test('large delta reports active boundary when it lands in recovery', () {
+    final action = EnemyActionTimeline(
+      id: 'test.skip-to-recovery',
+      telegraphSeconds: 0.3,
+      activeSeconds: 0.2,
+      recoverySeconds: 0.5,
+    );
+
+    final tick = action.advance(0.75);
+
+    expect(action.phase, EnemyActionPhase.recovery);
+    expect(tick.enteredActive, isTrue);
+    expect(tick.enteredRecovery, isTrue);
+    expect(tick.completed, isFalse);
+  });
+
+  test('large delta reports crossed boundaries when action completes', () {
+    final action = EnemyActionTimeline(
+      id: 'test.skip-to-completed',
+      telegraphSeconds: 0.3,
+      activeSeconds: 0.2,
+      recoverySeconds: 0.5,
+    );
+
+    final tick = action.advance(1.5);
+
+    expect(action.phase, EnemyActionPhase.completed);
+    expect(tick.enteredActive, isTrue);
+    expect(tick.enteredRecovery, isTrue);
+    expect(tick.completed, isTrue);
+  });
 }

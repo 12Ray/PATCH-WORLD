@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:patch_world/game/campaign/campaign_traversal_ability.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
@@ -14,6 +15,17 @@ final class CampaignMapOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final exploration = game.campaignExploration;
+    final selectedWeapon = game.world.isReady
+        ? game.world.player.selectedWeapon
+        : PlayerWeapon.sword;
+    final unlockedConnections = game.campaignWorld.connections
+        .where(
+          (connection) => game.isCampaignConnectionUnlocked(
+            connection,
+            weapon: selectedWeapon,
+          ),
+        )
+        .toSet();
     return ColoredBox(
       color: const Color(0xE6050811),
       child: SafeArea(
@@ -112,13 +124,7 @@ final class CampaignMapOverlay extends StatelessWidget {
                             visited: exploration.visitedNodeIds,
                             current: exploration.currentNode,
                             checkpoint: exploration.checkpointNodeId,
-                            selectedWeapon: game.world.isReady
-                                ? game.world.player.selectedWeapon
-                                : PlayerWeapon.sword,
-                            unlockedShortcutIds:
-                                exploration.unlockedShortcutIds,
-                            hasAllCoreSignatures:
-                                exploration.hasAllCoreSignatures,
+                            unlockedConnections: unlockedConnections,
                           ),
                           child: const SizedBox.expand(),
                         ),
@@ -221,9 +227,7 @@ final class _CampaignMapPainter extends CustomPainter {
     required this.visited,
     required this.current,
     required this.checkpoint,
-    required this.selectedWeapon,
-    required this.unlockedShortcutIds,
-    required this.hasAllCoreSignatures,
+    required this.unlockedConnections,
   });
 
   final CampaignWorldGraph graph;
@@ -231,9 +235,7 @@ final class _CampaignMapPainter extends CustomPainter {
   final Set<CampaignNodeId> visited;
   final CampaignNodeId? current;
   final CampaignNodeId? checkpoint;
-  final PlayerWeapon selectedWeapon;
-  final Set<String> unlockedShortcutIds;
-  final bool hasAllCoreSignatures;
+  final Set<CampaignWorldConnection> unlockedConnections;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -262,11 +264,7 @@ final class _CampaignMapPainter extends CustomPainter {
           !revealed.contains(connection.to)) {
         continue;
       }
-      final isLocked = !connection.permits(
-        weapon: selectedWeapon,
-        unlockedShortcutIds: unlockedShortcutIds,
-        hasAllCoreSignatures: hasAllCoreSignatures,
-      );
+      final isLocked = !unlockedConnections.contains(connection);
       final routePaint = Paint()
         ..color = isLocked ? const Color(0x99FF4FD8) : const Color(0x665D7397)
         ..strokeWidth = isLocked ? 1.5 : 3
@@ -345,9 +343,7 @@ final class _CampaignMapPainter extends CustomPainter {
   bool shouldRepaint(covariant _CampaignMapPainter oldDelegate) =>
       oldDelegate.current != current ||
       oldDelegate.checkpoint != checkpoint ||
-      oldDelegate.selectedWeapon != selectedWeapon ||
-      oldDelegate.unlockedShortcutIds.length != unlockedShortcutIds.length ||
-      oldDelegate.hasAllCoreSignatures != hasAllCoreSignatures ||
+      !setEquals(oldDelegate.unlockedConnections, unlockedConnections) ||
       oldDelegate.revealed.length != revealed.length ||
       oldDelegate.visited.length != visited.length;
 }

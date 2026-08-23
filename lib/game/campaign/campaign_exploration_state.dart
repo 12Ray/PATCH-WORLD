@@ -83,10 +83,12 @@ final class CampaignExplorationState {
   bool canTraverse(
     CampaignWorldConnection connection, {
     required PlayerWeapon weapon,
+    bool optimizerGateReady = false,
   }) => connection.permits(
     weapon: weapon,
     unlockedShortcutIds: unlockedShortcutIds,
     hasAllCoreSignatures: hasAllCoreSignatures,
+    optimizerGateReady: optimizerGateReady,
   );
 
   void reset() {

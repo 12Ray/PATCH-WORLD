@@ -31,6 +31,8 @@ import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/game/rules/rule_engine.dart';
 import 'package:patch_world/game/rules/rule_ids.dart';
 import 'package:patch_world/game/rooms/damage_lab_room_status.dart';
+import 'package:patch_world/game/rooms/maps/damage_lab_room_layout.dart';
+import 'package:patch_world/game/rooms/maps/regional_campaign_room_layout.dart';
 import 'package:patch_world/game/rooms/regional_campaign_node_controller.dart';
 import 'package:patch_world/game/rooms/room_two_controller.dart';
 import 'package:patch_world/game/rooms/room_three_controller.dart';
@@ -260,6 +262,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   late final PatchEffectsSystem patchEffects;
   late final EnemyTempoSystem enemyTempo;
   late final DuplicateFaultSystem duplicateFault;
+  late final DamageLabRoomLayoutCatalog damageLabRoomLayouts;
+  late final RegionalCampaignRoomLayoutCatalog regionalRoomLayouts;
   RoomId currentRoom;
   PatchWorldMode mode;
   PatchSelectionRequest? pendingPatchSelection;
@@ -298,6 +302,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   PlayerWeapon? get selectedRunWeapon => _selectedRunWeapon;
   bool get weaponSelectionForSurvival => _weaponSelectionForSurvival;
   bool get isRoomTransitionInProgress => _roomTransitionInProgress;
+  bool get isOptimizerGateReady =>
+      campaignExploration.hasAllCoreSignatures &&
+      damageLabProgress.patchApplied &&
+      temporalHallProgress.patchApplied &&
+      collisionArchiveProgress.patchApplied;
 
   CampaignNodeId get _campaignStartNode => switch (initialRoom) {
     RoomId.bootSector => CampaignNodeId.bootSector,
@@ -432,6 +441,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       },
     );
     enemyTempo = EnemyTempoSystem(runState: runState);
+    damageLabRoomLayouts = await DamageLabRoomLayoutCatalog.load();
+    regionalRoomLayouts = await RegionalCampaignRoomLayoutCatalog.load();
     await super.onLoad();
     unawaited(_prewarmCampaignArt());
     publishUiSnapshot(force: true);
@@ -550,11 +561,15 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   void startRun() {
     final weapon = _selectedRunWeapon ?? PlayerWeapon.sword;
     _selectedRunWeapon = weapon;
-    unawaited(_startCampaignRun(weapon));
+    unawaited(_startCampaignRun(weapon, waitForVisuals: false));
   }
 
-  Future<void> _startCampaignRun(PlayerWeapon weapon) async {
+  Future<void> _startCampaignRun(
+    PlayerWeapon weapon, {
+    bool waitForVisuals = true,
+  }) async {
     await ready();
+    if (waitForVisuals) await world.player.visualLoadAttempted;
     mode = PatchWorldMode.campaign;
     campaignExploration.reset();
     world.player.configureLoadout(
@@ -595,6 +610,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
 
   Future<void> _startSurvivalRun(PlayerWeapon weapon) async {
     await ready();
+    await world.player.visualLoadAttempted;
     unawaited(audio.unlockFromUserGesture());
     mode = PatchWorldMode.survival;
     _selectedRunWeapon = weapon;
@@ -1329,6 +1345,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         ? Vector2.zero()
         : input.movementAxis;
     final hasGameplayIntent = !_cinematicInputLocked && input.hasGameplayIntent;
+    final hasActivePlayerAction =
+        !_cinematicInputLocked && world.player.hasActiveWeaponAction;
     final activeRoom = world.activeRoom;
     final survivalTempo = activeRoom is SurvivalArenaController
         ? activeRoom.enemySpeedMultiplier
@@ -1353,7 +1371,9 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     clock.beginFrame(
       realDt: dt,
       simulationAdvances:
-          currentRoom != RoomId.temporalHall || hasGameplayIntent,
+          currentRoom != RoomId.temporalHall ||
+          hasGameplayIntent ||
+          hasActivePlayerAction,
       enemySpeedMultiplier:
           enemyTempo.speedMultiplier *
           survivalTempo *
@@ -1478,6 +1498,21 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     CampaignNodeId targetNode, {
     required CampaignNodeEntry entry,
   }) {
+    if (!canTravelToCampaignNode(targetNode)) return false;
+    unawaited(
+      Future<void>.microtask(
+        () => _travelToCampaignNode(targetNode, entry: entry),
+      ),
+    );
+    return true;
+  }
+
+  /// Checks the directional door/map progression gate without scheduling a
+  /// room transition. This is also the single predicate used by direct travel.
+  bool canTravelToCampaignNode(
+    CampaignNodeId targetNode, {
+    PlayerWeapon? weapon,
+  }) {
     if (mode != PatchWorldMode.campaign || _roomTransitionInProgress) {
       return false;
     }
@@ -1490,20 +1525,42 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     } on StateError {
       return false;
     }
-    if (!campaignExploration.canTraverse(
+    return _campaignConnectionPermits(
       connection,
-      weapon: _selectedRunWeapon ?? world.player.selectedWeapon,
-    )) {
-      return false;
-    }
-    if (!_campaignProgressPermits(currentNode, targetNode)) return false;
-    unawaited(
-      Future<void>.microtask(
-        () => _travelToCampaignNode(targetNode, entry: entry),
-      ),
+      from: currentNode,
+      to: targetNode,
+      weapon:
+          weapon ??
+          _selectedRunWeapon ??
+          (world.isReady ? world.player.selectedWeapon : PlayerWeapon.sword),
     );
-    return true;
   }
+
+  bool isCampaignConnectionUnlocked(
+    CampaignWorldConnection connection, {
+    PlayerWeapon? weapon,
+  }) => _campaignConnectionPermits(
+    connection,
+    from: connection.from,
+    to: connection.to,
+    weapon:
+        weapon ??
+        _selectedRunWeapon ??
+        (world.isReady ? world.player.selectedWeapon : PlayerWeapon.sword),
+  );
+
+  bool _campaignConnectionPermits(
+    CampaignWorldConnection connection, {
+    required CampaignNodeId from,
+    required CampaignNodeId to,
+    required PlayerWeapon weapon,
+  }) =>
+      campaignExploration.canTraverse(
+        connection,
+        weapon: weapon,
+        optimizerGateReady: isOptimizerGateReady,
+      ) &&
+      _campaignProgressPermits(from, to);
 
   bool _campaignProgressPermits(
     CampaignNodeId currentNode,
@@ -1535,15 +1592,23 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
     if (currentNode == CampaignNodeId.temporalAscent &&
         targetNode == CampaignNodeId.temporalFracture) {
-      return temporalHallProgress.clearedEncounterIds.contains(0);
+      return temporalHallProgress.isRoomComplete(0);
     }
     if (currentNode == CampaignNodeId.temporalFracture &&
         targetNode == CampaignNodeId.temporalPendulum) {
-      return temporalHallProgress.clearedEncounterIds.contains(1);
+      return temporalHallProgress.isRoomComplete(1);
+    }
+    if (currentNode == CampaignNodeId.temporalFracture &&
+        const <CampaignNodeId>{
+          CampaignNodeId.temporalDashRift,
+          CampaignNodeId.temporalUpperLoop,
+          CampaignNodeId.temporalRelayControl,
+        }.contains(targetNode)) {
+      return temporalHallProgress.isRoomComplete(1);
     }
     if (currentNode == CampaignNodeId.temporalPendulum &&
         targetNode == CampaignNodeId.chronoJailer) {
-      return temporalHallProgress.allEncountersCleared;
+      return temporalHallProgress.allRoomsComplete;
     }
     if (currentNode == CampaignNodeId.chronoJailer &&
         targetNode == CampaignNodeId.temporalPendulum) {
@@ -1560,16 +1625,38 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           temporalHallProgress.patchApplied;
     }
     if (currentNode == CampaignNodeId.collisionCompression &&
+        targetNode == CampaignNodeId.chronoJailer) {
+      return temporalHallProgress.bossDefeated &&
+          temporalHallProgress.patchApplied;
+    }
+    if (currentNode == CampaignNodeId.bootSector &&
+        targetNode == CampaignNodeId.collisionCompression) {
+      return temporalHallProgress.bossDefeated &&
+          temporalHallProgress.patchApplied;
+    }
+    if (currentNode == CampaignNodeId.bootSector &&
+        targetNode == CampaignNodeId.optimizerCore) {
+      return isOptimizerGateReady;
+    }
+    if (currentNode == CampaignNodeId.collisionCompression &&
         targetNode == CampaignNodeId.collisionFracture) {
-      return collisionArchiveProgress.clearedEncounterIds.contains(0);
+      return collisionArchiveProgress.isRoomComplete(0);
     }
     if (currentNode == CampaignNodeId.collisionFracture &&
         targetNode == CampaignNodeId.collisionMerge) {
-      return collisionArchiveProgress.clearedEncounterIds.contains(1);
+      return collisionArchiveProgress.isRoomComplete(1);
+    }
+    if (currentNode == CampaignNodeId.collisionFracture &&
+        const <CampaignNodeId>{
+          CampaignNodeId.collisionVectorCache,
+          CampaignNodeId.collisionUpperMatrix,
+          CampaignNodeId.collisionPrismControl,
+        }.contains(targetNode)) {
+      return collisionArchiveProgress.isRoomComplete(1);
     }
     if (currentNode == CampaignNodeId.collisionMerge &&
         targetNode == CampaignNodeId.kernelChimera) {
-      return collisionArchiveProgress.allEncountersCleared;
+      return collisionArchiveProgress.allRoomsComplete;
     }
     if (currentNode == CampaignNodeId.kernelChimera &&
         targetNode == CampaignNodeId.collisionMerge) {
@@ -2240,6 +2327,10 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         regionalRoom?.region == CampaignRegion.collisionArchive
         ? regionalRoom
         : null;
+    final regionalObjectiveLabel =
+        regionalRoom != null && !regionalRoom.isBossRoom
+        ? regionalRoom.roomObjectiveLabel
+        : null;
     final survivalRoom = activeRoom is SurvivalArenaController
         ? activeRoom
         : null;
@@ -2342,31 +2433,33 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           CampaignNodeId.temporalRelayControl => localization.text(
             'objective.temporalSecret',
           ),
-          _ => localization.text(
-            (regionalTemporalRoom?.isCompleted ??
-                        temporalHallRoom?.isCompleted) ==
-                    true
-                ? 'objective.temporalHallExit'
-                : (regionalTemporalRoom?.currentCellNumber ??
-                          temporalHallRoom?.currentCellNumber) ==
-                      4
-                ? 'objective.temporalHallBoss'
-                : 'objective.temporalHall',
-            parameters: <String, Object>{
-              'room':
-                  regionalTemporalRoom?.currentCellNumber ??
-                  temporalHallRoom?.currentCellNumber ??
-                  1,
-              'cleared':
-                  regionalTemporalRoom?.clearedEncounterCount ??
-                  temporalHallRoom?.clearedEncounterCount ??
-                  0,
-              'records':
-                  regionalTemporalRoom?.recordCount ??
-                  temporalHallRoom?.recordCount ??
-                  0,
-            },
-          ),
+          _ =>
+            regionalObjectiveLabel ??
+                localization.text(
+                  (regionalTemporalRoom?.isCompleted ??
+                              temporalHallRoom?.isCompleted) ==
+                          true
+                      ? 'objective.temporalHallExit'
+                      : (regionalTemporalRoom?.currentCellNumber ??
+                                temporalHallRoom?.currentCellNumber) ==
+                            4
+                      ? 'objective.temporalHallBoss'
+                      : 'objective.temporalHall',
+                  parameters: <String, Object>{
+                    'room':
+                        regionalTemporalRoom?.currentCellNumber ??
+                        temporalHallRoom?.currentCellNumber ??
+                        1,
+                    'cleared':
+                        regionalTemporalRoom?.clearedEncounterCount ??
+                        temporalHallRoom?.clearedEncounterCount ??
+                        0,
+                    'records':
+                        regionalTemporalRoom?.recordCount ??
+                        temporalHallRoom?.recordCount ??
+                        0,
+                  },
+                ),
         },
         RoomId.collisionArchive => switch (activeCampaignNode) {
           CampaignNodeId.collisionVectorCache ||
@@ -2374,31 +2467,33 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           CampaignNodeId.collisionPrismControl => localization.text(
             'objective.collisionSecret',
           ),
-          _ => localization.text(
-            (regionalCollisionRoom?.isCompleted ??
-                        collisionArchiveRoom?.isCompleted) ==
-                    true
-                ? 'objective.collisionArchiveExit'
-                : (regionalCollisionRoom?.currentCellNumber ??
-                          collisionArchiveRoom?.currentCellNumber) ==
-                      4
-                ? 'objective.collisionArchiveBoss'
-                : 'objective.collisionArchive',
-            parameters: <String, Object>{
-              'room':
-                  regionalCollisionRoom?.currentCellNumber ??
-                  collisionArchiveRoom?.currentCellNumber ??
-                  1,
-              'cleared':
-                  regionalCollisionRoom?.clearedEncounterCount ??
-                  collisionArchiveRoom?.clearedEncounterCount ??
-                  0,
-              'records':
-                  regionalCollisionRoom?.recordCount ??
-                  collisionArchiveRoom?.recordCount ??
-                  0,
-            },
-          ),
+          _ =>
+            regionalObjectiveLabel ??
+                localization.text(
+                  (regionalCollisionRoom?.isCompleted ??
+                              collisionArchiveRoom?.isCompleted) ==
+                          true
+                      ? 'objective.collisionArchiveExit'
+                      : (regionalCollisionRoom?.currentCellNumber ??
+                                collisionArchiveRoom?.currentCellNumber) ==
+                            4
+                      ? 'objective.collisionArchiveBoss'
+                      : 'objective.collisionArchive',
+                  parameters: <String, Object>{
+                    'room':
+                        regionalCollisionRoom?.currentCellNumber ??
+                        collisionArchiveRoom?.currentCellNumber ??
+                        1,
+                    'cleared':
+                        regionalCollisionRoom?.clearedEncounterCount ??
+                        collisionArchiveRoom?.clearedEncounterCount ??
+                        0,
+                    'records':
+                        regionalCollisionRoom?.recordCount ??
+                        collisionArchiveRoom?.recordCount ??
+                        0,
+                  },
+                ),
         },
         RoomId.optimizerCore => switch (boss?.phase.name) {
           'perfect' => localization.text(
@@ -2524,14 +2619,19 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       campaignExploration.collectCoreSignature(CampaignRegion.damageLab);
     }
     if (damageLabProgress.patchApplied) {
-      campaignExploration
-        ..unlockShortcut(CampaignWorldGraph.temporalHubAccessId)
-        ..unlockShortcut(CampaignWorldGraph.collisionHubAccessId);
+      campaignExploration.unlockShortcut(
+        CampaignWorldGraph.temporalHubAccessId,
+      );
     }
     if (temporalHallProgress.bossDefeated) {
       campaignExploration
         ..collectCoreSignature(CampaignRegion.temporalHall)
         ..unlockShortcut(CampaignWorldGraph.temporalHubLiftId);
+    }
+    if (temporalHallProgress.patchApplied) {
+      campaignExploration.unlockShortcut(
+        CampaignWorldGraph.collisionHubAccessId,
+      );
     }
     if (collisionArchiveProgress.bossDefeated) {
       campaignExploration

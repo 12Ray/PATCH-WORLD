@@ -1,0 +1,343 @@
+{
+  "schemaVersion": 1,
+  "region": "temporalHall",
+  "rooms": [
+    {
+      "node": "temporalAscent",
+      "size": [1920, 1080],
+      "killPlaneY": 1160,
+      "backdropAligned": true,
+      "environmentAsset": "assets/images/rooms/temporal-ascent-v1.webp",
+      "camera": {
+        "zoom": 0.92,
+        "horizontalLead": 96,
+        "horizontalDeadZone": 112,
+        "verticalDeadZone": 58,
+        "followResponsiveness": 5.2
+      },
+      "spawns": {
+        "west": [90, 864],
+        "east": [1810, 194]
+      },
+      "anchors": {
+        "backDoor": [90, 900],
+        "forwardDoor": [1810, 230],
+        "checkpoint": [350, 900],
+        "qaRecord": [1510, 369],
+        "repairStation": [510, 825],
+        "hubShortcutDoor": [220, 900]
+      },
+      "surfaces": [
+        {"id": "ascent.boundary.west", "rect": [0, 0, 24, 1080], "boundary": true, "renderArtwork": false},
+        {"id": "ascent.route.west", "rect": [40, 900, 400, 28], "renderArtwork": false},
+        {"id": "ascent.route.step-1", "rect": [390, 825, 230, 24], "renderArtwork": false},
+        {"id": "ascent.route.step-2", "rect": [570, 750, 230, 24], "renderArtwork": false},
+        {"id": "ascent.route.step-3", "rect": [750, 675, 230, 24], "renderArtwork": false},
+        {"id": "ascent.route.step-4", "rect": [930, 600, 230, 24], "renderArtwork": false},
+        {"id": "ascent.route.step-5", "rect": [1110, 525, 230, 24], "renderArtwork": false},
+        {"id": "ascent.route.step-6", "rect": [1290, 450, 230, 24], "renderArtwork": false},
+        {"id": "ascent.route.step-7", "rect": [1470, 375, 230, 24], "renderArtwork": false},
+        {"id": "ascent.route.step-8", "rect": [1620, 300, 260, 24], "renderArtwork": false},
+        {"id": "ascent.route.east", "rect": [1600, 230, 280, 28], "renderArtwork": false},
+        {"id": "ascent.gallery.west", "rect": [40, 230, 500, 28], "renderArtwork": false},
+        {"id": "ascent.gallery.step-1", "rect": [520, 300, 150, 24], "renderArtwork": false},
+        {"id": "ascent.gallery.step-2", "rect": [680, 375, 150, 24], "renderArtwork": false},
+        {"id": "ascent.gallery.step-3", "rect": [840, 300, 150, 24], "renderArtwork": false},
+        {"id": "ascent.gallery.east", "rect": [1000, 225, 260, 28], "renderArtwork": false},
+        {"id": "ascent.lower.west", "rect": [360, 960, 180, 24], "renderArtwork": false},
+        {"id": "ascent.lower.floor", "rect": [500, 1020, 520, 60], "renderArtwork": false},
+        {"id": "ascent.lower.center", "rect": [1120, 980, 260, 28], "renderArtwork": false},
+        {"id": "ascent.lower.east", "rect": [1460, 940, 420, 40], "renderArtwork": false},
+        {"id": "ascent.boundary.east", "rect": [1896, 0, 24, 1080], "boundary": true, "renderArtwork": false}
+      ],
+      "traversal": [
+        {"id": "temporal.ascent.route-1", "fromSurfaceId": "ascent.route.west", "toSurfaceId": "ascent.route.step-1", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.ascent.route-2", "fromSurfaceId": "ascent.route.step-1", "toSurfaceId": "ascent.route.step-2", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.ascent.route-3", "fromSurfaceId": "ascent.route.step-2", "toSurfaceId": "ascent.route.step-3", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.ascent.route-4", "fromSurfaceId": "ascent.route.step-3", "toSurfaceId": "ascent.route.step-4", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.ascent.route-5", "fromSurfaceId": "ascent.route.step-4", "toSurfaceId": "ascent.route.step-5", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.ascent.route-6", "fromSurfaceId": "ascent.route.step-5", "toSurfaceId": "ascent.route.step-6", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.ascent.route-7", "fromSurfaceId": "ascent.route.step-6", "toSurfaceId": "ascent.route.step-7", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.ascent.route-8", "fromSurfaceId": "ascent.route.step-7", "toSurfaceId": "ascent.route.step-8", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.ascent.route-9", "fromSurfaceId": "ascent.route.step-8", "toSurfaceId": "ascent.route.east", "requiredForCompletion": true, "requirement": "universal"}
+      ],
+      "enemies": [
+        {"id": "ascent.tick-runner", "archetype": "tickRunner", "position": [410, 854]},
+        {"id": "ascent.echo-bat", "archetype": "echoBat", "position": [790, 610]},
+        {"id": "ascent.delay-sniper", "archetype": "delaySniper", "position": [1160, 479]},
+        {"id": "ascent.rewind-skater", "archetype": "rewindSkater", "position": [1680, 254]}
+      ],
+      "features": [
+        {
+          "id": "ascent.moving-platform",
+          "kind": "movingPlatform",
+          "position": [1010, 430],
+          "size": [132, 22],
+          "end": [1010, 300],
+          "periodSeconds": 4.8
+        },
+        {
+          "id": "ascent.rewind-platform",
+          "kind": "rewindPlatform",
+          "position": [1260, 300],
+          "size": [128, 22],
+          "timeline": [[1260, 300], [1400, 255], [1500, 300]],
+          "periodSeconds": 5.6
+        },
+        {
+          "id": "ascent.jump-pad",
+          "kind": "jumpPad",
+          "position": [750, 663],
+          "size": [54, 12],
+          "sourceId": "feature.temporal-hall.ascent.jump-pad",
+          "activeSeconds": 1,
+          "inactiveSeconds": 1
+        }
+      ],
+      "objectiveNodes": [[410, 825], [1035, 600], [1650, 300]],
+      "terrainPulse": null
+    },
+    {
+      "node": "temporalFracture",
+      "size": [1920, 1080],
+      "killPlaneY": 1160,
+      "backdropAligned": true,
+      "environmentAsset": "assets/images/rooms/temporal-fracture-v1.webp",
+      "camera": {
+        "zoom": 0.92,
+        "horizontalLead": 96,
+        "horizontalDeadZone": 112,
+        "verticalDeadZone": 58,
+        "followResponsiveness": 5.2
+      },
+      "spawns": {
+        "west": [90, 714],
+        "east": [1810, 389]
+      },
+      "anchors": {
+        "backDoor": [90, 750],
+        "forwardDoor": [1810, 425],
+        "qaRecord": [250, 974],
+        "secretDoor": [470, 980]
+      },
+      "surfaces": [
+        {"id": "fracture.boundary.west", "rect": [0, 0, 24, 1080], "boundary": true, "renderArtwork": false},
+        {"id": "fracture.route.west", "rect": [40, 750, 450, 28], "renderArtwork": false},
+        {"id": "fracture.route.step-1", "rect": [440, 675, 220, 24], "renderArtwork": false},
+        {"id": "fracture.route.step-2", "rect": [610, 600, 220, 24], "renderArtwork": false},
+        {"id": "fracture.route.step-3", "rect": [780, 525, 220, 24], "renderArtwork": false},
+        {"id": "fracture.route.dip", "rect": [950, 600, 220, 24], "renderArtwork": false},
+        {"id": "fracture.route.step-4", "rect": [1120, 525, 220, 24], "renderArtwork": false},
+        {"id": "fracture.route.step-5", "rect": [1290, 500, 250, 24], "renderArtwork": false},
+        {"id": "fracture.route.east", "rect": [1460, 425, 420, 28], "renderArtwork": false},
+        {"id": "fracture.upper.west", "rect": [40, 190, 280, 28], "renderArtwork": false},
+        {"id": "fracture.upper.step-1", "rect": [300, 285, 160, 24], "renderArtwork": false},
+        {"id": "fracture.upper.step-2", "rect": [470, 360, 160, 24], "renderArtwork": false},
+        {"id": "fracture.upper.step-3", "rect": [640, 285, 150, 24], "renderArtwork": false},
+        {"id": "fracture.upper.step-4", "rect": [1130, 270, 150, 24], "renderArtwork": false},
+        {"id": "fracture.upper.step-5", "rect": [1280, 210, 180, 24], "renderArtwork": false},
+        {"id": "fracture.upper.east", "rect": [1440, 160, 440, 28], "renderArtwork": false},
+        {"id": "fracture.lower.step-1", "rect": [360, 825, 180, 24], "renderArtwork": false},
+        {"id": "fracture.lower.step-2", "rect": [250, 900, 180, 24], "renderArtwork": false},
+        {"id": "fracture.lower.west", "rect": [40, 980, 520, 60], "renderArtwork": false},
+        {"id": "fracture.lower.center-1", "rect": [700, 900, 260, 28], "renderArtwork": false},
+        {"id": "fracture.lower.center-2", "rect": [1180, 900, 300, 28], "renderArtwork": false},
+        {"id": "fracture.lower.east", "rect": [1500, 980, 380, 60], "renderArtwork": false},
+        {"id": "fracture.boundary.east", "rect": [1896, 0, 24, 1080], "boundary": true, "renderArtwork": false}
+      ],
+      "traversal": [
+        {"id": "temporal.fracture.route-1", "fromSurfaceId": "fracture.route.west", "toSurfaceId": "fracture.route.step-1", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.fracture.route-2", "fromSurfaceId": "fracture.route.step-1", "toSurfaceId": "fracture.route.step-2", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.fracture.route-3", "fromSurfaceId": "fracture.route.step-2", "toSurfaceId": "fracture.route.step-3", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.fracture.route-4", "fromSurfaceId": "fracture.route.step-3", "toSurfaceId": "fracture.route.dip", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.fracture.route-5", "fromSurfaceId": "fracture.route.dip", "toSurfaceId": "fracture.route.step-4", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.fracture.route-6", "fromSurfaceId": "fracture.route.step-4", "toSurfaceId": "fracture.route.step-5", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.fracture.route-7", "fromSurfaceId": "fracture.route.step-5", "toSurfaceId": "fracture.route.east", "requiredForCompletion": true, "requirement": "universal"}
+      ],
+      "enemies": [
+        {"id": "fracture.delay-sniper", "archetype": "delaySniper", "position": [360, 704]},
+        {"id": "fracture.tick-runner", "archetype": "tickRunner", "position": [700, 554]},
+        {"id": "fracture.echo-bat", "archetype": "echoBat", "position": [1080, 500]},
+        {"id": "fracture.rewind-skater", "archetype": "rewindSkater", "position": [1580, 379]}
+      ],
+      "features": [
+        {
+          "id": "fracture.breakable-platform",
+          "kind": "breakablePlatform",
+          "position": [830, 365],
+          "size": [145, 22],
+          "breakDelay": 0.8,
+          "restoreDelay": 3.2
+        },
+        {
+          "id": "fracture.rewind-platform",
+          "kind": "rewindPlatform",
+          "position": [720, 330],
+          "size": [138, 22],
+          "timeline": [[720, 330], [895, 285], [1065, 330]],
+          "periodSeconds": 6.2
+        },
+        {
+          "id": "fracture.timeline-seam",
+          "kind": "pulsingLaser",
+          "position": [948, 245],
+          "size": [14, 280],
+          "sourceId": "hazard.temporal-hall.fracture.timeline-seam",
+          "activeSeconds": 1.15,
+          "inactiveSeconds": 1.45
+        },
+        {
+          "id": "fracture.discarded-timeline",
+          "kind": "spikeHazard",
+          "position": [760, 878],
+          "size": [140, 18],
+          "sourceId": "hazard.temporal-hall.fracture.discarded-timeline"
+        }
+      ],
+      "objectiveNodes": [[555, 675], [1370, 500]],
+      "terrainPulse": {
+        "routeId": "terrain.temporalFracture.upper-bypass",
+        "bridge": [1010, 250, 190, 20],
+        "node": [890, 525]
+      }
+    },
+    {
+      "node": "temporalPendulum",
+      "size": [1920, 1080],
+      "killPlaneY": 1160,
+      "backdropAligned": true,
+      "environmentAsset": "assets/images/rooms/temporal-pendulum-v1.webp",
+      "camera": {
+        "zoom": 0.92,
+        "horizontalLead": 96,
+        "horizontalDeadZone": 112,
+        "verticalDeadZone": 58,
+        "followResponsiveness": 5.2
+      },
+      "spawns": {
+        "west": [90, 664],
+        "east": [1810, 289]
+      },
+      "anchors": {
+        "backDoor": [90, 700],
+        "forwardDoor": [1810, 325],
+        "qaRecord": [1320, 394],
+        "loadoutEvent": [1660, 325],
+        "questReward": [1320, 394]
+      },
+      "surfaces": [
+        {"id": "pendulum.boundary.west", "rect": [0, 0, 24, 1080], "boundary": true, "renderArtwork": false},
+        {"id": "pendulum.route.west", "rect": [40, 700, 400, 28], "renderArtwork": false},
+        {"id": "pendulum.route.step-1", "rect": [390, 625, 220, 24], "renderArtwork": false},
+        {"id": "pendulum.route.step-2", "rect": [560, 550, 220, 24], "renderArtwork": false},
+        {"id": "pendulum.route.step-3", "rect": [730, 475, 220, 24], "renderArtwork": false},
+        {"id": "pendulum.route.dip", "rect": [900, 550, 220, 24], "renderArtwork": false},
+        {"id": "pendulum.route.step-4", "rect": [1080, 475, 220, 24], "renderArtwork": false},
+        {"id": "pendulum.route.step-5", "rect": [1260, 400, 220, 24], "renderArtwork": false},
+        {"id": "pendulum.route.east", "rect": [1440, 325, 440, 28], "renderArtwork": false},
+        {"id": "pendulum.gallery.west", "rect": [350, 225, 540, 28], "renderArtwork": false},
+        {"id": "pendulum.gallery.center", "rect": [1030, 225, 500, 28], "renderArtwork": false},
+        {"id": "pendulum.gallery.east", "rect": [1530, 290, 350, 28], "renderArtwork": false},
+        {"id": "pendulum.lower.west", "rect": [40, 900, 480, 40], "renderArtwork": false},
+        {"id": "pendulum.lower.floor-west", "rect": [500, 980, 360, 60], "renderArtwork": false},
+        {"id": "pendulum.lower.center", "rect": [910, 900, 320, 28], "renderArtwork": false},
+        {"id": "pendulum.lower.floor-east", "rect": [1260, 980, 620, 60], "renderArtwork": false},
+        {"id": "pendulum.boundary.east", "rect": [1896, 0, 24, 1080], "boundary": true, "renderArtwork": false}
+      ],
+      "traversal": [
+        {"id": "temporal.pendulum.route-1", "fromSurfaceId": "pendulum.route.west", "toSurfaceId": "pendulum.route.step-1", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.pendulum.route-2", "fromSurfaceId": "pendulum.route.step-1", "toSurfaceId": "pendulum.route.step-2", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.pendulum.route-3", "fromSurfaceId": "pendulum.route.step-2", "toSurfaceId": "pendulum.route.step-3", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.pendulum.route-4", "fromSurfaceId": "pendulum.route.step-3", "toSurfaceId": "pendulum.route.dip", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.pendulum.route-5", "fromSurfaceId": "pendulum.route.dip", "toSurfaceId": "pendulum.route.step-4", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.pendulum.route-6", "fromSurfaceId": "pendulum.route.step-4", "toSurfaceId": "pendulum.route.step-5", "requiredForCompletion": true, "requirement": "universal"},
+        {"id": "temporal.pendulum.route-7", "fromSurfaceId": "pendulum.route.step-5", "toSurfaceId": "pendulum.route.east", "requiredForCompletion": true, "requirement": "universal"}
+      ],
+      "enemies": [
+        {"id": "pendulum.rewind-skater", "archetype": "rewindSkater", "position": [360, 654]},
+        {"id": "pendulum.echo-bat", "archetype": "echoBat", "position": [780, 420]},
+        {"id": "pendulum.tick-runner", "archetype": "tickRunner", "position": [1160, 429]},
+        {"id": "pendulum.delay-sniper", "archetype": "delaySniper", "position": [1600, 279]}
+      ],
+      "features": [
+        {
+          "id": "pendulum.rewind-platform",
+          "kind": "rewindPlatform",
+          "position": [760, 350],
+          "size": [132, 22],
+          "timeline": [[760, 350], [940, 300], [1120, 350]],
+          "periodSeconds": 5.4
+        },
+        {
+          "id": "pendulum.central-crusher",
+          "kind": "crusherHazard",
+          "position": [920, 170],
+          "size": [86, 64],
+          "end": [920, 390],
+          "sourceId": "hazard.temporal-hall.pendulum.central-crusher",
+          "periodSeconds": 4.4
+        },
+        {
+          "id": "pendulum.service-beam",
+          "kind": "pulsingLaser",
+          "position": [1000, 600],
+          "size": [14, 300],
+          "sourceId": "hazard.temporal-hall.pendulum.service-beam",
+          "activeSeconds": 0.9,
+          "inactiveSeconds": 1.6
+        },
+        {
+          "id": "pendulum.clock-teeth",
+          "kind": "spikeHazard",
+          "position": [870, 878],
+          "size": [120, 18],
+          "sourceId": "hazard.temporal-hall.pendulum.clock-teeth"
+        }
+      ],
+      "objectiveNodes": [[505, 625], [1010, 550], [1510, 325]],
+      "terrainPulse": null
+    },
+    {
+      "node": "chronoJailer",
+      "size": [960, 540],
+      "killPlaneY": 620,
+      "backdropAligned": false,
+      "camera": {
+        "zoom": 1,
+        "horizontalLead": 0,
+        "horizontalDeadZone": 0,
+        "verticalDeadZone": 0,
+        "followResponsiveness": 1000
+      },
+      "spawns": {
+        "west": [166, 448],
+        "east": [794, 448]
+      },
+      "anchors": {
+        "backDoor": [70, 484],
+        "bossSpawn": [620, 428],
+        "bossReward": [700, 478],
+        "exitTerminal": [850, 478],
+        "hubLift": [245, 484],
+        "regionBranchDoor": [700, 484]
+      },
+      "surfaces": [
+        {"id": "jailer.boundary.west", "rect": [0, 0, 24, 540], "boundary": true, "renderArtwork": false},
+        {"id": "jailer.floor", "rect": [0, 484, 960, 56], "renderArtwork": true},
+        {"id": "jailer.ledge.west", "rect": [150, 396, 170, 20], "renderArtwork": true},
+        {"id": "jailer.ledge.east", "rect": [640, 396, 170, 20], "renderArtwork": true},
+        {"id": "jailer.boundary.east", "rect": [936, 0, 24, 540], "boundary": true, "renderArtwork": false}
+      ],
+      "traversal": [
+        {"id": "temporal.jailer.floor", "fromSurfaceId": "jailer.floor", "toSurfaceId": "jailer.floor", "requiredForCompletion": true, "requirement": "universal"}
+      ],
+      "enemies": [],
+      "features": [
+        {"id": "jailer.seal.west", "kind": "bossSeal", "position": [96, 172], "size": [18, 312]},
+        {"id": "jailer.seal.east", "kind": "bossSeal", "position": [846, 172], "size": [18, 312]}
+      ],
+      "objectiveNodes": [],
+      "terrainPulse": null
+    }
+  ]
+}

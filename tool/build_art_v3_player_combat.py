@@ -4,9 +4,10 @@ The approved ImageGen sources contain one four-frame action per row. Combo
 sheets are 4x6 (attack 1..6) and defense sheets are 4x4 (parry, perfect
 parry, counter, ability transition). Chroma removal runs before this script.
 
-Every action starts on its gameplay event frame. This preserves the existing
-immediate hitbox, projectile, parry-window, counter, and movement timing while
-adding authored follow-through and recovery frames.
+The source grids contain authored VFX, so their full alpha bounds are not a
+safe character pivot. Runtime registration is derived from the dark suit/root
+pixels instead: every grounded pose shares the equipped idle root and foot
+baseline while the finisher's explicit airborne arc remains authored data.
 """
 
 from __future__ import annotations
@@ -17,7 +18,19 @@ from pathlib import Path
 
 from PIL import Image
 
-from build_art_v3_player_sheets import FRAME_SIZE, OUTPUT_DIR, SOURCE_DIR, _alpha_coverage
+from build_art_v3_player_sheets import (
+    FRAME_SIZE,
+    OUTPUT_DIR,
+    SOURCE_DIR,
+    _alpha_coverage,
+)
+from player_art_registration import (
+    BodyLandmark,
+    IdleBodyReference,
+    detect_body_landmark,
+    idle_body_reference,
+    normalized_body_scale,
+)
 
 
 COMBO_COLUMNS = 4
@@ -41,6 +54,16 @@ ATTACK_FPS = {
     "sword": 14.285714,
     "gauntlet": 11.111111,
     "gun": 12.5,
+}
+
+DISPLAY_SIZE = 46
+SOURCE_BASELINE = 240 / FRAME_SIZE
+MIN_BODY_SCALE = 1.15
+MAX_BODY_SCALE = 2.4
+REGISTRATION_VERSION = "art-v3-body-component-v2-2026-08-23"
+SCALE_POLICY = "idle-body-area-v1"
+AIRBORNE_MOTION_Y = {
+    ("sword", "attack6"): (-6.0, -11.0, -6.0, 0.0),
 }
 
 
@@ -124,6 +147,68 @@ def _write_strip(frames: list[Image.Image], output: Path) -> list[float]:
     return coverage
 
 
+def _idle_reference(weapon: str) -> IdleBodyReference:
+    strip = Image.open(OUTPUT_DIR / f"{weapon}-idle.png").convert("RGBA")
+    return idle_body_reference(strip, frame_size=FRAME_SIZE)
+
+
+def _frame_registration(
+    *,
+    weapon: str,
+    action: ActionSpec,
+    frames: list[Image.Image],
+    idle_reference: IdleBodyReference,
+) -> tuple[
+    list[dict[str, float]],
+    list[dict[str, int]],
+    list[list[int]],
+    list[int],
+]:
+    source_to_world = DISPLAY_SIZE / FRAME_SIZE
+    target_x = (idle_reference.root_x - FRAME_SIZE / 2) * source_to_world
+    target_y = (idle_reference.foot_y - FRAME_SIZE / 2) * source_to_world
+    authored_y = AIRBORNE_MOTION_Y.get(
+        (weapon, action.key),
+        (0.0,) * len(frames),
+    )
+    transforms: list[dict[str, float]] = []
+    roots: list[dict[str, int]] = []
+    bounds: list[list[int]] = []
+    pixel_counts: list[int] = []
+    for frame, motion_y in zip(frames, authored_y, strict=True):
+        landmark: BodyLandmark = detect_body_landmark(frame)
+        scale = normalized_body_scale(idle_reference, landmark)
+        if not MIN_BODY_SCALE <= scale <= MAX_BODY_SCALE:
+            raise ValueError(
+                f"{weapon}.{action.key} body scale {scale:.3f} is outside "
+                f"the supported range {MIN_BODY_SCALE}..{MAX_BODY_SCALE}"
+            )
+        transforms.append(
+            {
+                "dx": round(
+                    target_x
+                    - (landmark.root_x - FRAME_SIZE / 2)
+                    * source_to_world
+                    * scale,
+                    3,
+                ),
+                "dy": round(
+                    target_y
+                    - (landmark.foot_y - FRAME_SIZE / 2)
+                    * source_to_world
+                    * scale
+                    + motion_y,
+                    3,
+                ),
+                "scale": round(scale, 4),
+            }
+        )
+        roots.append({"x": landmark.root_x, "y": landmark.foot_y})
+        bounds.append(list(landmark.bounds))
+        pixel_counts.append(landmark.pixel_count)
+    return transforms, roots, bounds, pixel_counts
+
+
 def _asset_suffix(key: str) -> str:
     return {
         "perfectParry": "perfect-parry",
@@ -137,20 +222,44 @@ def _manifest_entry(
     action: ActionSpec,
     asset: str,
     coverage: list[float],
+    frame_transforms: list[dict[str, float]],
+    body_roots: list[dict[str, int]],
+    body_bounds: list[list[int]],
+    body_pixel_counts: list[int],
+    reference_body_pixels: int,
 ) -> dict[str, object]:
-    grid = [COMBO_COLUMNS, COMBO_ROWS] if action.source_kind == "combo" else [DEFENSE_COLUMNS, DEFENSE_ROWS]
+    grid = (
+        [COMBO_COLUMNS, COMBO_ROWS]
+        if action.source_kind == "combo"
+        else [DEFENSE_COLUMNS, DEFENSE_ROWS]
+    )
+    event_frame = (
+        1 if action.key.startswith("attack") or action.key == "counter" else 0
+    )
     return {
         "asset": asset,
         "state": action.key,
         "sourceFrameSize": [FRAME_SIZE, FRAME_SIZE],
-        "displaySize": [54, 54],
+        "displaySize": [DISPLAY_SIZE, DISPLAY_SIZE],
         "frames": 4,
         "fps": action.fps,
         "loop": False,
         "pivot": [0.5, 0.5],
-        "baseline": 0.86,
-        "eventFrame": 0,
-        "activeFrame": [0, action.active_end],
+        "baseline": SOURCE_BASELINE,
+        "eventFrame": event_frame,
+        "activeFrame": [0, max(action.active_end, event_frame)],
+        "presentationScale": round(
+            sum(transform["scale"] for transform in frame_transforms)
+            / len(frame_transforms),
+            4,
+        ),
+        "frameTransforms": frame_transforms,
+        "bodyRoots": body_roots,
+        "bodyBounds": body_bounds,
+        "bodyPixelCounts": body_pixel_counts,
+        "referenceBodyPixels": reference_body_pixels,
+        "scalePolicy": SCALE_POLICY,
+        "registrationVersion": REGISTRATION_VERSION,
         "alphaCoverage": coverage,
         "sourceGrid": grid,
         "sourceIndices": list(
@@ -159,7 +268,7 @@ def _manifest_entry(
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged",
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval",
     }
 
 
@@ -169,6 +278,7 @@ def main() -> None:
     combat: dict[str, object] = {}
 
     for weapon in COMBO_SOURCES:
+        idle_reference = _idle_reference(weapon)
         combo_rows = _extract_grid(
             SOURCE_DIR / COMBO_SOURCES[weapon],
             COMBO_COLUMNS,
@@ -188,11 +298,27 @@ def main() -> None:
             )
             asset = f"{weapon}-{_asset_suffix(action.key)}.png"
             coverage = _write_strip(frames, OUTPUT_DIR / asset)
+            (
+                frame_transforms,
+                body_roots,
+                body_bounds,
+                body_pixel_counts,
+            ) = _frame_registration(
+                weapon=weapon,
+                action=action,
+                frames=frames,
+                idle_reference=idle_reference,
+            )
             weapon_actions[action.key] = _manifest_entry(
                 weapon=weapon,
                 action=action,
                 asset=asset,
                 coverage=coverage,
+                frame_transforms=frame_transforms,
+                body_roots=body_roots,
+                body_bounds=body_bounds,
+                body_pixel_counts=body_pixel_counts,
+                reference_body_pixels=idle_reference.pixel_count,
             )
             print(f"Wrote {OUTPUT_DIR / asset}")
         combat[weapon] = weapon_actions

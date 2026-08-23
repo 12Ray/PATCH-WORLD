@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "region": "collisionArchive",
+  "rooms": [
+    {
+      "node": "collisionCompression",
+      "size": [1920, 1080],
+      "killPlaneY": 1160,
+      "backdropAligned": true,
+      "environmentAsset": "assets/images/rooms/collision-compression-v1.webp",
+      "camera": {
+        "zoom": 0.92,
+        "horizontalLead": 96,
+        "horizontalDeadZone": 112,
+        "verticalDeadZone": 58,
+        "followResponsiveness": 5.2
+      },
+      "spawns": {
+        "west": [90, 944],
+        "east": [1810, 514]
+      },
+      "anchors": {
+        "backDoor": [90, 980],
+        "forwardDoor": [1810, 550],
+        "checkpoint": [410, 980],
+        "qaRecord": [1060, 674],
+        "repairStation": [500, 905],
+        "hubShortcutDoor": [220, 980]
+      },
+      "surfaces": [
+        {"id": "compression.boundary.west", "rect": [0, 0, 24, 1080], "boundary": true, "renderArtwork": false},
+        {"id": "compression.route.west", "rect": [40, 980, 420, 40], "renderArtwork": false},
+        {"id": "compression.route.step-a", "rect": [390, 905, 220, 24], "renderArtwork": false},
+        {"id": "compression.route.step-b", "rect": [560, 830, 220, 24], "renderArtwork": false},
+        {"id": "compression.route.step-c", "rect": [730, 755, 220, 24], "renderArtwork": false},
+        {"id": "compression.route.step-d", "rect": [900, 680, 220, 24], "renderArtwork": false},
+        {"id": "compression.route.step-e", "rect": [1070, 605, 220, 24], "renderArtwork": false},
+        {"id": "compression.route.step-f", "rect": [1240, 530, 220, 24], "renderArtwork": false},
+        {"id": "compression.route.east", "rect": [1410, 550, 470, 28], "renderArtwork": false},
+        {"id": "compression.gallery.west", "rect": [40, 280, 360, 28], "renderArtwork": false},
+        {"id": "compression.gallery.step-a", "rect": [350, 360, 180, 24], "renderArtwork": false},
+        {"id": "compression.gallery.step-b", "rect": [510, 435, 200, 24], "renderArtwork": false},
+        {"id": "compression.gallery.center", "rect": [650, 225, 680, 28], "renderArtwork": false},
+        {"id": "compression.gallery.step-c", "rect": [1260, 320, 180, 24], "renderArtwork": false},
+        {"id": "compression.gallery.east", "rect": [1430, 245, 450, 28], "renderArtwork": false},
+        {"id": "compression.rollback.west", "rect": [40, 1040, 520, 40], "renderArtwork": false},
+        {"id": "compression.rollback.mid-west", "rect": [650, 990, 260, 28], "renderArtwork": false},
+        {"id": "compression.rollback.mid-east", "rect": [1050, 970, 300, 28], "renderArtwork": false},
+        {"id": "compression.rollback.east", "rect": [1500, 1000, 380, 40], "renderArtwork": false},
+        {"id": "compression.boundary.east", "rect": [1896, 0, 24, 1080], "boundary": true, "renderArtwork": false}
+      ],
+      "traversal": [
+        {"id": "collision.compression.static-step-1", "fromSurfaceId": "compression.route.west", "toSurfaceId": "compression.route.step-a"},
+        {"id": "collision.compression.static-step-2", "fromSurfaceId": "compression.route.step-a", "toSurfaceId": "compression.route.step-b"},
+        {"id": "collision.compression.static-step-3", "fromSurfaceId": "compression.route.step-b", "toSurfaceId": "compression.route.step-c"},
+        {"id": "collision.compression.static-step-4", "fromSurfaceId": "compression.route.step-c", "toSurfaceId": "compression.route.step-d"},
+        {"id": "collision.compression.static-step-5", "fromSurfaceId": "compression.route.step-d", "toSurfaceId": "compression.route.step-e"},
+        {"id": "collision.compression.static-step-6", "fromSurfaceId": "compression.route.step-e", "toSurfaceId": "compression.route.step-f"},
+        {"id": "collision.compression.east-airlock", "fromSurfaceId": "compression.route.step-f", "toSurfaceId": "compression.route.east"}
+      ],
+      "enemies": [
+        {"id": "compression.vector-ram", "archetype": "vectorRam", "position": [390, 934]},
+        {"id": "compression.polarity-drone", "archetype": "polarityDrone", "position": [760, 690]},
+        {"id": "compression.phase-mimic", "archetype": "phaseMimic", "position": [1110, 559]},
+        {"id": "compression.shard-lobber", "archetype": "shardLobber", "position": [1580, 504]}
+      ],
+      "features": [
+        {
+          "id": "compression.mover.left",
+          "kind": "movingPlatform",
+          "position": [690, 430],
+          "size": [138, 22],
+          "end": [845, 430],
+          "periodSeconds": 4.8
+        },
+        {
+          "id": "compression.mover.right",
+          "kind": "movingPlatform",
+          "position": [1090, 430],
+          "size": [138, 22],
+          "end": [935, 430],
+          "periodSeconds": 4.8
+        },
+        {
+          "id": "compression.conveyor.rollback",
+          "kind": "conveyorPlatform",
+          "position": [760, 865],
+          "size": [180, 22],
+          "direction": 1
+        },
+        {
+          "id": "compression.hazard.central-piston",
+          "kind": "crusherHazard",
+          "position": [925, 250],
+          "size": [90, 66],
+          "end": [925, 490],
+          "sourceId": "hazard.collision-archive.compression.central-piston",
+          "periodSeconds": 4.1
+        },
+        {
+          "id": "compression.hazard.seam",
+          "kind": "pulsingLaser",
+          "position": [958, 520],
+          "size": [14, 160],
+          "sourceId": "hazard.collision-archive.compression.seam",
+          "activeSeconds": 1,
+          "inactiveSeconds": 1.5
+        }
+      ],
+      "objectiveNodes": [
+        [670, 830],
+        [1350, 530]
+      ],
+      "terrainPulse": null
+    },
+    {
+      "node": "collisionFracture",
+      "size": [1920, 1080],
+      "killPlaneY": 1160,
+      "backdropAligned": true,
+      "environmentAsset": "assets/images/rooms/collision-fracture-v1.webp",
+      "camera": {
+        "zoom": 0.92,
+        "horizontalLead": 96,
+        "horizontalDeadZone": 112,
+        "verticalDeadZone": 58,
+        "followResponsiveness": 5.2
+      },
+      "spawns": {
+        "west": [90, 944],
+        "east": [1810, 214]
+      },
+      "anchors": {
+        "backDoor": [90, 980],
+        "forwardDoor": [1810, 250],
+        "qaRecord": [300, 1034],
+        "secretDoor": [470, 1040]
+      },
+      "surfaces": [
+        {"id": "fracture.boundary.west", "rect": [0, 0, 24, 1080], "boundary": true, "renderArtwork": false},
+        {"id": "fracture.route.west", "rect": [40, 980, 320, 40], "renderArtwork": false},
+        {"id": "fracture.route.step-a", "rect": [300, 905, 210, 24], "renderArtwork": false},
+        {"id": "fracture.route.step-b", "rect": [460, 830, 210, 24], "renderArtwork": false},
+        {"id": "fracture.route.step-c", "rect": [620, 755, 210, 24], "renderArtwork": false},
+        {"id": "fracture.route.step-d", "rect": [780, 680, 210, 24], "renderArtwork": false},
+        {"id": "fracture.route.step-e", "rect": [940, 605, 210, 24], "renderArtwork": false},
+        {"id": "fracture.route.step-f", "rect": [1100, 530, 210, 24], "renderArtwork": false},
+        {"id": "fracture.route.step-g", "rect": [1260, 455, 210, 24], "renderArtwork": false},
+        {"id": "fracture.route.step-h", "rect": [1420, 380, 210, 24], "renderArtwork": false},
+        {"id": "fracture.route.step-i", "rect": [1580, 305, 300, 24], "renderArtwork": false},
+        {"id": "fracture.route.east", "rect": [1680, 250, 200, 28], "renderArtwork": false},
+        {"id": "fracture.gallery.west", "rect": [40, 405, 300, 28], "renderArtwork": false},
+        {"id": "fracture.gallery.step-a", "rect": [280, 320, 200, 24], "renderArtwork": false},
+        {"id": "fracture.gallery.step-b", "rect": [480, 285, 220, 24], "renderArtwork": false},
+        {"id": "fracture.gallery.fragment-a", "rect": [760, 210, 150, 24], "renderArtwork": false},
+        {"id": "fracture.gallery.fragment-b", "rect": [1010, 280, 150, 24], "renderArtwork": false},
+        {"id": "fracture.gallery.fragment-c", "rect": [1260, 210, 180, 24], "renderArtwork": false},
+        {"id": "fracture.gallery.east", "rect": [1450, 160, 430, 28], "renderArtwork": false},
+        {"id": "fracture.rollback.west", "rect": [40, 1040, 520, 40], "renderArtwork": false},
+        {"id": "fracture.rollback.mid-west", "rect": [590, 970, 240, 28], "renderArtwork": false},
+        {"id": "fracture.rollback.center", "rect": [900, 900, 280, 28], "renderArtwork": false},
+        {"id": "fracture.rollback.mid-east", "rect": [1300, 970, 300, 28], "renderArtwork": false},
+        {"id": "fracture.rollback.east", "rect": [1600, 1040, 280, 40], "renderArtwork": false},
+        {"id": "fracture.boundary.east", "rect": [1896, 0, 24, 1080], "boundary": true, "renderArtwork": false}
+      ],
+      "traversal": [
+        {"id": "collision.fracture.outer-step-1", "fromSurfaceId": "fracture.route.west", "toSurfaceId": "fracture.route.step-a"},
+        {"id": "collision.fracture.outer-step-2", "fromSurfaceId": "fracture.route.step-a", "toSurfaceId": "fracture.route.step-b"},
+        {"id": "collision.fracture.outer-step-3", "fromSurfaceId": "fracture.route.step-b", "toSurfaceId": "fracture.route.step-c"},
+        {"id": "collision.fracture.outer-step-4", "fromSurfaceId": "fracture.route.step-c", "toSurfaceId": "fracture.route.step-d"},
+        {"id": "collision.fracture.outer-step-5", "fromSurfaceId": "fracture.route.step-d", "toSurfaceId": "fracture.route.step-e"},
+        {"id": "collision.fracture.outer-step-6", "fromSurfaceId": "fracture.route.step-e", "toSurfaceId": "fracture.route.step-f"},
+        {"id": "collision.fracture.outer-step-7", "fromSurfaceId": "fracture.route.step-f", "toSurfaceId": "fracture.route.step-g"},
+        {"id": "collision.fracture.outer-step-8", "fromSurfaceId": "fracture.route.step-g", "toSurfaceId": "fracture.route.step-h"},
+        {"id": "collision.fracture.outer-step-9", "fromSurfaceId": "fracture.route.step-h", "toSurfaceId": "fracture.route.step-i"},
+        {"id": "collision.fracture.east-airlock", "fromSurfaceId": "fracture.route.step-i", "toSurfaceId": "fracture.route.east"}
+      ],
+      "enemies": [
+        {"id": "fracture.phase-mimic", "archetype": "phaseMimic", "position": [350, 934]},
+        {"id": "fracture.vector-ram", "archetype": "vectorRam", "position": [760, 709]},
+        {"id": "fracture.shard-lobber", "archetype": "shardLobber", "position": [1160, 484]},
+        {"id": "fracture.polarity-drone", "archetype": "polarityDrone", "position": [1640, 259]}
+      ],
+      "features": [
+        {
+          "id": "fracture.platform.breakable-fragment",
+          "kind": "breakablePlatform",
+          "position": [820, 360],
+          "size": [145, 22],
+          "breakDelay": 0.65,
+          "restoreDelay": 3.2
+        },
+        {
+          "id": "fracture.platform.phase-mover",
+          "kind": "movingPlatform",
+          "position": [990, 345],
+          "size": [138, 22],
+          "end": [1160, 260],
+          "periodSeconds": 5
+        },
+        {
+          "id": "fracture.hazard.phase-slice",
+          "kind": "pulsingLaser",
+          "position": [948, 215],
+          "size": [14, 390],
+          "sourceId": "hazard.collision-archive.fracture.phase-slice",
+          "activeSeconds": 1.05,
+          "inactiveSeconds": 1.35
+        },
+        {
+          "id": "fracture.hazard.rollback-shards",
+          "kind": "spikeHazard",
+          "position": [890, 878],
+          "size": [130, 18],
+          "sourceId": "hazard.collision-archive.fracture.rollback-shards"
+        }
+      ],
+      "objectiveNodes": [
+        [560, 830],
+        [1200, 530],
+        [1710, 305]
+      ],
+      "terrainPulse": {
+        "routeId": "terrain.collisionFracture.upper-bypass",
+        "bridge": [1010, 545, 190, 20],
+        "node": [1100, 900]
+      }
+    },
+    {
+      "node": "collisionMerge",
+      "size": [1920, 1080],
+      "killPlaneY": 1160,
+      "backdropAligned": true,
+      "environmentAsset": "assets/images/rooms/collision-merge-v1.webp",
+      "camera": {
+        "zoom": 0.92,
+        "horizontalLead": 96,
+        "horizontalDeadZone": 112,
+        "verticalDeadZone": 58,
+        "followResponsiveness": 5.2
+      },
+      "spawns": {
+        "west": [90, 944],
+        "east": [1810, 194]
+      },
+      "anchors": {
+        "backDoor": [90, 980],
+        "forwardDoor": [1810, 230],
+        "qaRecord": [980, 674],
+        "loadoutEvent": [1500, 990],
+        "questReward": [980, 674]
+      },
+      "surfaces": [
+        {"id": "merge.boundary.west", "rect": [0, 0, 24, 1080], "boundary": true, "renderArtwork": false},
+        {"id": "merge.route.west", "rect": [40, 980, 420, 40], "renderArtwork": false},
+        {"id": "merge.route.step-a", "rect": [390, 905, 220, 24], "renderArtwork": false},
+        {"id": "merge.route.step-b", "rect": [560, 830, 220, 24], "renderArtwork": false},
+        {"id": "merge.route.step-c", "rect": [730, 755, 220, 24], "renderArtwork": false},
+        {"id": "merge.route.step-d", "rect": [900, 680, 220, 24], "renderArtwork": false},
+        {"id": "merge.route.step-e", "rect": [1070, 605, 220, 24], "renderArtwork": false},
+        {"id": "merge.route.step-f", "rect": [1240, 530, 220, 24], "renderArtwork": false},
+        {"id": "merge.route.step-g", "rect": [1410, 455, 220, 24], "renderArtwork": false},
+        {"id": "merge.route.step-h", "rect": [1570, 380, 310, 24], "renderArtwork": false},
+        {"id": "merge.route.step-i", "rect": [1650, 305, 230, 24], "renderArtwork": false},
+        {"id": "merge.route.east", "rect": [1600, 230, 280, 28], "renderArtwork": false},
+        {"id": "merge.gallery.west", "rect": [40, 230, 320, 28], "renderArtwork": false},
+        {"id": "merge.gallery.step-a", "rect": [360, 345, 250, 24], "renderArtwork": false},
+        {"id": "merge.gallery.step-b", "rect": [520, 255, 250, 24], "renderArtwork": false},
+        {"id": "merge.gallery.center", "rect": [760, 195, 390, 28], "renderArtwork": false},
+        {"id": "merge.gallery.step-c", "rect": [1120, 255, 260, 24], "renderArtwork": false},
+        {"id": "merge.gallery.east", "rect": [1380, 220, 500, 28], "renderArtwork": false},
+        {"id": "merge.rollback.west", "rect": [40, 1040, 540, 40], "renderArtwork": false},
+        {"id": "merge.rollback.mid-west", "rect": [650, 990, 300, 28], "renderArtwork": false},
+        {"id": "merge.rollback.mid-east", "rect": [1000, 920, 300, 28], "renderArtwork": false},
+        {"id": "merge.rollback.east", "rect": [1380, 990, 500, 40], "renderArtwork": false},
+        {"id": "merge.boundary.east", "rect": [1896, 0, 24, 1080], "boundary": true, "renderArtwork": false}
+      ],
+      "traversal": [
+        {"id": "collision.merge.outer-step-1", "fromSurfaceId": "merge.route.west", "toSurfaceId": "merge.route.step-a"},
+        {"id": "collision.merge.outer-step-2", "fromSurfaceId": "merge.route.step-a", "toSurfaceId": "merge.route.step-b"},
+        {"id": "collision.merge.outer-step-3", "fromSurfaceId": "merge.route.step-b", "toSurfaceId": "merge.route.step-c"},
+        {"id": "collision.merge.outer-step-4", "fromSurfaceId": "merge.route.step-c", "toSurfaceId": "merge.route.step-d"},
+        {"id": "collision.merge.outer-step-5", "fromSurfaceId": "merge.route.step-d", "toSurfaceId": "merge.route.step-e"},
+        {"id": "collision.merge.outer-step-6", "fromSurfaceId": "merge.route.step-e", "toSurfaceId": "merge.route.step-f"},
+        {"id": "collision.merge.outer-step-7", "fromSurfaceId": "merge.route.step-f", "toSurfaceId": "merge.route.step-g"},
+        {"id": "collision.merge.outer-step-8", "fromSurfaceId": "merge.route.step-g", "toSurfaceId": "merge.route.step-h"},
+        {"id": "collision.merge.outer-step-9", "fromSurfaceId": "merge.route.step-h", "toSurfaceId": "merge.route.step-i"},
+        {"id": "collision.merge.preboss-airlock", "fromSurfaceId": "merge.route.step-i", "toSurfaceId": "merge.route.east"}
+      ],
+      "enemies": [
+        {"id": "merge.shard-lobber", "archetype": "shardLobber", "position": [390, 934]},
+        {"id": "merge.polarity-drone", "archetype": "polarityDrone", "position": [780, 700]},
+        {"id": "merge.vector-ram", "archetype": "vectorRam", "position": [1180, 559]},
+        {"id": "merge.phase-mimic", "archetype": "phaseMimic", "position": [1660, 259]}
+      ],
+      "features": [
+        {
+          "id": "merge.platform.fusion-bridge",
+          "kind": "mergingPlatform",
+          "position": [840, 430],
+          "size": [240, 24],
+          "periodSeconds": 5.6
+        },
+        {
+          "id": "merge.platform.left-mover",
+          "kind": "movingPlatform",
+          "position": [690, 510],
+          "size": [130, 22],
+          "end": [815, 455],
+          "periodSeconds": 4.6
+        },
+        {
+          "id": "merge.platform.right-mover",
+          "kind": "movingPlatform",
+          "position": [1100, 455],
+          "size": [130, 22],
+          "end": [1225, 510],
+          "periodSeconds": 4.6
+        },
+        {
+          "id": "merge.hazard.fusion-axis",
+          "kind": "pulsingLaser",
+          "position": [958, 230],
+          "size": [14, 450],
+          "sourceId": "hazard.collision-archive.merge.fusion-axis",
+          "activeSeconds": 0.8,
+          "inactiveSeconds": 1.8
+        },
+        {
+          "id": "merge.hazard.unstable-shards",
+          "kind": "spikeHazard",
+          "position": [940, 888],
+          "size": [120, 18],
+          "sourceId": "hazard.collision-archive.merge.unstable-shards"
+        }
+      ],
+      "objectiveNodes": [
+        [670, 830],
+        [1180, 605],
+        [1690, 305]
+      ],
+      "terrainPulse": null
+    },
+    {
+      "node": "kernelChimera",
+      "size": [960, 540],
+      "killPlaneY": 620,
+      "backdropAligned": false,
+      "camera": {
+        "zoom": 1,
+        "horizontalLead": 0,
+        "horizontalDeadZone": 0,
+        "verticalDeadZone": 0,
+        "followResponsiveness": 1000
+      },
+      "spawns": {
+        "west": [166, 448],
+        "east": [794, 448]
+      },
+      "anchors": {
+        "backDoor": [70, 484],
+        "bossSpawn": [620, 428],
+        "bossReward": [700, 478],
+        "exitTerminal": [850, 478],
+        "hubLift": [245, 484]
+      },
+      "surfaces": [
+        {"id": "chimera.boundary.west", "rect": [0, 0, 24, 540], "boundary": true},
+        {"id": "chimera.boundary.east", "rect": [936, 0, 24, 540], "boundary": true},
+        {"id": "chimera.arena.floor", "rect": [0, 484, 960, 56]},
+        {"id": "chimera.arena.ledge-west", "rect": [150, 396, 170, 20]},
+        {"id": "chimera.arena.ledge-east", "rect": [640, 396, 170, 20]}
+      ],
+      "traversal": [
+        {"id": "collisionArchive.boss.arena-floor", "fromSurfaceId": "chimera.arena.floor", "toSurfaceId": "chimera.arena.floor"}
+      ],
+      "enemies": [],
+      "features": [
+        {
+          "id": "chimera.seal.west",
+          "kind": "bossSeal",
+          "position": [96, 172],
+          "size": [18, 312]
+        },
+        {
+          "id": "chimera.seal.east",
+          "kind": "bossSeal",
+          "position": [846, 172],
+          "size": [18, 312]
+        }
+      ],
+      "objectiveNodes": [],
+      "terrainPulse": null
+    }
+  ]
+}

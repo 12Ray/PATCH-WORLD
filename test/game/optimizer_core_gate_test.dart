@@ -1,6 +1,7 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
 import 'package:patch_world/game/components/environment/core_signature_gate_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -50,5 +51,41 @@ void main() {
     );
 
     await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  test('three boss cores cannot bypass the final patch seal', () {
+    final game = PatchWorldGame(initialRoom: RoomId.bootSector);
+    game.damageLabProgress
+      ..bossDefeated = true
+      ..patchApplied = true;
+    game.temporalHallProgress
+      ..bossDefeated = true
+      ..patchApplied = true;
+    game.collisionArchiveProgress.bossDefeated = true;
+    game.campaignExploration
+      ..collectCoreSignature(CampaignRegion.damageLab)
+      ..collectCoreSignature(CampaignRegion.temporalHall)
+      ..collectCoreSignature(CampaignRegion.collisionArchive);
+
+    final gate = CoreSignatureGateComponent(
+      position: Vector2.zero(),
+      acquiredSignatures: game.campaignExploration.coreSignatures.length,
+      requiredSignatures: 3,
+      routeUnlocked: game.isOptimizerGateReady,
+    );
+    expect(gate.acquiredSignatures, 3);
+    expect(gate.routeUnlocked, isFalse);
+    expect(gate.isUnlocked, isFalse);
+    expect(game.isOptimizerGateReady, isFalse);
+
+    game.collisionArchiveProgress.patchApplied = true;
+    expect(game.isOptimizerGateReady, isTrue);
+    final unlockedGate = CoreSignatureGateComponent(
+      position: Vector2.zero(),
+      acquiredSignatures: game.campaignExploration.coreSignatures.length,
+      requiredSignatures: 3,
+      routeUnlocked: game.isOptimizerGateReady,
+    );
+    expect(unlockedGate.isUnlocked, isTrue);
   });
 }

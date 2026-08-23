@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,9 +14,19 @@ void main() {
   setUp(() {
     SharedPreferencesAsyncPlatform.instance =
         InMemorySharedPreferencesAsync.empty();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMessageHandler(
+          'xyz.luan/audioplayers.global/events',
+          (message) async =>
+              const StandardMethodCodec().encodeSuccessEnvelope(null),
+        );
   });
 
-  tearDown(() => SharedPreferencesAsyncPlatform.instance = null);
+  tearDown(() {
+    SharedPreferencesAsyncPlatform.instance = null;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMessageHandler('xyz.luan/audioplayers.global/events', null);
+  });
 
   testWidgets('campaign start applies and locks the selected loadout', (
     tester,
@@ -35,9 +47,20 @@ void main() {
     await tester.runAsync(game.ready);
     await tester.runAsync(() => game.world.loaded);
 
-    await tester.runAsync(
-      () => game.selectStartingWeapon(PlayerWeapon.gauntlet),
-    );
+    unawaited(game.selectStartingWeapon(PlayerWeapon.gauntlet));
+    for (var attempt = 0; attempt < 180; attempt += 1) {
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 4)),
+      );
+      if (game.world.isReady &&
+          game.world.player.selectedWeapon == PlayerWeapon.gauntlet) {
+        break;
+      }
+      if (attempt == 179) {
+        throw StateError('Timed out waiting for gauntlet campaign start.');
+      }
+    }
 
     expect(game.selectedRunWeapon, PlayerWeapon.gauntlet);
     expect(game.world.player.selectedWeapon, PlayerWeapon.gauntlet);

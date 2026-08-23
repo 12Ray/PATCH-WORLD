@@ -11,6 +11,34 @@ final class SpriteFrameTransform {
   final double scale;
 }
 
+final class SpritePlaybackClip {
+  SpritePlaybackClip({
+    required List<Sprite> frames,
+    List<SpriteFrameTransform>? frameTransforms,
+  }) : frames = List<Sprite>.unmodifiable(frames),
+       frameTransforms = frameTransforms == null
+           ? null
+           : List<SpriteFrameTransform>.unmodifiable(frameTransforms) {
+    if (this.frames.isEmpty) {
+      throw ArgumentError.value(frames, 'frames', 'must not be empty');
+    }
+    if (this.frameTransforms case final transforms?
+        when transforms.length != this.frames.length) {
+      throw ArgumentError.value(
+        frameTransforms,
+        'frameTransforms',
+        'must contain one transform for every frame',
+      );
+    }
+  }
+
+  final List<Sprite> frames;
+  final List<SpriteFrameTransform>? frameTransforms;
+
+  bool get hasFrameTransforms =>
+      frameTransforms != null && frameTransforms!.length == frames.length;
+}
+
 /// A sprite presentation layer that keeps gameplay hitboxes independent from
 /// the visible silhouette while adding small, readable game-feel motions.
 final class EntitySpriteVisual extends SpriteComponent {
@@ -24,6 +52,7 @@ final class EntitySpriteVisual extends SpriteComponent {
     this.rotationAmplitude = 0.025,
     double phaseOffset = 0,
     Vector2? offset,
+    this.animationDeltaResolver,
   }) : _basePosition = parentSize / 2 + (offset ?? Vector2.zero()),
        _phase = phaseOffset,
        super(
@@ -38,6 +67,7 @@ final class EntitySpriteVisual extends SpriteComponent {
   final double bobSpeed;
   final bool canFlipHorizontally;
   final double rotationAmplitude;
+  final double Function(double rawDt)? animationDeltaResolver;
 
   double _phase;
   double _flashRemaining = 0;
@@ -79,11 +109,37 @@ final class EntitySpriteVisual extends SpriteComponent {
     List<SpriteFrameTransform>? frameTransforms,
   }) {
     if (frames.isEmpty || fps <= 0) return;
+    if (frameTransforms != null && frameTransforms.length != frames.length) {
+      throw ArgumentError.value(
+        frameTransforms,
+        'frameTransforms',
+        'must contain one transform for every frame',
+      );
+    }
     _startAnimation(
       frames,
       fps: fps,
       loops: false,
       frameTransforms: frameTransforms,
+    );
+  }
+
+  void playClipOnce(
+    SpritePlaybackClip clip, {
+    required double durationSeconds,
+  }) {
+    if (!durationSeconds.isFinite || durationSeconds <= 0) {
+      throw ArgumentError.value(
+        durationSeconds,
+        'durationSeconds',
+        'must be finite and greater than zero',
+      );
+    }
+    _startAnimation(
+      clip.frames,
+      fps: clip.frames.length / durationSeconds,
+      loops: false,
+      frameTransforms: clip.frameTransforms,
     );
   }
 
@@ -129,10 +185,15 @@ final class EntitySpriteVisual extends SpriteComponent {
     required bool loops,
     List<SpriteFrameTransform>? frameTransforms,
   }) {
+    if (frameTransforms != null && frameTransforms.length != frames.length) {
+      throw ArgumentError.value(
+        frameTransforms,
+        'frameTransforms',
+        'must contain one transform for every frame',
+      );
+    }
     _activeFrames = frames;
-    _activeFrameTransforms = frameTransforms?.length == frames.length
-        ? frameTransforms
-        : null;
+    _activeFrameTransforms = frameTransforms;
     _secondsPerFrame = 1 / fps;
     _animationElapsed = 0;
     _frameIndex = 0;
@@ -219,7 +280,10 @@ final class EntitySpriteVisual extends SpriteComponent {
 
   @override
   void update(double dt) {
-    _updateAnimation(dt);
+    final resolvedAnimationDt = animationDeltaResolver?.call(dt) ?? dt;
+    _updateAnimation(
+      resolvedAnimationDt.isFinite ? math.max(0, resolvedAnimationDt) : 0,
+    );
     _phase += dt * bobSpeed * (1 + _motionStrength * 0.7);
     final transientAction =
         _activeFrames != null && !_animationLoops && _animationPlaying;

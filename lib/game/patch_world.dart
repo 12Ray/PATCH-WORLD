@@ -190,6 +190,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
         nodeId: nodeId,
         entry: entry,
         progress: game.damageLabProgress,
+        layout: game.damageLabRoomLayouts.room(nodeId),
       ),
       CampaignNodeId.damageDashCache ||
       CampaignNodeId.damageUpperArchive ||
@@ -204,6 +205,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
         nodeId: nodeId,
         entry: entry,
         progress: game.temporalHallProgress,
+        layout: game.regionalRoomLayouts.room(nodeId),
       ),
       CampaignNodeId.temporalDashRift ||
       CampaignNodeId.temporalUpperLoop ||
@@ -218,6 +220,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
         nodeId: nodeId,
         entry: entry,
         progress: game.collisionArchiveProgress,
+        layout: game.regionalRoomLayouts.room(nodeId),
       ),
       CampaignNodeId.collisionVectorCache ||
       CampaignNodeId.collisionUpperMatrix ||

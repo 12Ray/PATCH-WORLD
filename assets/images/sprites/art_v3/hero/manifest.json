@@ -11,8 +11,8 @@
         256
       ],
       "displaySize": [
-        54,
-        54
+        46,
+        46
       ],
       "frames": 4,
       "fps": 6,
@@ -21,7 +21,7 @@
         0.5,
         0.5
       ],
-      "baseline": 0.86,
+      "baseline": 0.9375,
       "standingFrame": 0,
       "eventFrame": null,
       "alphaCoverage": [
@@ -42,8 +42,8 @@
         256
       ],
       "displaySize": [
-        54,
-        54
+        46,
+        46
       ],
       "frames": 4,
       "fps": 6,
@@ -52,7 +52,7 @@
         0.5,
         0.5
       ],
-      "baseline": 0.86,
+      "baseline": 0.9375,
       "standingFrame": 0,
       "eventFrame": null,
       "alphaCoverage": [
@@ -73,8 +73,8 @@
         256
       ],
       "displaySize": [
-        54,
-        54
+        46,
+        46
       ],
       "frames": 4,
       "fps": 6,
@@ -83,7 +83,7 @@
         0.5,
         0.5
       ],
-      "baseline": 0.86,
+      "baseline": 0.9375,
       "standingFrame": 0,
       "eventFrame": null,
       "alphaCoverage": [
@@ -107,8 +107,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 6,
         "fps": 10,
@@ -117,7 +117,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2919,
@@ -151,8 +151,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 2,
         "fps": 10,
@@ -161,7 +161,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2989,
@@ -187,8 +187,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 1,
         "fps": 1,
@@ -197,7 +197,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2922
@@ -221,8 +221,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 2,
         "fps": 10,
@@ -231,7 +231,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2975,
@@ -257,8 +257,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 3,
         "fps": 12,
@@ -267,7 +267,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2637,
@@ -297,8 +297,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 6,
         "fps": 10,
@@ -307,7 +307,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2849,
@@ -341,8 +341,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 2,
         "fps": 10,
@@ -351,7 +351,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2802,
@@ -377,8 +377,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 1,
         "fps": 1,
@@ -387,7 +387,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2534
@@ -411,8 +411,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 2,
         "fps": 10,
@@ -421,7 +421,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2602,
@@ -447,8 +447,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 3,
         "fps": 12,
@@ -457,7 +457,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2759,
@@ -487,8 +487,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 6,
         "fps": 10,
@@ -497,7 +497,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2732,
@@ -531,8 +531,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 2,
         "fps": 10,
@@ -541,7 +541,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2489,
@@ -567,8 +567,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 1,
         "fps": 1,
@@ -577,7 +577,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2497
@@ -601,8 +601,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 2,
         "fps": 10,
@@ -611,7 +611,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2616,
@@ -637,8 +637,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 3,
         "fps": 12,
@@ -647,7 +647,7 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": null,
         "alphaCoverage": [
           0.2692,
@@ -679,8 +679,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 14.285714,
@@ -689,12 +689,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
           1
         ],
+        "presentationScale": 1.6569,
+        "frameTransforms": [
+          {
+            "dx": 8.178,
+            "dy": -11.888,
+            "scale": 1.655
+          },
+          {
+            "dx": 10.606,
+            "dy": -12.603,
+            "scale": 1.6944
+          },
+          {
+            "dx": 5.039,
+            "dy": -11.368,
+            "scale": 1.6264
+          },
+          {
+            "dx": 9.342,
+            "dy": -12.129,
+            "scale": 1.652
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 86,
+            "y": 229
+          },
+          {
+            "x": 79,
+            "y": 229
+          },
+          {
+            "x": 96,
+            "y": 229
+          },
+          {
+            "x": 82,
+            "y": 230
+          }
+        ],
+        "bodyBounds": [
+          [
+            55,
+            105,
+            163,
+            230
+          ],
+          [
+            48,
+            100,
+            153,
+            230
+          ],
+          [
+            62,
+            102,
+            159,
+            230
+          ],
+          [
+            31,
+            120,
+            146,
+            231
+          ]
+        ],
+        "bodyPixelCounts": [
+          6440,
+          6144,
+          6669,
+          6464
+        ],
+        "referenceBodyPixels": 17640,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.1656,
           0.1749,
@@ -714,7 +790,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack2": {
         "asset": "sword-attack-2.png",
@@ -724,8 +800,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 14.285714,
@@ -734,12 +810,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
           1
         ],
+        "presentationScale": 1.5941,
+        "frameTransforms": [
+          {
+            "dx": 6.853,
+            "dy": -5.857,
+            "scale": 1.5534
+          },
+          {
+            "dx": -10.211,
+            "dy": -7.512,
+            "scale": 1.6415
+          },
+          {
+            "dx": -0.439,
+            "dy": -5.921,
+            "scale": 1.5397
+          },
+          {
+            "dx": 9.259,
+            "dy": -7.52,
+            "scale": 1.642
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 88,
+            "y": 214
+          },
+          {
+            "x": 148,
+            "y": 215
+          },
+          {
+            "x": 114,
+            "y": 215
+          },
+          {
+            "x": 82,
+            "y": 215
+          }
+        ],
+        "bodyBounds": [
+          [
+            57,
+            84,
+            164,
+            215
+          ],
+          [
+            105,
+            93,
+            209,
+            216
+          ],
+          [
+            76,
+            68,
+            174,
+            216
+          ],
+          [
+            30,
+            104,
+            147,
+            216
+          ]
+        ],
+        "bodyPixelCounts": [
+          7310,
+          6547,
+          7441,
+          6543
+        ],
+        "referenceBodyPixels": 17640,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.187,
           0.202,
@@ -759,7 +911,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack3": {
         "asset": "sword-attack-3.png",
@@ -769,8 +921,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 14.285714,
@@ -779,12 +931,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
           1
         ],
+        "presentationScale": 1.6306,
+        "frameTransforms": [
+          {
+            "dx": 9.25,
+            "dy": -6.454,
+            "scale": 1.7553
+          },
+          {
+            "dx": -2.947,
+            "dy": -3.433,
+            "scale": 1.5203
+          },
+          {
+            "dx": 0.294,
+            "dy": -4.596,
+            "scale": 1.6023
+          },
+          {
+            "dx": 6.916,
+            "dy": -5.491,
+            "scale": 1.6445
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 85,
+            "y": 206
+          },
+          {
+            "x": 123,
+            "y": 207
+          },
+          {
+            "x": 112,
+            "y": 207
+          },
+          {
+            "x": 90,
+            "y": 208
+          }
+        ],
+        "bodyBounds": [
+          [
+            59,
+            85,
+            154,
+            207
+          ],
+          [
+            62,
+            87,
+            171,
+            208
+          ],
+          [
+            61,
+            70,
+            170,
+            208
+          ],
+          [
+            36,
+            91,
+            148,
+            209
+          ]
+        ],
+        "bodyPixelCounts": [
+          5725,
+          7632,
+          6871,
+          6523
+        ],
+        "referenceBodyPixels": 17640,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.2174,
           0.1601,
@@ -804,7 +1032,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack4": {
         "asset": "sword-attack-4.png",
@@ -814,8 +1042,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 14.285714,
@@ -824,12 +1052,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
           1
         ],
+        "presentationScale": 1.6072,
+        "frameTransforms": [
+          {
+            "dx": 8.219,
+            "dy": 6.472,
+            "scale": 1.585
+          },
+          {
+            "dx": 10.166,
+            "dy": 6.225,
+            "scale": 1.5799
+          },
+          {
+            "dx": 5.713,
+            "dy": 6.404,
+            "scale": 1.5942
+          },
+          {
+            "dx": 9.787,
+            "dy": 5.549,
+            "scale": 1.6695
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 84,
+            "y": 169
+          },
+          {
+            "x": 77,
+            "y": 170
+          },
+          {
+            "x": 93,
+            "y": 169
+          },
+          {
+            "x": 81,
+            "y": 170
+          }
+        ],
+        "bodyBounds": [
+          [
+            58,
+            38,
+            180,
+            170
+          ],
+          [
+            42,
+            54,
+            181,
+            171
+          ],
+          [
+            61,
+            46,
+            170,
+            170
+          ],
+          [
+            32,
+            60,
+            142,
+            171
+          ]
+        ],
+        "bodyPixelCounts": [
+          7022,
+          7067,
+          6941,
+          6329
+        ],
+        "referenceBodyPixels": 17640,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.1548,
           0.1596,
@@ -849,7 +1153,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack5": {
         "asset": "sword-attack-5.png",
@@ -859,8 +1163,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 14.285714,
@@ -869,12 +1173,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
           1
         ],
+        "presentationScale": 1.7625,
+        "frameTransforms": [
+          {
+            "dx": 2.863,
+            "dy": 25.324,
+            "scale": 2.1018
+          },
+          {
+            "dx": 8.526,
+            "dy": 15.522,
+            "scale": 1.6238
+          },
+          {
+            "dx": 7.651,
+            "dy": 7.06,
+            "scale": 1.6239
+          },
+          {
+            "dx": 15.244,
+            "dy": 8.065,
+            "scale": 1.7005
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 109,
+            "y": 109
+          },
+          {
+            "x": 84,
+            "y": 137
+          },
+          {
+            "x": 87,
+            "y": 166
+          },
+          {
+            "x": 64,
+            "y": 161
+          }
+        ],
+        "bodyBounds": [
+          [
+            82,
+            22,
+            164,
+            110
+          ],
+          [
+            60,
+            7,
+            173,
+            138
+          ],
+          [
+            55,
+            40,
+            147,
+            167
+          ],
+          [
+            50,
+            22,
+            119,
+            162
+          ]
+        ],
+        "bodyPixelCounts": [
+          3993,
+          6690,
+          6689,
+          6100
+        ],
+        "referenceBodyPixels": 17640,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.2107,
           0.2501,
@@ -894,7 +1274,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack6": {
         "asset": "sword-attack-6.png",
@@ -904,8 +1284,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 14.285714,
@@ -914,12 +1294,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
           1
         ],
+        "presentationScale": 1.7994,
+        "frameTransforms": [
+          {
+            "dx": 7.589,
+            "dy": 10.219,
+            "scale": 1.7901
+          },
+          {
+            "dx": 5.201,
+            "dy": 17.014,
+            "scale": 1.9608
+          },
+          {
+            "dx": 3.724,
+            "dy": 13.434,
+            "scale": 1.7891
+          },
+          {
+            "dx": 15.344,
+            "dy": 15.766,
+            "scale": 1.6575
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 91,
+            "y": 134
+          },
+          {
+            "x": 101,
+            "y": 100
+          },
+          {
+            "x": 103,
+            "y": 124
+          },
+          {
+            "x": 62,
+            "y": 136
+          }
+        ],
+        "bodyBounds": [
+          [
+            70,
+            2,
+            153,
+            135
+          ],
+          [
+            89,
+            1,
+            173,
+            101
+          ],
+          [
+            76,
+            1,
+            158,
+            125
+          ],
+          [
+            32,
+            14,
+            136,
+            137
+          ]
+        ],
+        "bodyPixelCounts": [
+          5505,
+          4588,
+          5511,
+          6421
+        ],
+        "referenceBodyPixels": 17640,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.1757,
           0.1232,
@@ -939,7 +1395,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "parry": {
         "asset": "sword-parry.png",
@@ -949,8 +1405,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 12,
@@ -959,12 +1415,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": 0,
         "activeFrame": [
           0,
           1
         ],
+        "presentationScale": 1.5644,
+        "frameTransforms": [
+          {
+            "dx": 10.115,
+            "dy": -15.122,
+            "scale": 1.6386
+          },
+          {
+            "dx": 10.49,
+            "dy": -14.714,
+            "scale": 1.6476
+          },
+          {
+            "dx": -1.425,
+            "dy": -11.249,
+            "scale": 1.4607
+          },
+          {
+            "dx": 1.117,
+            "dy": -12.53,
+            "scale": 1.5109
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 79,
+            "y": 241
+          },
+          {
+            "x": 78,
+            "y": 239
+          },
+          {
+            "x": 117,
+            "y": 240
+          },
+          {
+            "x": 108,
+            "y": 241
+          }
+        ],
+        "bodyBounds": [
+          [
+            51,
+            127,
+            155,
+            242
+          ],
+          [
+            55,
+            121,
+            159,
+            240
+          ],
+          [
+            71,
+            101,
+            183,
+            241
+          ],
+          [
+            66,
+            106,
+            173,
+            242
+          ]
+        ],
+        "bodyPixelCounts": [
+          6570,
+          6498,
+          8267,
+          7727
+        ],
+        "referenceBodyPixels": 17640,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.2326,
           0.1565,
@@ -984,7 +1516,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "perfectParry": {
         "asset": "sword-perfect-parry.png",
@@ -994,8 +1526,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 18,
@@ -1004,12 +1536,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": 0,
         "activeFrame": [
           0,
           0
         ],
+        "presentationScale": 1.5769,
+        "frameTransforms": [
+          {
+            "dx": 1.295,
+            "dy": -10.479,
+            "scale": 1.6425
+          },
+          {
+            "dx": 1.064,
+            "dy": -9.583,
+            "scale": 1.5748
+          },
+          {
+            "dx": -1.915,
+            "dy": -8.486,
+            "scale": 1.4822
+          },
+          {
+            "dx": 8.113,
+            "dy": -10.459,
+            "scale": 1.6081
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 109,
+            "y": 225
+          },
+          {
+            "x": 109,
+            "y": 226
+          },
+          {
+            "x": 119,
+            "y": 228
+          },
+          {
+            "x": 85,
+            "y": 227
+          }
+        ],
+        "bodyBounds": [
+          [
+            51,
+            106,
+            153,
+            226
+          ],
+          [
+            37,
+            100,
+            155,
+            227
+          ],
+          [
+            82,
+            96,
+            190,
+            229
+          ],
+          [
+            56,
+            113,
+            166,
+            228
+          ]
+        ],
+        "bodyPixelCounts": [
+          6539,
+          7113,
+          8029,
+          6821
+        ],
+        "referenceBodyPixels": 17640,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.2376,
           0.1838,
@@ -1029,7 +1637,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "counter": {
         "asset": "sword-counter.png",
@@ -1039,8 +1647,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 16,
@@ -1049,12 +1657,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
           2
         ],
+        "presentationScale": 1.752,
+        "frameTransforms": [
+          {
+            "dx": 14.958,
+            "dy": -10.413,
+            "scale": 1.915
+          },
+          {
+            "dx": -4.312,
+            "dy": -2.522,
+            "scale": 1.9172
+          },
+          {
+            "dx": 0.452,
+            "dy": -5.115,
+            "scale": 1.5598
+          },
+          {
+            "dx": 9.046,
+            "dy": -6.825,
+            "scale": 1.6161
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 72,
+            "y": 211
+          },
+          {
+            "x": 128,
+            "y": 188
+          },
+          {
+            "x": 111,
+            "y": 211
+          },
+          {
+            "x": 82,
+            "y": 214
+          }
+        ],
+        "bodyBounds": [
+          [
+            40,
+            106,
+            144,
+            212
+          ],
+          [
+            65,
+            88,
+            159,
+            189
+          ],
+          [
+            83,
+            70,
+            178,
+            212
+          ],
+          [
+            55,
+            101,
+            165,
+            215
+          ]
+        ],
+        "bodyPixelCounts": [
+          4810,
+          4799,
+          7250,
+          6754
+        ],
+        "referenceBodyPixels": 17640,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.2407,
           0.2118,
@@ -1074,7 +1758,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "abilityTransition": {
         "asset": "sword-ability-transition.png",
@@ -1084,8 +1768,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 20,
@@ -1094,12 +1778,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": 0,
         "activeFrame": [
           0,
           0
         ],
+        "presentationScale": 1.7775,
+        "frameTransforms": [
+          {
+            "dx": 4.729,
+            "dy": 4.587,
+            "scale": 1.6772
+          },
+          {
+            "dx": -28.278,
+            "dy": 4.568,
+            "scale": 2.2229
+          },
+          {
+            "dx": -3.48,
+            "dy": 5.099,
+            "scale": 1.5452
+          },
+          {
+            "dx": -2.817,
+            "dy": 4.09,
+            "scale": 1.6646
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 98,
+            "y": 173
+          },
+          {
+            "x": 188,
+            "y": 162
+          },
+          {
+            "x": 125,
+            "y": 175
+          },
+          {
+            "x": 123,
+            "y": 175
+          }
+        ],
+        "bodyBounds": [
+          [
+            66,
+            68,
+            193,
+            174
+          ],
+          [
+            160,
+            69,
+            242,
+            163
+          ],
+          [
+            83,
+            69,
+            179,
+            176
+          ],
+          [
+            86,
+            68,
+            187,
+            176
+          ]
+        ],
+        "bodyPixelCounts": [
+          6271,
+          3570,
+          7388,
+          6366
+        ],
+        "referenceBodyPixels": 17640,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.1531,
           0.2632,
@@ -1119,7 +1879,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       }
     },
     "gauntlet": {
@@ -1131,8 +1891,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 11.111111,
@@ -1141,12 +1901,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
-          0
+          1
         ],
+        "presentationScale": 1.4091,
+        "frameTransforms": [
+          {
+            "dx": -10.151,
+            "dy": -10.726,
+            "scale": 1.3745
+          },
+          {
+            "dx": -0.183,
+            "dy": -12.503,
+            "scale": 1.4437
+          },
+          {
+            "dx": -1.88,
+            "dy": -11.428,
+            "scale": 1.4065
+          },
+          {
+            "dx": -1.861,
+            "dy": -11.791,
+            "scale": 1.4115
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 140,
+            "y": 250
+          },
+          {
+            "x": 101,
+            "y": 251
+          },
+          {
+            "x": 107,
+            "y": 250
+          },
+          {
+            "x": 107,
+            "y": 251
+          }
+        ],
+        "bodyBounds": [
+          [
+            73,
+            108,
+            232,
+            251
+          ],
+          [
+            55,
+            110,
+            194,
+            252
+          ],
+          [
+            61,
+            106,
+            167,
+            251
+          ],
+          [
+            44,
+            102,
+            144,
+            252
+          ]
+        ],
+        "bodyPixelCounts": [
+          10249,
+          9290,
+          9788,
+          9719
+        ],
+        "referenceBodyPixels": 19364,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.2215,
           0.2053,
@@ -1166,7 +2002,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack2": {
         "asset": "gauntlet-attack-2.png",
@@ -1176,8 +2012,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 11.111111,
@@ -1186,12 +2022,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
-          0
+          1
         ],
+        "presentationScale": 1.3585,
+        "frameTransforms": [
+          {
+            "dx": -5.747,
+            "dy": -7.485,
+            "scale": 1.3362
+          },
+          {
+            "dx": -0.555,
+            "dy": -7.125,
+            "scale": 1.3183
+          },
+          {
+            "dx": -0.246,
+            "dy": -8.359,
+            "scale": 1.3797
+          },
+          {
+            "dx": 3.628,
+            "dy": -9.017,
+            "scale": 1.3998
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 122,
+            "y": 240
+          },
+          {
+            "x": 100,
+            "y": 240
+          },
+          {
+            "x": 100,
+            "y": 240
+          },
+          {
+            "x": 85,
+            "y": 241
+          }
+        ],
+        "bodyBounds": [
+          [
+            52,
+            95,
+            232,
+            241
+          ],
+          [
+            54,
+            98,
+            231,
+            241
+          ],
+          [
+            59,
+            91,
+            188,
+            241
+          ],
+          [
+            44,
+            90,
+            144,
+            242
+          ]
+        ],
+        "bodyPixelCounts": [
+          10845,
+          11142,
+          10173,
+          9882
+        ],
+        "referenceBodyPixels": 19364,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.2706,
           0.2539,
@@ -1211,7 +2123,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack3": {
         "asset": "gauntlet-attack-3.png",
@@ -1221,8 +2133,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 11.111111,
@@ -1231,12 +2143,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
-          0
+          1
         ],
+        "presentationScale": 1.4034,
+        "frameTransforms": [
+          {
+            "dx": -2.516,
+            "dy": -9.117,
+            "scale": 1.3684
+          },
+          {
+            "dx": -2.342,
+            "dy": -7.727,
+            "scale": 1.3482
+          },
+          {
+            "dx": -9.068,
+            "dy": -11.759,
+            "scale": 1.4952
+          },
+          {
+            "dx": 3.139,
+            "dy": -9.811,
+            "scale": 1.4017
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 109,
+            "y": 244
+          },
+          {
+            "x": 108,
+            "y": 240
+          },
+          {
+            "x": 135,
+            "y": 244
+          },
+          {
+            "x": 87,
+            "y": 244
+          }
+        ],
+        "bodyBounds": [
+          [
+            64,
+            106,
+            215,
+            245
+          ],
+          [
+            83,
+            47,
+            189,
+            241
+          ],
+          [
+            77,
+            97,
+            171,
+            245
+          ],
+          [
+            44,
+            94,
+            144,
+            245
+          ]
+        ],
+        "bodyPixelCounts": [
+          10341,
+          10653,
+          8662,
+          9855
+        ],
+        "referenceBodyPixels": 19364,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.2342,
           0.2643,
@@ -1256,7 +2244,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack4": {
         "asset": "gauntlet-attack-4.png",
@@ -1266,8 +2254,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 11.111111,
@@ -1276,12 +2264,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
-          0
+          1
         ],
+        "presentationScale": 1.4103,
+        "frameTransforms": [
+          {
+            "dx": 1.609,
+            "dy": -3.562,
+            "scale": 1.3598
+          },
+          {
+            "dx": 3.326,
+            "dy": -3.054,
+            "scale": 1.3298
+          },
+          {
+            "dx": -12.643,
+            "dy": -6.509,
+            "scale": 1.5181
+          },
+          {
+            "dx": -2.036,
+            "dy": -5.066,
+            "scale": 1.4336
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 92,
+            "y": 222
+          },
+          {
+            "x": 84,
+            "y": 222
+          },
+          {
+            "x": 148,
+            "y": 223
+          },
+          {
+            "x": 108,
+            "y": 223
+          }
+        ],
+        "bodyBounds": [
+          [
+            52,
+            82,
+            227,
+            223
+          ],
+          [
+            42,
+            82,
+            241,
+            223
+          ],
+          [
+            72,
+            81,
+            183,
+            224
+          ],
+          [
+            44,
+            79,
+            145,
+            224
+          ]
+        ],
+        "bodyPixelCounts": [
+          10472,
+          10951,
+          8402,
+          9422
+        ],
+        "referenceBodyPixels": 19364,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.2907,
           0.281,
@@ -1301,7 +2365,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack5": {
         "asset": "gauntlet-attack-5.png",
@@ -1311,8 +2375,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 11.111111,
@@ -1321,12 +2385,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
-          0
+          1
         ],
+        "presentationScale": 1.4985,
+        "frameTransforms": [
+          {
+            "dx": -7.188,
+            "dy": 3.785,
+            "scale": 1.4735
+          },
+          {
+            "dx": -2.412,
+            "dy": 4.017,
+            "scale": 1.4766
+          },
+          {
+            "dx": -13.617,
+            "dy": 2.075,
+            "scale": 1.5557
+          },
+          {
+            "dx": 1.37,
+            "dy": 2.826,
+            "scale": 1.4883
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 128,
+            "y": 187
+          },
+          {
+            "x": 110,
+            "y": 186
+          },
+          {
+            "x": 151,
+            "y": 190
+          },
+          {
+            "x": 96,
+            "y": 190
+          }
+        ],
+        "bodyBounds": [
+          [
+            94,
+            61,
+            249,
+            188
+          ],
+          [
+            83,
+            56,
+            235,
+            187
+          ],
+          [
+            84,
+            56,
+            185,
+            191
+          ],
+          [
+            34,
+            48,
+            130,
+            191
+          ]
+        ],
+        "bodyPixelCounts": [
+          8919,
+          8881,
+          8001,
+          8742
+        ],
+        "referenceBodyPixels": 19364,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.3446,
           0.2201,
@@ -1346,7 +2486,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack6": {
         "asset": "gauntlet-attack-6.png",
@@ -1356,8 +2496,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 11.111111,
@@ -1366,12 +2506,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
           1
         ],
+        "presentationScale": 1.5263,
+        "frameTransforms": [
+          {
+            "dx": -5.999,
+            "dy": 11.383,
+            "scale": 1.6538
+          },
+          {
+            "dx": -2.801,
+            "dy": 10.341,
+            "scale": 1.6273
+          },
+          {
+            "dx": -4.691,
+            "dy": 9.169,
+            "scale": 1.3896
+          },
+          {
+            "dx": 0.029,
+            "dy": 8.581,
+            "scale": 1.4344
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 124,
+            "y": 155
+          },
+          {
+            "x": 113,
+            "y": 159
+          },
+          {
+            "x": 118,
+            "y": 169
+          },
+          {
+            "x": 100,
+            "y": 170
+          }
+        ],
+        "bodyBounds": [
+          [
+            80,
+            36,
+            185,
+            156
+          ],
+          [
+            72,
+            39,
+            178,
+            160
+          ],
+          [
+            54,
+            3,
+            151,
+            170
+          ],
+          [
+            38,
+            23,
+            136,
+            171
+          ]
+        ],
+        "bodyPixelCounts": [
+          7080,
+          7312,
+          10028,
+          9412
+        ],
+        "referenceBodyPixels": 19364,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.3247,
           0.2925,
@@ -1391,7 +2607,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "parry": {
         "asset": "gauntlet-parry.png",
@@ -1401,8 +2617,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 12,
@@ -1411,12 +2627,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": 0,
         "activeFrame": [
           0,
           1
         ],
+        "presentationScale": 1.6827,
+        "frameTransforms": [
+          {
+            "dx": -13.478,
+            "dy": -5.404,
+            "scale": 1.9447
+          },
+          {
+            "dx": -11.288,
+            "dy": -9.299,
+            "scale": 1.6301
+          },
+          {
+            "dx": 9.483,
+            "dy": -6.872,
+            "scale": 1.5725
+          },
+          {
+            "dx": 7.609,
+            "dy": -7.625,
+            "scale": 1.5836
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 146,
+            "y": 199
+          },
+          {
+            "x": 142,
+            "y": 226
+          },
+          {
+            "x": 69,
+            "y": 221
+          },
+          {
+            "x": 76,
+            "y": 223
+          }
+        ],
+        "bodyBounds": [
+          [
+            111,
+            91,
+            195,
+            200
+          ],
+          [
+            74,
+            89,
+            172,
+            227
+          ],
+          [
+            36,
+            92,
+            143,
+            222
+          ],
+          [
+            45,
+            89,
+            138,
+            224
+          ]
+        ],
+        "bodyPixelCounts": [
+          5120,
+          7287,
+          7831,
+          7722
+        ],
+        "referenceBodyPixels": 19364,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.2262,
           0.1542,
@@ -1436,7 +2728,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "perfectParry": {
         "asset": "gauntlet-perfect-parry.png",
@@ -1446,8 +2738,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 18,
@@ -1456,12 +2748,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": 0,
         "activeFrame": [
           0,
           0
         ],
+        "presentationScale": 1.582,
+        "frameTransforms": [
+          {
+            "dx": 0.287,
+            "dy": -5.891,
+            "scale": 1.5998
+          },
+          {
+            "dx": 3.839,
+            "dy": -3.992,
+            "scale": 1.4967
+          },
+          {
+            "dx": 3.156,
+            "dy": -6.601,
+            "scale": 1.6448
+          },
+          {
+            "dx": 7.355,
+            "dy": -5.402,
+            "scale": 1.5869
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 102,
+            "y": 216
+          },
+          {
+            "x": 87,
+            "y": 215
+          },
+          {
+            "x": 93,
+            "y": 216
+          },
+          {
+            "x": 77,
+            "y": 215
+          }
+        ],
+        "bodyBounds": [
+          [
+            72,
+            78,
+            169,
+            217
+          ],
+          [
+            51,
+            82,
+            164,
+            216
+          ],
+          [
+            61,
+            93,
+            163,
+            217
+          ],
+          [
+            46,
+            80,
+            139,
+            216
+          ]
+        ],
+        "bodyPixelCounts": [
+          7566,
+          8644,
+          7158,
+          7689
+        ],
+        "referenceBodyPixels": 19364,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.2034,
           0.2109,
@@ -1481,7 +2849,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "counter": {
         "asset": "gauntlet-counter.png",
@@ -1491,8 +2859,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 16,
@@ -1501,12 +2869,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
           2
         ],
+        "presentationScale": 1.5536,
+        "frameTransforms": [
+          {
+            "dx": -0.418,
+            "dy": 3.61,
+            "scale": 1.5698
+          },
+          {
+            "dx": 6.813,
+            "dy": 4.598,
+            "scale": 1.4984
+          },
+          {
+            "dx": 2.668,
+            "dy": 3.919,
+            "scale": 1.5671
+          },
+          {
+            "dx": 7.0,
+            "dy": 3.516,
+            "scale": 1.5792
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 104,
+            "y": 184
+          },
+          {
+            "x": 76,
+            "y": 183
+          },
+          {
+            "x": 93,
+            "y": 183
+          },
+          {
+            "x": 78,
+            "y": 184
+          }
+        ],
+        "bodyBounds": [
+          [
+            70,
+            46,
+            173,
+            185
+          ],
+          [
+            43,
+            52,
+            159,
+            184
+          ],
+          [
+            58,
+            54,
+            163,
+            184
+          ],
+          [
+            45,
+            49,
+            139,
+            185
+          ]
+        ],
+        "bodyPixelCounts": [
+          7858,
+          8625,
+          7885,
+          7765
+        ],
+        "referenceBodyPixels": 19364,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.3217,
           0.2311,
@@ -1526,7 +2970,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "abilityTransition": {
         "asset": "gauntlet-ability-transition.png",
@@ -1536,8 +2980,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 16.5,
@@ -1546,12 +2990,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": 0,
         "activeFrame": [
           0,
           0
         ],
+        "presentationScale": 1.5893,
+        "frameTransforms": [
+          {
+            "dx": -4.463,
+            "dy": 12.051,
+            "scale": 1.516
+          },
+          {
+            "dx": -3.896,
+            "dy": 15.84,
+            "scale": 1.5267
+          },
+          {
+            "dx": 1.802,
+            "dy": 14.756,
+            "scale": 1.7252
+          },
+          {
+            "dx": 5.376,
+            "dy": 17.979,
+            "scale": 1.5891
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 118,
+            "y": 155
+          },
+          {
+            "x": 116,
+            "y": 141
+          },
+          {
+            "x": 99,
+            "y": 143
+          },
+          {
+            "x": 84,
+            "y": 133
+          }
+        ],
+        "bodyBounds": [
+          [
+            101,
+            3,
+            206,
+            156
+          ],
+          [
+            81,
+            16,
+            196,
+            142
+          ],
+          [
+            74,
+            14,
+            164,
+            144
+          ],
+          [
+            38,
+            2,
+            142,
+            134
+          ]
+        ],
+        "bodyPixelCounts": [
+          8425,
+          8308,
+          6506,
+          7668
+        ],
+        "referenceBodyPixels": 19364,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.221,
           0.1889,
@@ -1571,7 +3091,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       }
     },
     "gun": {
@@ -1583,8 +3103,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 12.5,
@@ -1593,12 +3113,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
-          0
+          1
         ],
+        "presentationScale": 1.5016,
+        "frameTransforms": [
+          {
+            "dx": -11.422,
+            "dy": -14.004,
+            "scale": 1.5076
+          },
+          {
+            "dx": -5.776,
+            "dy": -12.497,
+            "scale": 1.4879
+          },
+          {
+            "dx": -6.574,
+            "dy": -13.624,
+            "scale": 1.4905
+          },
+          {
+            "dx": -6.526,
+            "dy": -14.291,
+            "scale": 1.5204
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 137,
+            "y": 252
+          },
+          {
+            "x": 116,
+            "y": 248
+          },
+          {
+            "x": 119,
+            "y": 252
+          },
+          {
+            "x": 119,
+            "y": 252
+          }
+        ],
+        "bodyBounds": [
+          [
+            82,
+            103,
+            189,
+            253
+          ],
+          [
+            81,
+            105,
+            187,
+            249
+          ],
+          [
+            60,
+            103,
+            179,
+            253
+          ],
+          [
+            65,
+            103,
+            166,
+            253
+          ]
+        ],
+        "bodyPixelCounts": [
+          8077,
+          8292,
+          8263,
+          7941
+        ],
+        "referenceBodyPixels": 18357,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.1624,
           0.1556,
@@ -1618,7 +3214,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack2": {
         "asset": "gun-attack-2.png",
@@ -1628,8 +3224,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 12.5,
@@ -1638,12 +3234,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
-          0
+          1
         ],
+        "presentationScale": 1.5056,
+        "frameTransforms": [
+          {
+            "dx": -9.793,
+            "dy": -7.911,
+            "scale": 1.5002
+          },
+          {
+            "dx": -1.985,
+            "dy": -7.066,
+            "scale": 1.4982
+          },
+          {
+            "dx": -5.756,
+            "dy": -7.852,
+            "scale": 1.497
+          },
+          {
+            "dx": -5.966,
+            "dy": -8.404,
+            "scale": 1.5272
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 131,
+            "y": 230
+          },
+          {
+            "x": 102,
+            "y": 227
+          },
+          {
+            "x": 116,
+            "y": 230
+          },
+          {
+            "x": 117,
+            "y": 230
+          }
+        ],
+        "bodyBounds": [
+          [
+            75,
+            81,
+            184,
+            231
+          ],
+          [
+            68,
+            82,
+            172,
+            228
+          ],
+          [
+            56,
+            80,
+            176,
+            231
+          ],
+          [
+            65,
+            82,
+            166,
+            231
+          ]
+        ],
+        "bodyPixelCounts": [
+          8156,
+          8178,
+          8191,
+          7871
+        ],
+        "referenceBodyPixels": 18357,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.1643,
           0.155,
@@ -1663,7 +3335,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack3": {
         "asset": "gun-attack-3.png",
@@ -1673,8 +3345,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 12.5,
@@ -1683,12 +3355,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
-          0
+          1
         ],
+        "presentationScale": 1.504,
+        "frameTransforms": [
+          {
+            "dx": -8.714,
+            "dy": -3.649,
+            "scale": 1.5036
+          },
+          {
+            "dx": -6.061,
+            "dy": -2.204,
+            "scale": 1.4788
+          },
+          {
+            "dx": -5.744,
+            "dy": -3.636,
+            "scale": 1.5027
+          },
+          {
+            "dx": -4.308,
+            "dy": -4.072,
+            "scale": 1.531
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 127,
+            "y": 214
+          },
+          {
+            "x": 117,
+            "y": 210
+          },
+          {
+            "x": 116,
+            "y": 214
+          },
+          {
+            "x": 111,
+            "y": 214
+          }
+        ],
+        "bodyBounds": [
+          [
+            70,
+            67,
+            179,
+            215
+          ],
+          [
+            80,
+            68,
+            187,
+            211
+          ],
+          [
+            59,
+            66,
+            177,
+            215
+          ],
+          [
+            59,
+            67,
+            159,
+            215
+          ]
+        ],
+        "bodyPixelCounts": [
+          8120,
+          8394,
+          8129,
+          7832
+        ],
+        "referenceBodyPixels": 18357,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.18,
           0.1703,
@@ -1708,7 +3456,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack4": {
         "asset": "gun-attack-4.png",
@@ -1718,8 +3466,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 12.5,
@@ -1728,12 +3476,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
-          0
+          1
         ],
+        "presentationScale": 1.5104,
+        "frameTransforms": [
+          {
+            "dx": -8.17,
+            "dy": 0.853,
+            "scale": 1.5109
+          },
+          {
+            "dx": -2.297,
+            "dy": 2.467,
+            "scale": 1.4886
+          },
+          {
+            "dx": 1.77,
+            "dy": 1.035,
+            "scale": 1.4962
+          },
+          {
+            "dx": -3.984,
+            "dy": 0.419,
+            "scale": 1.5459
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 125,
+            "y": 197
+          },
+          {
+            "x": 103,
+            "y": 192
+          },
+          {
+            "x": 88,
+            "y": 197
+          },
+          {
+            "x": 110,
+            "y": 197
+          }
+        ],
+        "bodyBounds": [
+          [
+            68,
+            49,
+            167,
+            198
+          ],
+          [
+            83,
+            40,
+            192,
+            193
+          ],
+          [
+            59,
+            49,
+            177,
+            198
+          ],
+          [
+            58,
+            51,
+            159,
+            198
+          ]
+        ],
+        "bodyPixelCounts": [
+          8041,
+          8284,
+          8200,
+          7681
+        ],
+        "referenceBodyPixels": 18357,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.1916,
           0.1753,
@@ -1753,7 +3577,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack5": {
         "asset": "gun-attack-5.png",
@@ -1763,8 +3587,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 12.5,
@@ -1773,12 +3597,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
-          0
+          1
         ],
+        "presentationScale": 1.5753,
+        "frameTransforms": [
+          {
+            "dx": -19.188,
+            "dy": 11.037,
+            "scale": 1.5348
+          },
+          {
+            "dx": -11.836,
+            "dy": 11.032,
+            "scale": 1.5869
+          },
+          {
+            "dx": -3.643,
+            "dy": 10.31,
+            "scale": 1.5644
+          },
+          {
+            "dx": 2.914,
+            "dy": 10.009,
+            "scale": 1.615
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 165,
+            "y": 159
+          },
+          {
+            "x": 138,
+            "y": 158
+          },
+          {
+            "x": 109,
+            "y": 161
+          },
+          {
+            "x": 87,
+            "y": 161
+          }
+        ],
+        "bodyBounds": [
+          [
+            98,
+            48,
+            219,
+            160
+          ],
+          [
+            98,
+            38,
+            252,
+            159
+          ],
+          [
+            77,
+            43,
+            211,
+            162
+          ],
+          [
+            56,
+            43,
+            172,
+            162
+          ]
+        ],
+        "bodyPixelCounts": [
+          7793,
+          7290,
+          7501,
+          7038
+        ],
+        "referenceBodyPixels": 18357,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.1787,
           0.1493,
@@ -1798,7 +3698,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "attack6": {
         "asset": "gun-attack-6.png",
@@ -1808,8 +3708,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 12.5,
@@ -1818,12 +3718,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
-          0
+          1
         ],
+        "presentationScale": 1.4888,
+        "frameTransforms": [
+          {
+            "dx": -12.304,
+            "dy": 12.181,
+            "scale": 1.4211
+          },
+          {
+            "dx": -14.646,
+            "dy": 12.576,
+            "scale": 1.5004
+          },
+          {
+            "dx": 1.799,
+            "dy": 11.768,
+            "scale": 1.5003
+          },
+          {
+            "dx": -5.953,
+            "dy": 11.595,
+            "scale": 1.5335
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 141,
+            "y": 157
+          },
+          {
+            "x": 149,
+            "y": 154
+          },
+          {
+            "x": 88,
+            "y": 157
+          },
+          {
+            "x": 117,
+            "y": 157
+          }
+        ],
+        "bodyBounds": [
+          [
+            65,
+            15,
+            192,
+            158
+          ],
+          [
+            73,
+            13,
+            189,
+            155
+          ],
+          [
+            59,
+            10,
+            177,
+            158
+          ],
+          [
+            64,
+            10,
+            164,
+            158
+          ]
+        ],
+        "bodyPixelCounts": [
+          9090,
+          8154,
+          8155,
+          7806
+        ],
+        "referenceBodyPixels": 18357,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.1806,
           0.1539,
@@ -1843,7 +3819,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "parry": {
         "asset": "gun-parry.png",
@@ -1853,8 +3829,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 12,
@@ -1863,12 +3839,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": 0,
         "activeFrame": [
           0,
           1
         ],
+        "presentationScale": 1.5652,
+        "frameTransforms": [
+          {
+            "dx": -2.742,
+            "dy": -10.541,
+            "scale": 1.5105
+          },
+          {
+            "dx": 4.605,
+            "dy": -15.004,
+            "scale": 1.7188
+          },
+          {
+            "dx": 6.997,
+            "dy": -10.21,
+            "scale": 1.5075
+          },
+          {
+            "dx": -2.687,
+            "dy": -11.08,
+            "scale": 1.5238
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 105,
+            "y": 239
+          },
+          {
+            "x": 84,
+            "y": 240
+          },
+          {
+            "x": 69,
+            "y": 238
+          },
+          {
+            "x": 105,
+            "y": 240
+          }
+        ],
+        "bodyBounds": [
+          [
+            76,
+            93,
+            189,
+            240
+          ],
+          [
+            61,
+            91,
+            146,
+            241
+          ],
+          [
+            43,
+            91,
+            156,
+            239
+          ],
+          [
+            46,
+            92,
+            149,
+            241
+          ]
+        ],
+        "bodyPixelCounts": [
+          8046,
+          6214,
+          8078,
+          7906
+        ],
+        "referenceBodyPixels": 18357,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.197,
           0.2039,
@@ -1888,7 +3940,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "perfectParry": {
         "asset": "gun-perfect-parry.png",
@@ -1898,8 +3950,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 18,
@@ -1908,12 +3960,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": 0,
         "activeFrame": [
           0,
           0
         ],
+        "presentationScale": 1.5225,
+        "frameTransforms": [
+          {
+            "dx": -0.073,
+            "dy": -6.591,
+            "scale": 1.5498
+          },
+          {
+            "dx": 3.443,
+            "dy": -6.373,
+            "scale": 1.5369
+          },
+          {
+            "dx": -9.519,
+            "dy": -3.92,
+            "scale": 1.4865
+          },
+          {
+            "dx": -4.351,
+            "dy": -6.851,
+            "scale": 1.5168
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 96,
+            "y": 222
+          },
+          {
+            "x": 83,
+            "y": 222
+          },
+          {
+            "x": 130,
+            "y": 216
+          },
+          {
+            "x": 111,
+            "y": 225
+          }
+        ],
+        "bodyBounds": [
+          [
+            72,
+            76,
+            178,
+            223
+          ],
+          [
+            59,
+            76,
+            168,
+            223
+          ],
+          [
+            71,
+            74,
+            182,
+            217
+          ],
+          [
+            52,
+            76,
+            154,
+            226
+          ]
+        ],
+        "bodyPixelCounts": [
+          7643,
+          7772,
+          8307,
+          7979
+        ],
+        "referenceBodyPixels": 18357,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.1841,
           0.1781,
@@ -1933,7 +4061,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "counter": {
         "asset": "gun-counter.png",
@@ -1943,8 +4071,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 16,
@@ -1953,12 +4081,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
-        "eventFrame": 0,
+        "baseline": 0.9375,
+        "eventFrame": 1,
         "activeFrame": [
           0,
-          0
+          1
         ],
+        "presentationScale": 1.5229,
+        "frameTransforms": [
+          {
+            "dx": 3.12,
+            "dy": 1.705,
+            "scale": 1.531
+          },
+          {
+            "dx": 4.218,
+            "dy": 1.707,
+            "scale": 1.5308
+          },
+          {
+            "dx": -14.894,
+            "dy": 4.811,
+            "scale": 1.495
+          },
+          {
+            "dx": -4.572,
+            "dy": 1.384,
+            "scale": 1.5348
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 84,
+            "y": 193
+          },
+          {
+            "x": 80,
+            "y": 193
+          },
+          {
+            "x": 150,
+            "y": 183
+          },
+          {
+            "x": 112,
+            "y": 194
+          }
+        ],
+        "bodyBounds": [
+          [
+            59,
+            48,
+            168,
+            194
+          ],
+          [
+            55,
+            48,
+            162,
+            194
+          ],
+          [
+            92,
+            42,
+            202,
+            184
+          ],
+          [
+            55,
+            48,
+            156,
+            195
+          ]
+        ],
+        "bodyPixelCounts": [
+          7832,
+          7834,
+          8213,
+          7793
+        ],
+        "referenceBodyPixels": 18357,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.1752,
           0.1972,
@@ -1978,7 +4182,7 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       },
       "abilityTransition": {
         "asset": "gun-ability-transition.png",
@@ -1988,8 +4192,8 @@
           256
         ],
         "displaySize": [
-          54,
-          54
+          46,
+          46
         ],
         "frames": 4,
         "fps": 14,
@@ -1998,12 +4202,88 @@
           0.5,
           0.5
         ],
-        "baseline": 0.86,
+        "baseline": 0.9375,
         "eventFrame": 0,
         "activeFrame": [
           0,
           0
         ],
+        "presentationScale": 1.5482,
+        "frameTransforms": [
+          {
+            "dx": 5.606,
+            "dy": 9.859,
+            "scale": 1.5921
+          },
+          {
+            "dx": 1.901,
+            "dy": 9.56,
+            "scale": 1.5942
+          },
+          {
+            "dx": -14.479,
+            "dy": 11.736,
+            "scale": 1.4562
+          },
+          {
+            "dx": -6.756,
+            "dy": 9.556,
+            "scale": 1.5505
+          }
+        ],
+        "bodyRoots": [
+          {
+            "x": 77,
+            "y": 162
+          },
+          {
+            "x": 90,
+            "y": 163
+          },
+          {
+            "x": 149,
+            "y": 158
+          },
+          {
+            "x": 120,
+            "y": 164
+          }
+        ],
+        "bodyBounds": [
+          [
+            52,
+            16,
+            141,
+            163
+          ],
+          [
+            63,
+            17,
+            149,
+            164
+          ],
+          [
+            92,
+            16,
+            209,
+            159
+          ],
+          [
+            61,
+            17,
+            163,
+            165
+          ]
+        ],
+        "bodyPixelCounts": [
+          7242,
+          7223,
+          8657,
+          7636
+        ],
+        "referenceBodyPixels": 18357,
+        "scalePolicy": "idle-body-area-v1",
+        "registrationVersion": "art-v3-body-component-v2-2026-08-23",
         "alphaCoverage": [
           0.1825,
           0.1784,
@@ -2023,8 +4303,517 @@
         "promptVersion": "art-v3-pass2-2026-08-11",
         "source": "OpenAI built-in ImageGen with approved Pass 1 identity, Combat Motion v2, and ability references",
         "license": "OpenAI generated project asset",
-        "timingContract": "visual event begins at frame 0; gameplay timing unchanged"
+        "timingContract": "visual contact and gameplay event share eventFrame; playback duration is derived from the effective attack interval"
       }
+    }
+  },
+  "abilities": {
+    "sword": {
+      "asset": "sword-dash.png",
+      "state": "ability",
+      "sourceFrameSize": [
+        256,
+        256
+      ],
+      "displaySize": [
+        46,
+        46
+      ],
+      "frames": 6,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "baseline": 0.9375,
+      "registrationMode": "grounded-root",
+      "frameTransforms": [
+        {
+          "dx": 4.216,
+          "dy": -2.731,
+          "scale": 1.636584
+        },
+        {
+          "dx": 10.297,
+          "dy": -1.636,
+          "scale": 1.693879
+        },
+        {
+          "dx": 17.906,
+          "dy": -3.131,
+          "scale": 1.741555
+        },
+        {
+          "dx": -29.743,
+          "dy": -7.699,
+          "scale": 2.320123
+        },
+        {
+          "dx": -4.631,
+          "dy": -4.14,
+          "scale": 1.771978
+        },
+        {
+          "dx": -7.507,
+          "dy": -4.854,
+          "scale": 1.778002
+        }
+      ],
+      "bodyLandmarks": [
+        {
+          "center": [
+            115,
+            149
+          ],
+          "root": [
+            99,
+            199
+          ],
+          "bounds": [
+            66,
+            82,
+            161,
+            200
+          ],
+          "pixelCount": 6586
+        },
+        {
+          "center": [
+            115,
+            145
+          ],
+          "root": [
+            80,
+            193
+          ],
+          "bounds": [
+            49,
+            86,
+            164,
+            194
+          ],
+          "pixelCount": 6148
+        },
+        {
+          "center": [
+            98,
+            155
+          ],
+          "root": [
+            57,
+            196
+          ],
+          "bounds": [
+            22,
+            99,
+            160,
+            197
+          ],
+          "pixelCount": 5816
+        },
+        {
+          "center": [
+            202,
+            146
+          ],
+          "root": [
+            189,
+            190
+          ],
+          "bounds": [
+            166,
+            99,
+            243,
+            191
+          ],
+          "pixelCount": 3277
+        },
+        {
+          "center": [
+            156,
+            146
+          ],
+          "root": [
+            129,
+            198
+          ],
+          "bounds": [
+            97,
+            100,
+            205,
+            199
+          ],
+          "pixelCount": 5618
+        },
+        {
+          "center": [
+            158,
+            161
+          ],
+          "root": [
+            138,
+            200
+          ],
+          "bounds": [
+            102,
+            103,
+            198,
+            201
+          ],
+          "pixelCount": 5580
+        }
+      ],
+      "idleBodyReference": {
+        "center": [
+          116,
+          139
+        ],
+        "root": [
+          104,
+          229
+        ],
+        "pixelCount": 17640
+      },
+      "registrationVersion": "art-v3-ability-root-v1-2026-08-23",
+      "source": "OpenAI built-in ImageGen approved ability reference",
+      "license": "OpenAI generated project asset"
+    },
+    "gauntlet": {
+      "asset": "gauntlet-double-jump-spin.png",
+      "state": "ability",
+      "sourceFrameSize": [
+        256,
+        256
+      ],
+      "displaySize": [
+        46,
+        46
+      ],
+      "frames": 6,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "baseline": 0.9375,
+      "registrationMode": "airborne-center",
+      "frameTransforms": [
+        {
+          "dx": -4.417,
+          "dy": 3.591,
+          "scale": 1.596528
+        },
+        {
+          "dx": -1.696,
+          "dy": 3.904,
+          "scale": 1.389879
+        },
+        {
+          "dx": 1.62,
+          "dy": 4.441,
+          "scale": 1.412537
+        },
+        {
+          "dx": 3.681,
+          "dy": 2.647,
+          "scale": 1.364851
+        },
+        {
+          "dx": 4.531,
+          "dy": 6.439,
+          "scale": 1.489584
+        },
+        {
+          "dx": 3.907,
+          "dy": 4.949,
+          "scale": 1.413119
+        }
+      ],
+      "bodyLandmarks": [
+        {
+          "center": [
+            134,
+            123
+          ],
+          "root": [
+            135,
+            180
+          ],
+          "bounds": [
+            85,
+            45,
+            175,
+            181
+          ],
+          "pixelCount": 7597
+        },
+        {
+          "center": [
+            124,
+            121
+          ],
+          "root": [
+            124,
+            198
+          ],
+          "bounds": [
+            86,
+            42,
+            174,
+            199
+          ],
+          "pixelCount": 10024
+        },
+        {
+          "center": [
+            111,
+            119
+          ],
+          "root": [
+            124,
+            204
+          ],
+          "bounds": [
+            69,
+            25,
+            155,
+            205
+          ],
+          "pixelCount": 9705
+        },
+        {
+          "center": [
+            102,
+            126
+          ],
+          "root": [
+            77,
+            200
+          ],
+          "bounds": [
+            45,
+            45,
+            160,
+            201
+          ],
+          "pixelCount": 10395
+        },
+        {
+          "center": [
+            101,
+            112
+          ],
+          "root": [
+            74,
+            199
+          ],
+          "bounds": [
+            34,
+            43,
+            154,
+            200
+          ],
+          "pixelCount": 8727
+        },
+        {
+          "center": [
+            102,
+            117
+          ],
+          "root": [
+            82,
+            197
+          ],
+          "bounds": [
+            39,
+            37,
+            151,
+            198
+          ],
+          "pixelCount": 9697
+        }
+      ],
+      "idleBodyReference": {
+        "center": [
+          113,
+          140
+        ],
+        "root": [
+          88,
+          236
+        ],
+        "pixelCount": 19364
+      },
+      "registrationVersion": "art-v3-ability-root-v1-2026-08-23",
+      "source": "OpenAI built-in ImageGen approved ability reference",
+      "license": "OpenAI generated project asset"
+    },
+    "gun": {
+      "asset": "gun-charged-rail.png",
+      "state": "ability",
+      "sourceFrameSize": [
+        256,
+        256
+      ],
+      "displaySize": [
+        46,
+        46
+      ],
+      "frames": 6,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "baseline": 0.9375,
+      "registrationMode": "grounded-root",
+      "frameTransforms": [
+        {
+          "dx": 2.15,
+          "dy": 0.259,
+          "scale": 1.16913
+        },
+        {
+          "dx": 3.492,
+          "dy": -0.203,
+          "scale": 1.197089
+        },
+        {
+          "dx": 3.553,
+          "dy": -0.301,
+          "scale": 1.202972
+        },
+        {
+          "dx": 5.747,
+          "dy": -2.273,
+          "scale": 1.322291
+        },
+        {
+          "dx": -14.121,
+          "dy": 1.711,
+          "scale": 1.14341
+        },
+        {
+          "dx": -6.002,
+          "dy": -0.015,
+          "scale": 1.185666
+        }
+      ],
+      "bodyLandmarks": [
+        {
+          "center": [
+            102,
+            129
+          ],
+          "root": [
+            75,
+            220
+          ],
+          "bounds": [
+            38,
+            40,
+            191,
+            221
+          ],
+          "pixelCount": 13430
+        },
+        {
+          "center": [
+            93,
+            132
+          ],
+          "root": [
+            70,
+            220
+          ],
+          "bounds": [
+            32,
+            41,
+            173,
+            221
+          ],
+          "pixelCount": 12810
+        },
+        {
+          "center": [
+            94,
+            133
+          ],
+          "root": [
+            70,
+            220
+          ],
+          "bounds": [
+            33,
+            43,
+            173,
+            221
+          ],
+          "pixelCount": 12685
+        },
+        {
+          "center": [
+            81,
+            141
+          ],
+          "root": [
+            66,
+            220
+          ],
+          "bounds": [
+            31,
+            39,
+            135,
+            221
+          ],
+          "pixelCount": 10499
+        },
+        {
+          "center": [
+            145,
+            133
+          ],
+          "root": [
+            153,
+            215
+          ],
+          "bounds": [
+            83,
+            47,
+            244,
+            216
+          ],
+          "pixelCount": 14041
+        },
+        {
+          "center": [
+            142,
+            130
+          ],
+          "root": [
+            114,
+            220
+          ],
+          "bounds": [
+            78,
+            43,
+            227,
+            221
+          ],
+          "pixelCount": 13058
+        }
+      ],
+      "idleBodyReference": {
+        "center": [
+          110,
+          131
+        ],
+        "root": [
+          78,
+          237
+        ],
+        "pixelCount": 18357
+      },
+      "registrationVersion": "art-v3-ability-root-v1-2026-08-23",
+      "source": "OpenAI built-in ImageGen approved ability reference",
+      "license": "OpenAI generated project asset"
     }
   }
 }

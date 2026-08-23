@@ -12,13 +12,21 @@ import 'package:patch_world/game/components/environment/platform_surface_compone
 import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
 import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/components/environment/terrain_pulse_node_component.dart';
+import 'package:patch_world/game/items/campaign_loadout_reward_catalog.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/damage_lab_node_controller.dart';
+import 'package:patch_world/game/rooms/maps/damage_lab_room_layout.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 void main() {
+  late DamageLabRoomLayoutCatalog layouts;
+
+  setUpAll(() async {
+    layouts = await DamageLabRoomLayoutCatalog.load();
+  });
+
   setUp(() {
     SharedPreferencesAsyncPlatform.instance =
         InMemorySharedPreferencesAsync.empty();
@@ -33,6 +41,7 @@ void main() {
         nodeId: nodeId,
         entry: CampaignNodeEntry.west,
         progress: progress,
+        layout: layouts.room(nodeId),
       );
       for (final weapon in PlayerWeapon.values) {
         expect(
@@ -152,6 +161,19 @@ void main() {
             .where((surface) => !surface.isBoundary);
         expect(visibleSurfaces, isNotEmpty);
         expect(
+          room.children.whereType<PlatformSurfaceComponent>(),
+          hasLength(room.layout.surfaces.length),
+        );
+        expect(
+          room.layout.surfaces.any(
+            (surface) =>
+                surface.id == 'workshop.airlock.west' &&
+                surface.bounds.contains(const Offset(105, 510)),
+          ),
+          isTrue,
+          reason: 'The west door needs an authored safe landing.',
+        );
+        expect(
           visibleSurfaces.every((surface) => !surface.renderArtwork),
           isTrue,
           reason: 'Backdrop terrain must not draw a duplicate skin.',
@@ -258,10 +280,10 @@ void main() {
         );
         expect(room.children.whereType<PulsingLaserComponent>(), hasLength(3));
         expect(room.children.whereType<RoomHazardComponent>(), hasLength(3));
-        expect(
-          room.children.whereType<LoadoutEventTerminalComponent>(),
-          hasLength(1),
-        );
+        final loadoutEvent = room.children
+            .whereType<LoadoutEventTerminalComponent>()
+            .single;
+        expect(loadoutEvent.eventId, CampaignLoadoutEventId.damageLab);
       }
       await _useDoor(
         tester,
@@ -341,12 +363,21 @@ void _expectExpandedBackdropRoom(
   final backdrop = room.children.whereType<RoomBackdropComponent>().single;
   expect(backdrop.size, Vector2(1920, 1080));
   expect(backdrop.environmentAsset, environmentAsset);
-  final visibleSurfaces = room.children
+  final authoredSurfaces = room.children
       .whereType<PlatformSurfaceComponent>()
-      .where(
-        (surface) =>
-            !surface.isBoundary && surface is! TerrainPulseBridgeComponent,
-      );
+      .where((surface) => surface is! TerrainPulseBridgeComponent)
+      .toList(growable: false);
+  expect(authoredSurfaces, hasLength(room.layout.surfaces.length));
+  for (final surface in room.layout.surfaces) {
+    expect(
+      authoredSurfaces.where((runtime) => runtime.bounds == surface.bounds),
+      hasLength(1),
+      reason: '${room.nodeId.name} must instantiate ${surface.id} exactly once',
+    );
+  }
+  final visibleSurfaces = authoredSurfaces.where(
+    (surface) => !surface.isBoundary,
+  );
   expect(visibleSurfaces, isNotEmpty);
   expect(visibleSurfaces.every((surface) => !surface.renderArtwork), isTrue);
   final doors = room.children.whereType<CampaignDoorComponent>();

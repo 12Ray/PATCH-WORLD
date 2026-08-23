@@ -5,10 +5,12 @@ import 'dart:ui';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:patch_world/game/combat/attack_tier.dart';
 import 'package:patch_world/game/components/effects/enemy_damage_volume_component.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_action_timeline.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_art_v3_frame_resolver.dart';
+import 'package:patch_world/game/components/enemies/platformer/enemy_attack_pattern.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_combat_state.dart';
 import 'package:patch_world/game/components/enemies/platformer/platformer_enemy_brain.dart';
 import 'package:patch_world/game/core/health_state.dart';
@@ -150,6 +152,10 @@ final class PlatformerEnemyComponent extends PositionComponent
   List<Sprite>? _spriteFrames;
   List<Sprite>? _artV3Frames;
   final List<Vector2> _motionHistory = <Vector2>[];
+  final Vector2 _lockedTargetPosition = Vector2.zero();
+  double? _patternHorizontalVelocity;
+  EnemyDamageEffectSpec? _pendingLandingEffect;
+  String? _pendingLandingSourceId;
 
   @override
   String get entityId => 'platformer.${archetype.name}';
@@ -161,6 +167,22 @@ final class PlatformerEnemyComponent extends PositionComponent
   String? get activeActionId => _action?.id;
   bool get dealsContactDamage => false;
   bool get isDormant => _dormant;
+
+  @visibleForTesting
+  void debugExecutePatternSlot(EnemyActionSlot slot) {
+    _lockedTargetPosition.setFrom(game.world.player.position);
+    final direction = _lockedTargetPosition.x - position.x;
+    if (direction.abs() > .01) _facing = direction.sign.toDouble();
+    _executePatternAction(
+      EnemyAttackPatternCatalog.forArchetype(
+        archetype.name,
+      ).actionForSlot(slot),
+    );
+  }
+
+  @visibleForTesting
+  double? get debugPatternHorizontalVelocity => _patternHorizontalVelocity;
+
   double get _activeWorldWidth {
     final room = game.world.activeRoom;
     return room is PlatformerRoomGeometry
@@ -380,7 +402,8 @@ final class PlatformerEnemyComponent extends PositionComponent
     if (archetype == PlatformerEnemyArchetype.echoBat ||
         archetype == PlatformerEnemyArchetype.chronoJailer) {
       _motionHistory.add(game.world.player.position.clone());
-    } else if (archetype == PlatformerEnemyArchetype.rewindSkater) {
+    } else if (archetype == PlatformerEnemyArchetype.rewindSkater ||
+        archetype == PlatformerEnemyArchetype.tickRunner) {
       if (_action?.id == 'rewindSkater.rewind' &&
           _action?.phase == EnemyActionPhase.active &&
           _motionHistory.isNotEmpty) {
@@ -410,7 +433,12 @@ final class PlatformerEnemyComponent extends PositionComponent
       EnemyCombatState.defeated => 9,
     };
     final artV3Frames = _artV3Frames;
+    final usesActionSpecificAttackFrame = usesCombatMotionAttackFrame(
+      state: _combatState,
+      motionFrame: _activeMotionFrame,
+    );
     if (artV3Frames == null ||
+        usesActionSpecificAttackFrame ||
         _combatState == EnemyCombatState.hurt ||
         _combatState == EnemyCombatState.staggered ||
         _combatState == EnemyCombatState.overflowing ||
@@ -534,7 +562,9 @@ final class PlatformerEnemyComponent extends PositionComponent
     );
     _combatState = EnemyCombatState.telegraph;
     _activeMotionFrame = motionFrame.clamp(3, 7);
-    final direction = game.world.player.position.x - position.x;
+    _patternHorizontalVelocity = null;
+    _lockedTargetPosition.setFrom(game.world.player.position);
+    final direction = _lockedTargetPosition.x - position.x;
     if (direction.abs() > 0.01) _facing = direction.sign.toDouble();
   }
 
@@ -616,6 +646,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     if (tick.enteredActive) _executeAction(action.id);
     if (tick.completed) {
       _action = null;
+      _patternHorizontalVelocity = null;
       _nextAttackAt =
           _actionClock +
           switch (archetype) {
@@ -631,20 +662,11 @@ final class PlatformerEnemyComponent extends PositionComponent
 
   void _executeAction(String id) {
     unawaited(game.audio.playEnemyAttack(id));
-    if (id.contains('.normal.')) {
-      unawaited(_fireTierPattern(AttackTier.normal));
-      return;
-    }
-    if (id.contains('.enhanced.')) {
-      unawaited(_fireTierPattern(AttackTier.enhanced));
-      return;
-    }
-    if (id.contains('.parryable.')) {
-      unawaited(_fireTierPattern(AttackTier.parryable));
-      return;
-    }
-    if (id.contains('.special.')) {
-      _executeSecondarySpecial();
+    final pattern = EnemyAttackPatternCatalog.forArchetype(
+      archetype.name,
+    ).resolveAction(id);
+    if (pattern != null) {
+      _executePatternAction(pattern);
       return;
     }
     switch (id) {
@@ -871,13 +893,15 @@ final class PlatformerEnemyComponent extends PositionComponent
     String? sourceId,
     double? speed,
     AttackTier? tier,
+    Vector2? targetPosition,
     double gravity = 0,
     int bounces = 0,
     double angleOffset = 0,
+    double impactImpulse = 0,
   }) async {
     if (!game.world.canSpawnProjectile || isRemoving) return;
     final resolvedTier = tier ?? _nextProjectileTier();
-    final direction = game.world.player.position - position;
+    final direction = (targetPosition ?? _lockedTargetPosition) - position;
     if (direction.length2 == 0) direction.x = 1;
     direction.normalize();
     if (angleOffset != 0) direction.rotate(angleOffset);
@@ -901,6 +925,7 @@ final class PlatformerEnemyComponent extends PositionComponent
         projectileRadius: resolvedTier == AttackTier.enhanced ? 10 : 7,
         gravity: gravity,
         remainingBounces: bounces,
+        impactImpulse: impactImpulse,
       ),
     );
   }
@@ -911,165 +936,285 @@ final class PlatformerEnemyComponent extends PositionComponent
     return tier;
   }
 
-  Future<void> _fireTierPattern(AttackTier tier) async {
-    final sourceId = 'enemy.${archetype.name}.${tier.name}Pattern';
-    switch (tier) {
-      case AttackTier.normal:
-        await _fireAtPlayer(
-          sourceId: sourceId,
-          tier: tier,
-          speed: archetype.isMidBoss ? 170 : 132,
-        );
-      case AttackTier.enhanced:
-        final shotCount = archetype.isMidBoss ? 5 : 3;
-        final center = (shotCount - 1) / 2;
-        await Future.wait(<Future<void>>[
-          for (var index = 0; index < shotCount; index += 1)
-            _fireAtPlayer(
-              sourceId: '$sourceId.$index',
-              tier: tier,
-              speed: archetype.isMidBoss ? 162 : 124,
-              angleOffset: (index - center) * .14,
+  void _executePatternAction(EnemyAttackSpec action) {
+    for (var index = 0; index < action.effects.length; index += 1) {
+      final effect = action.effects[index];
+      final sourceId =
+          'enemy.${archetype.name}.${action.slot.name}.${action.motionId}.$index';
+      switch (effect) {
+        case EnemyProjectileEffectSpec():
+          unawaited(_spawnPatternProjectiles(effect, sourceId));
+        case EnemyDamageEffectSpec():
+          _executeDamageEffect(effect, sourceId);
+        case EnemyMovementEffectSpec():
+          _executeMovementEffect(effect, sourceId);
+        case EnemyImpulseEffectSpec():
+          _executeImpulseEffect(effect);
+        case EnemySupportEffectSpec():
+          _executeSupportEffect(effect);
+      }
+    }
+  }
+
+  Future<void> _spawnPatternProjectiles(
+    EnemyProjectileEffectSpec effect,
+    String sourceId,
+  ) async {
+    final owner = parent;
+    if (owner == null || isRemoving) return;
+    final towardTarget = _lockedTargetPosition - position;
+    if (towardTarget.length2 == 0) towardTarget.x = _facing;
+    towardTarget.normalize();
+    final velocities = <Vector2>[];
+    switch (effect.pattern) {
+      case EnemyProjectilePattern.aimed || EnemyProjectilePattern.fan:
+        final center = (effect.count - 1) / 2;
+        for (var index = 0; index < effect.count; index += 1) {
+          final direction = towardTarget.clone()
+            ..rotate((index - center) * effect.spreadRadians);
+          velocities.add(direction * effect.speed);
+        }
+      case EnemyProjectilePattern.facing:
+        final center = (effect.count - 1) / 2;
+        for (var index = 0; index < effect.count; index += 1) {
+          final direction = Vector2(_facing, 0)
+            ..rotate((index - center) * effect.spreadRadians);
+          velocities.add(direction * effect.speed);
+        }
+      case EnemyProjectilePattern.radial:
+        for (var index = 0; index < effect.count; index += 1) {
+          final angle = math.pi * 2 * index / effect.count;
+          velocities.add(
+            Vector2(math.cos(angle), math.sin(angle)) * effect.speed,
+          );
+        }
+      case EnemyProjectilePattern.ballistic:
+        final center = (effect.count - 1) / 2;
+        final horizontalDirection = towardTarget.x.sign == 0
+            ? _facing
+            : towardTarget.x.sign.toDouble();
+        for (var index = 0; index < effect.count; index += 1) {
+          final offset = index - center;
+          velocities.add(
+            Vector2(
+              horizontalDirection * effect.speed * (1 + offset.abs() * .07),
+              -effect.verticalSpeed +
+                  offset * effect.spreadRadians * effect.speed,
             ),
-        ]);
-      case AttackTier.parryable:
-        await _fireAtPlayer(
-          sourceId: sourceId,
-          tier: tier,
-          speed: archetype.isMidBoss ? 150 : 112,
+          );
+        }
+    }
+
+    for (var index = 0; index < velocities.length; index += 1) {
+      if (isRemoving || parent != owner || !game.world.canSpawnProjectile) {
+        break;
+      }
+      await owner.add(
+        EnemyProjectileComponent(
+          position: position.clone(),
+          velocity: velocities[index],
+          sourceId: '$sourceId.$index',
+          attackTier: effect.tier,
+          assetSlug: archetype.assetSlug,
+          damage: effect.damage,
+          projectileRadius: effect.radius,
+          gravity: effect.gravity,
+          remainingBounces: effect.bounces,
+          impactImpulse: effect.impactImpulse,
+        ),
+      );
+    }
+  }
+
+  void _executeDamageEffect(EnemyDamageEffectSpec effect, String sourceId) {
+    final owner = parent;
+    if (owner == null) return;
+    switch (effect.placement) {
+      case EnemyDamagePlacement.attachedFront:
+        final center = (effect.count - 1) / 2;
+        for (var index = 0; index < effect.count; index += 1) {
+          _spawnDamageVolume(
+            this,
+            Vector2(
+              size.x / 2 + _facing * effect.width * .34,
+              size.y / 2 + (index - center) * effect.spacing,
+            ),
+            effect,
+            '$sourceId.$index',
+          );
+        }
+      case EnemyDamagePlacement.selfCentered:
+        _spawnDamageSeries(owner, position.clone(), effect, sourceId);
+      case EnemyDamagePlacement.groundAtSelf:
+        _spawnDamageSeries(
+          owner,
+          Vector2(position.x, position.y + size.y / 2),
+          effect,
+          sourceId,
+        );
+      case EnemyDamagePlacement.targetCentered:
+        _spawnDamageSeries(
+          owner,
+          _lockedTargetPosition.clone(),
+          effect,
+          sourceId,
+        );
+      case EnemyDamagePlacement.targetBelow:
+        _spawnDamageSeries(
+          owner,
+          _lockedTargetPosition + Vector2(0, effect.height * .38),
+          effect,
+          sourceId,
+        );
+      case EnemyDamagePlacement.historyTrail:
+        final points = _sampleMotionHistory(effect.count);
+        for (var index = 0; index < points.length; index += 1) {
+          _spawnDamageVolume(owner, points[index], effect, '$sourceId.$index');
+        }
+      case EnemyDamagePlacement.crossAtSelf:
+        _spawnDamageCross(owner, position.clone(), effect, sourceId);
+      case EnemyDamagePlacement.crossAtTarget:
+        _spawnDamageCross(
+          owner,
+          _lockedTargetPosition.clone(),
+          effect,
+          sourceId,
         );
     }
   }
 
-  void _executeSecondarySpecial() {
-    switch (archetype) {
-      case PlatformerEnemyArchetype.patchMite:
-        _receiveSupportHealing(1);
-        unawaited(
-          _fireAtPlayer(
-            sourceId: 'enemy.patchMite.repairChipThrow',
-            tier: AttackTier.parryable,
-            speed: 106,
-          ),
-        );
-      case PlatformerEnemyArchetype.checksumHopper:
-        _velocity.y = -470;
-        _velocity.x = _facing * 135;
+  void _spawnDamageSeries(
+    Component owner,
+    Vector2 base,
+    EnemyDamageEffectSpec effect,
+    String sourceId,
+  ) {
+    final center = (effect.count - 1) / 2;
+    for (var index = 0; index < effect.count; index += 1) {
+      _spawnDamageVolume(
+        owner,
+        base + Vector2((index - center) * effect.spacing, 0),
+        effect,
+        '$sourceId.$index',
+      );
+    }
+  }
+
+  void _spawnDamageCross(
+    Component owner,
+    Vector2 center,
+    EnemyDamageEffectSpec effect,
+    String sourceId,
+  ) {
+    _spawnDamageVolume(owner, center, effect, '$sourceId.horizontal');
+    _spawnDamageVolume(
+      owner,
+      center,
+      EnemyDamageEffectSpec(
+        placement: effect.placement,
+        width: effect.height,
+        height: effect.width,
+        activeSeconds: effect.activeSeconds,
+        damage: effect.damage,
+      ),
+      '$sourceId.vertical',
+    );
+  }
+
+  void _spawnDamageVolume(
+    Component owner,
+    Vector2 strikePosition,
+    EnemyDamageEffectSpec effect,
+    String sourceId,
+  ) {
+    unawaited(
+      _addComponent(
+        owner,
+        EnemyDamageVolumeComponent(
+          position: strikePosition,
+          size: Vector2(effect.width, effect.height),
+          sourceId: sourceId,
+          damage: effect.damage,
+          activeSeconds: effect.activeSeconds,
+          volumeColor: archetype.accentColor.withAlpha(105),
+        ),
+      ),
+    );
+  }
+
+  List<Vector2> _sampleMotionHistory(int count) {
+    if (_motionHistory.isEmpty) {
+      return <Vector2>[_lockedTargetPosition.clone()];
+    }
+    if (count == 1) return <Vector2>[_motionHistory.last.clone()];
+    return <Vector2>[
+      for (var index = 0; index < count; index += 1)
+        _motionHistory[(index * (_motionHistory.length - 1) / (count - 1))
+                .round()]
+            .clone(),
+    ];
+  }
+
+  void _executeMovementEffect(EnemyMovementEffectSpec effect, String sourceId) {
+    final targetDirection = (_lockedTargetPosition.x - position.x).sign;
+    final toward = targetDirection == 0 ? _facing : targetDirection.toDouble();
+    switch (effect.mode) {
+      case EnemyMovementMode.dashTowardTarget:
+        _facing = toward;
+        _patternHorizontalVelocity = toward * effect.speed;
+      case EnemyMovementMode.dashAwayFromTarget:
+        _facing = -toward;
+        _patternHorizontalVelocity = -toward * effect.speed;
+      case EnemyMovementMode.leapTowardTarget:
+        _facing = toward;
+        _patternHorizontalVelocity = toward * effect.speed;
+        _velocity
+          ..x = _patternHorizontalVelocity!
+          ..y = -effect.verticalSpeed;
         _grounded = false;
-        _hopperLandingPending = true;
-      case PlatformerEnemyArchetype.pulseTurret:
-        unawaited(_fireRadialBurst(AttackTier.normal, 8));
-      case PlatformerEnemyArchetype.repairLeech:
-        _receiveSupportHealing(1);
-        unawaited(_fireRadialBurst(AttackTier.parryable, 4));
-      case PlatformerEnemyArchetype.overflowWarden:
-        _spawnWorldStrike(
-          'enemy.overflowWarden.memoryQuake',
-          Vector2(300, 28),
-          .28,
-        );
-        unawaited(_fireRadialBurst(AttackTier.parryable, 6));
-      case PlatformerEnemyArchetype.tickRunner:
-        _velocity.x = _facing * 310;
-        _spawnAttachedStrike('enemy.tickRunner.rollbackCombo', 96, 28, .34);
-      case PlatformerEnemyArchetype.echoBat:
-        for (final point in _motionHistory.reversed.take(5)) {
-          _spawnStrikeAt('enemy.echoBat.echoMine', point, Vector2.all(38), .30);
-        }
-      case PlatformerEnemyArchetype.delaySniper:
+        _pendingLandingEffect = effect.landingEffect;
+        _pendingLandingSourceId = '$sourceId.landing';
+      case EnemyMovementMode.teleportOppositeSide:
         position.x = (_activeWorldWidth - position.x).clamp(
           72,
           _activeWorldWidth - 72,
         );
-        unawaited(
-          _fireAtPlayer(
-            sourceId: 'enemy.delaySniper.phaseRelocate',
-            tier: AttackTier.normal,
-            speed: 210,
-          ),
-        );
-      case PlatformerEnemyArchetype.rewindSkater:
-        if (_motionHistory.isNotEmpty) position.setFrom(_motionHistory.first);
-        _spawnWorldStrike('enemy.rewindSkater.timeScar', Vector2(156, 24), .34);
-      case PlatformerEnemyArchetype.chronoJailer:
-        _spawnWorldStrike(
-          'enemy.chronoJailer.twelveOClock',
-          Vector2(22, 240),
-          .26,
-        );
-        unawaited(_fireRadialBurst(AttackTier.normal, 12));
-      case PlatformerEnemyArchetype.vectorRam:
-        _velocity.x = _facing * 360;
-        _spawnAttachedStrike('enemy.vectorRam.axisBreak', 124, 42, .36);
-      case PlatformerEnemyArchetype.polarityDrone:
-        final delta = game.world.player.position - position;
-        if (delta.length2 > 0) {
-          game.world.player.applyExternalImpulse(delta.normalized() * 270);
-        }
-        unawaited(_fireRadialBurst(AttackTier.parryable, 4));
-      case PlatformerEnemyArchetype.phaseMimic:
+      case EnemyMovementMode.teleportAboveTarget:
         position.setValues(
-          game.world.player.position.x.clamp(70, _activeWorldWidth - 70),
-          (game.world.player.position.y - 130).clamp(
-            80,
-            _activeWorldHeight - 80,
-          ),
+          _lockedTargetPosition.x.clamp(70, _activeWorldWidth - 70),
+          (_lockedTargetPosition.y -
+                  (effect.distance == 0 ? 130 : effect.distance))
+              .clamp(70, _activeWorldHeight - 70),
         );
-        _spawnWorldStrike(
-          'enemy.phaseMimic.ceilingDrop',
-          Vector2(48, 150),
-          .24,
-          offset: Vector2(0, 72),
-        );
-      case PlatformerEnemyArchetype.shardLobber:
-        final away = (position.x - game.world.player.position.x).sign;
-        position.x = (position.x + away * 86).clamp(62, _activeWorldWidth - 62);
-        unawaited(
-          _fireAtPlayer(
-            sourceId: 'enemy.shardLobber.shieldRetreat',
-            tier: AttackTier.parryable,
-            speed: 118,
-            gravity: 220,
-            bounces: 1,
-          ),
-        );
-      case PlatformerEnemyArchetype.kernelChimera:
-        _spawnWorldStrike(
-          'enemy.kernelChimera.kernelCollapse',
-          Vector2(330, 36),
-          .30,
-        );
-        unawaited(_fireRadialBurst(AttackTier.enhanced, 10));
+      case EnemyMovementMode.rewindOldestPosition:
+        if (_motionHistory.isNotEmpty) {
+          position.setFrom(_motionHistory.first);
+        }
     }
   }
 
-  Future<void> _fireRadialBurst(AttackTier tier, int count) async {
-    if (!game.world.canSpawnProjectile || isRemoving) return;
-    final speed = tier == AttackTier.parryable ? 92.0 : 128.0;
-    await Future.wait(<Future<void>>[
-      for (var index = 0; index < count; index += 1)
-        Future<void>.sync(
-          () => parent!.add(
-            EnemyProjectileComponent(
-              position: position.clone(),
-              velocity:
-                  Vector2(
-                    math.cos(math.pi * 2 * index / count),
-                    math.sin(math.pi * 2 * index / count),
-                  ) *
-                  speed,
-              sourceId: 'enemy.${archetype.name}.radial.${tier.name}.$index',
-              attackTier: tier,
-              assetSlug: archetype.assetSlug,
-              damage: tier == AttackTier.enhanced ? 2 : 1,
-              projectileRadius: tier == AttackTier.enhanced ? 10 : 7,
-            ),
-          ),
-        ),
-    ]);
+  void _executeImpulseEffect(EnemyImpulseEffectSpec effect) {
+    final player = game.world.player;
+    final direction = switch (effect.mode) {
+      EnemyImpulseMode.pull => position - player.position,
+      EnemyImpulseMode.push => player.position - position,
+    };
+    if (direction.length2 == 0) direction.x = _facing;
+    player.applyExternalImpulse(direction.normalized() * effect.strength);
   }
 
-  void _repairNearestAlly() {
+  void _executeSupportEffect(EnemySupportEffectSpec effect) {
+    switch (effect.mode) {
+      case EnemySupportMode.healSelf:
+        _receiveSupportHealing(effect.amount);
+      case EnemySupportMode.healNearestAlly:
+        _repairNearestAlly(effect.amount);
+      case EnemySupportMode.summonLeech:
+        unawaited(_summonWardenLeech());
+    }
+  }
+
+  void _repairNearestAlly([int amount = 1]) {
     PlatformerEnemyComponent? nearest;
     var nearestDistance = double.infinity;
     for (final target in game.world.activeCombatTargets) {
@@ -1084,10 +1229,18 @@ final class PlatformerEnemyComponent extends PositionComponent
         nearest = target;
       }
     }
-    if (nearestDistance <= 230 * 230) nearest?._receiveSupportHealing(1);
+    if (nearestDistance <= 230 * 230) nearest?._receiveSupportHealing(amount);
   }
 
   void _updateFlying(double dt) {
+    final forcedVelocity = _action?.phase == EnemyActionPhase.active
+        ? _patternHorizontalVelocity
+        : null;
+    if (forcedVelocity != null) {
+      position.x += forcedVelocity * dt;
+      position.x = position.x.clamp(36, _activeWorldWidth - 36);
+      return;
+    }
     final player = game.world.player.position;
     final target = Vector2(
       player.x,
@@ -1167,6 +1320,10 @@ final class PlatformerEnemyComponent extends PositionComponent
       };
     }
     _velocity.x = direction * speed;
+    if (_action?.phase == EnemyActionPhase.active &&
+        _patternHorizontalVelocity != null) {
+      _velocity.x = _patternHorizontalVelocity!;
+    }
     final shouldJump =
         (archetype.mobility == PlatformerEnemyMobility.hopper &&
             archetype != PlatformerEnemyArchetype.checksumHopper) ||
@@ -1222,6 +1379,14 @@ final class PlatformerEnemyComponent extends PositionComponent
           ),
         );
       }
+    }
+    final landingEffect = _pendingLandingEffect;
+    if (_grounded && landingEffect != null) {
+      _pendingLandingEffect = null;
+      final sourceId =
+          _pendingLandingSourceId ?? 'enemy.${archetype.name}.landing';
+      _pendingLandingSourceId = null;
+      _executeDamageEffect(landingEffect, sourceId);
     }
     final activeRoom = game.world.activeRoom;
     final killPlane = activeRoom is PlatformerRoomGeometry
@@ -1525,6 +1690,13 @@ final class PlatformerEnemyComponent extends PositionComponent
       ..color = const Color(0xCCFFB34D)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
+    final pattern = EnemyAttackPatternCatalog.forArchetype(
+      archetype.name,
+    ).resolveAction(actionId);
+    if (pattern != null) {
+      _renderPatternTelegraph(canvas, center, tell, pattern);
+      return;
+    }
     if (actionId.contains('lockedShot')) {
       canvas.drawLine(center, center + Offset(_facing * 230, 0), tell);
     } else if (actionId == 'checksumHopper.leap') {
@@ -1584,5 +1756,237 @@ final class PlatformerEnemyComponent extends PositionComponent
     } else {
       canvas.drawLine(center, center + Offset(_facing * 70, 0), tell);
     }
+  }
+
+  void _renderPatternTelegraph(
+    Canvas canvas,
+    Offset center,
+    Paint tell,
+    EnemyAttackSpec action,
+  ) {
+    for (final effect in action.effects) {
+      switch (effect) {
+        case EnemyProjectileEffectSpec():
+          _renderProjectileTelegraph(canvas, center, tell, effect);
+        case EnemyDamageEffectSpec():
+          _renderDamageTelegraph(canvas, center, tell, effect);
+        case EnemyMovementEffectSpec():
+          _renderMovementTelegraph(canvas, center, tell, effect);
+          final landing = effect.landingEffect;
+          if (landing != null) {
+            _renderDamageTelegraph(canvas, center, tell, landing);
+          }
+        case EnemyImpulseEffectSpec():
+          final radius = effect.strength.clamp(80, 270).toDouble() * .28;
+          canvas.drawCircle(center, radius, tell..strokeWidth = 3);
+          canvas.drawCircle(center, radius * .66, tell..strokeWidth = 2);
+        case EnemySupportEffectSpec():
+          final supportPaint = Paint()
+            ..color = const Color(0xCC65FFB1)
+            ..strokeWidth = 3;
+          canvas.drawLine(
+            center + const Offset(-10, 0),
+            center + const Offset(10, 0),
+            supportPaint,
+          );
+          canvas.drawLine(
+            center + const Offset(0, -10),
+            center + const Offset(0, 10),
+            supportPaint,
+          );
+      }
+    }
+  }
+
+  void _renderProjectileTelegraph(
+    Canvas canvas,
+    Offset center,
+    Paint tell,
+    EnemyProjectileEffectSpec effect,
+  ) {
+    final tierPaint = Paint()
+      ..color = effect.tier == AttackTier.parryable
+          ? const Color(0xFFFFD35A)
+          : tell.color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = effect.tier == AttackTier.enhanced ? 3 : 2;
+    final targetDelta = _lockedTargetPosition - position;
+    if (targetDelta.length2 == 0) targetDelta.x = _facing;
+    targetDelta.normalize();
+    switch (effect.pattern) {
+      case EnemyProjectilePattern.aimed || EnemyProjectilePattern.fan:
+        final midpoint = (effect.count - 1) / 2;
+        for (var index = 0; index < effect.count; index += 1) {
+          final direction = targetDelta.clone()
+            ..rotate((index - midpoint) * effect.spreadRadians);
+          canvas.drawLine(
+            center,
+            center + Offset(direction.x, direction.y) * 170,
+            tierPaint,
+          );
+        }
+      case EnemyProjectilePattern.facing:
+        final midpoint = (effect.count - 1) / 2;
+        for (var index = 0; index < effect.count; index += 1) {
+          final direction = Vector2(_facing, 0)
+            ..rotate((index - midpoint) * effect.spreadRadians);
+          canvas.drawLine(
+            center,
+            center + Offset(direction.x, direction.y) * 150,
+            tierPaint,
+          );
+        }
+      case EnemyProjectilePattern.radial:
+        for (var index = 0; index < effect.count; index += 1) {
+          final angle = math.pi * 2 * index / effect.count;
+          canvas.drawLine(
+            center,
+            center + Offset(math.cos(angle), math.sin(angle)) * 78,
+            tierPaint,
+          );
+        }
+      case EnemyProjectilePattern.ballistic:
+        final midpoint = (effect.count - 1) / 2;
+        for (var index = 0; index < effect.count; index += 1) {
+          final offset = index - midpoint;
+          final end = center + Offset(_facing * 148, 34 + offset * 18);
+          final path = Path()
+            ..moveTo(center.dx, center.dy)
+            ..quadraticBezierTo(
+              center.dx + _facing * 74,
+              center.dy - 92 + offset * 10,
+              end.dx,
+              end.dy,
+            );
+          canvas.drawPath(path, tierPaint);
+        }
+    }
+  }
+
+  void _renderDamageTelegraph(
+    Canvas canvas,
+    Offset center,
+    Paint tell,
+    EnemyDamageEffectSpec effect,
+  ) {
+    Offset base;
+    switch (effect.placement) {
+      case EnemyDamagePlacement.attachedFront:
+        base = center + Offset(_facing * effect.width * .34, 0);
+      case EnemyDamagePlacement.selfCentered:
+        base = center;
+      case EnemyDamagePlacement.groundAtSelf:
+        base = center + Offset(0, size.y / 2);
+      case EnemyDamagePlacement.targetCentered ||
+          EnemyDamagePlacement.crossAtTarget:
+        base = _worldToLocal(_lockedTargetPosition, center);
+      case EnemyDamagePlacement.targetBelow:
+        base = _worldToLocal(
+          _lockedTargetPosition + Vector2(0, effect.height * .38),
+          center,
+        );
+      case EnemyDamagePlacement.historyTrail:
+        for (final point in _sampleMotionHistory(effect.count)) {
+          _drawTelegraphRect(
+            canvas,
+            _worldToLocal(point, center),
+            effect.width,
+            effect.height,
+            tell,
+          );
+        }
+        return;
+      case EnemyDamagePlacement.crossAtSelf:
+        base = center;
+    }
+    if (effect.placement == EnemyDamagePlacement.crossAtSelf ||
+        effect.placement == EnemyDamagePlacement.crossAtTarget) {
+      _drawTelegraphRect(canvas, base, effect.width, effect.height, tell);
+      _drawTelegraphRect(canvas, base, effect.height, effect.width, tell);
+      return;
+    }
+    final midpoint = (effect.count - 1) / 2;
+    for (var index = 0; index < effect.count; index += 1) {
+      _drawTelegraphRect(
+        canvas,
+        base + Offset((index - midpoint) * effect.spacing, 0),
+        effect.width,
+        effect.height,
+        tell,
+      );
+    }
+  }
+
+  void _renderMovementTelegraph(
+    Canvas canvas,
+    Offset center,
+    Paint tell,
+    EnemyMovementEffectSpec effect,
+  ) {
+    final toward = (_lockedTargetPosition.x - position.x).sign == 0
+        ? _facing
+        : (_lockedTargetPosition.x - position.x).sign.toDouble();
+    final direction = switch (effect.mode) {
+      EnemyMovementMode.dashAwayFromTarget => -toward,
+      _ => toward,
+    };
+    switch (effect.mode) {
+      case EnemyMovementMode.dashTowardTarget ||
+          EnemyMovementMode.dashAwayFromTarget:
+        canvas.drawLine(
+          center,
+          center + Offset(direction * 120, 0),
+          tell..strokeWidth = 4,
+        );
+      case EnemyMovementMode.leapTowardTarget:
+        final path = Path()
+          ..moveTo(center.dx, center.dy)
+          ..quadraticBezierTo(
+            center.dx + direction * 58,
+            center.dy - 90,
+            center.dx + direction * 118,
+            center.dy + 8,
+          );
+        canvas.drawPath(path, tell..strokeWidth = 3);
+      case EnemyMovementMode.teleportOppositeSide:
+        canvas.drawCircle(center, 34, tell);
+        canvas.drawCircle(
+          _worldToLocal(
+            Vector2(_activeWorldWidth - position.x, position.y),
+            center,
+          ),
+          34,
+          tell,
+        );
+      case EnemyMovementMode.teleportAboveTarget:
+        final destination =
+            _lockedTargetPosition +
+            Vector2(0, -(effect.distance == 0 ? 130.0 : effect.distance));
+        canvas.drawLine(center, _worldToLocal(destination, center), tell);
+      case EnemyMovementMode.rewindOldestPosition:
+        if (_motionHistory.isNotEmpty) {
+          canvas.drawLine(
+            center,
+            _worldToLocal(_motionHistory.first, center),
+            tell..strokeWidth = 3,
+          );
+        }
+    }
+  }
+
+  Offset _worldToLocal(Vector2 worldPoint, Offset center) =>
+      center + Offset(worldPoint.x - position.x, worldPoint.y - position.y);
+
+  void _drawTelegraphRect(
+    Canvas canvas,
+    Offset center,
+    double width,
+    double height,
+    Paint paint,
+  ) {
+    canvas.drawRect(
+      Rect.fromCenter(center: center, width: width, height: height),
+      paint,
+    );
   }
 }

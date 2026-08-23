@@ -178,6 +178,7 @@ final class _RuleView extends StatelessWidget {
       ),
       Text(
         snapshot.objectiveLabel,
+        maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           color: Color(0xFFFFC857),

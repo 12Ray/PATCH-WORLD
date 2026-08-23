@@ -22,6 +22,8 @@ FRAME_SIZE = 256
 TARGET_VISIBLE_HEIGHT = 220
 MAX_VISIBLE_WIDTH = 232
 TARGET_BASELINE_Y = 240
+DISPLAY_SIZE = 46
+SOURCE_BASELINE = TARGET_BASELINE_Y / FRAME_SIZE
 
 SHEETS = {
     "sword": "art-v3-sword-idle-alpha.png",
@@ -117,12 +119,12 @@ def main() -> None:
             "asset": output_name,
             "state": "idle",
             "sourceFrameSize": [FRAME_SIZE, FRAME_SIZE],
-            "displaySize": [54, 54],
+            "displaySize": [DISPLAY_SIZE, DISPLAY_SIZE],
             "frames": FRAME_COUNT,
             "fps": 6,
             "loop": True,
             "pivot": [0.5, 0.5],
-            "baseline": 0.86,
+            "baseline": SOURCE_BASELINE,
             "standingFrame": 0,
             "eventFrame": None,
             "alphaCoverage": coverage,

@@ -40,10 +40,16 @@ void main() {
     for (final expectation in expectations) {
       final game = PatchWorldGame(initialRoom: RoomId.bootSector);
       game.damageLabProgress.patchApplied = true;
+      if (!expectation.$4) {
+        game.temporalHallProgress
+          ..bossDefeated = true
+          ..patchApplied = true;
+      }
       final progress = expectation.$4
           ? game.temporalHallProgress
           : game.collisionArchiveProgress;
       progress.clearedEncounterIds.add(0);
+      progress.completedObjectiveIds.add(0);
       await tester.pumpWidget(
         MaterialApp(
           home: GameWidget<PatchWorldGame>(

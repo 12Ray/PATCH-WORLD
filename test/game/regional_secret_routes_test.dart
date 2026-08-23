@@ -22,13 +22,99 @@ void main() {
 
   tearDown(() => SharedPreferencesAsyncPlatform.instance = null);
 
+  test(
+    'regional secret routes stay locked until the second room is complete',
+    () {
+      final game = PatchWorldGame(initialRoom: RoomId.bootSector);
+
+      final routes = <(CampaignNodeId, CampaignNodeId, PlayerWeapon, bool)>[
+        (
+          CampaignNodeId.temporalFracture,
+          CampaignNodeId.temporalDashRift,
+          PlayerWeapon.sword,
+          true,
+        ),
+        (
+          CampaignNodeId.temporalFracture,
+          CampaignNodeId.temporalUpperLoop,
+          PlayerWeapon.gauntlet,
+          true,
+        ),
+        (
+          CampaignNodeId.temporalFracture,
+          CampaignNodeId.temporalRelayControl,
+          PlayerWeapon.gun,
+          true,
+        ),
+        (
+          CampaignNodeId.collisionFracture,
+          CampaignNodeId.collisionVectorCache,
+          PlayerWeapon.sword,
+          false,
+        ),
+        (
+          CampaignNodeId.collisionFracture,
+          CampaignNodeId.collisionUpperMatrix,
+          PlayerWeapon.gauntlet,
+          false,
+        ),
+        (
+          CampaignNodeId.collisionFracture,
+          CampaignNodeId.collisionPrismControl,
+          PlayerWeapon.gun,
+          false,
+        ),
+      ];
+
+      for (final route in routes) {
+        final progress = route.$4
+            ? game.temporalHallProgress
+            : game.collisionArchiveProgress;
+        progress
+          ..clearedEncounterIds.remove(1)
+          ..completedObjectiveIds.remove(1);
+        game.campaignExploration.enterNode(route.$1, game.campaignWorld);
+        final connection = game.campaignWorld.connectionBetween(
+          route.$1,
+          route.$2,
+        );
+
+        expect(
+          game.isCampaignConnectionUnlocked(connection, weapon: route.$3),
+          isFalse,
+        );
+        expect(
+          game.canTravelToCampaignNode(route.$2, weapon: route.$3),
+          isFalse,
+        );
+
+        progress
+          ..clearedEncounterIds.add(1)
+          ..completedObjectiveIds.add(1);
+        expect(
+          game.isCampaignConnectionUnlocked(connection, weapon: route.$3),
+          isTrue,
+        );
+        expect(
+          game.canTravelToCampaignNode(route.$2, weapon: route.$3),
+          isTrue,
+        );
+      }
+    },
+  );
+
   testWidgets(
     'Temporal and Collision expose six one-time weapon reward routes',
     (tester) async {
       final game = PatchWorldGame(initialRoom: RoomId.bootSector);
       game.damageLabProgress.patchApplied = true;
+      game.temporalHallProgress
+        ..bossDefeated = true
+        ..patchApplied = true;
       game.temporalHallProgress.clearedEncounterIds.addAll(<int>{0, 1});
+      game.temporalHallProgress.completedObjectiveIds.addAll(<int>{0, 1});
       game.collisionArchiveProgress.clearedEncounterIds.addAll(<int>{0, 1});
+      game.collisionArchiveProgress.completedObjectiveIds.addAll(<int>{0, 1});
       await tester.pumpWidget(MaterialApp(home: GameWidget(game: game)));
       await tester.runAsync(game.ready);
       await tester.runAsync(() => game.world.loaded);

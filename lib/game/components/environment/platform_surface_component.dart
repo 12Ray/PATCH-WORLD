@@ -378,9 +378,13 @@ final class MergingPlatformComponent extends PlatformSurfaceComponent {
 
   final double periodSeconds;
   double _elapsed = 0;
+  bool _lockedMerged = false;
 
   double get _cycle => (_elapsed / periodSeconds) % 1;
-  bool get isMerged => _cycle >= .22 && _cycle <= .78;
+  bool get isMerged => _lockedMerged || (_cycle >= .22 && _cycle <= .78);
+  bool get isLockedMerged => _lockedMerged;
+
+  void lockMerged() => _lockedMerged = true;
 
   @override
   ArtV3EnvironmentRole get foregroundRole => ArtV3EnvironmentRole.statePlatform;
@@ -390,7 +394,7 @@ final class MergingPlatformComponent extends PlatformSurfaceComponent {
 
   @override
   void update(double dt) {
-    _elapsed += dt;
+    if (!_lockedMerged) _elapsed += dt;
     super.update(dt);
   }
 

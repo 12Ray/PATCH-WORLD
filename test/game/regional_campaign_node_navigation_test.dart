@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
+import 'package:patch_world/game/campaign/campaign_floor_state.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
@@ -13,14 +14,22 @@ import 'package:patch_world/game/components/environment/platform_surface_compone
 import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
 import 'package:patch_world/game/components/presentation/boss_arena_presentation_component.dart';
 import 'package:patch_world/game/core/run_state.dart';
+import 'package:patch_world/game/items/campaign_loadout_reward_catalog.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/boss_room_controller.dart';
+import 'package:patch_world/game/rooms/maps/regional_campaign_room_layout.dart';
 import 'package:patch_world/game/rooms/regional_campaign_node_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 void main() {
+  late RegionalCampaignRoomLayoutCatalog layouts;
+
+  setUpAll(() async {
+    layouts = await RegionalCampaignRoomLayoutCatalog.load();
+  });
+
   setUp(() {
     SharedPreferencesAsyncPlatform.instance =
         InMemorySharedPreferencesAsync.empty();
@@ -42,6 +51,7 @@ void main() {
                 CampaignRegion.temporalHall
             ? game.temporalHallProgress
             : game.collisionArchiveProgress,
+        layout: layouts.room(nodeId),
       );
       for (final weapon in PlayerWeapon.values) {
         expect(
@@ -51,6 +61,28 @@ void main() {
           ),
           isEmpty,
           reason: '${weapon.name} must clear ${nodeId.name}',
+        );
+      }
+    }
+  });
+
+  test('regional boss entrances spawn the player inside both arena seals', () {
+    for (final nodeId in const <CampaignNodeId>[
+      CampaignNodeId.chronoJailer,
+      CampaignNodeId.kernelChimera,
+    ]) {
+      for (final entry in CampaignNodeEntry.values) {
+        final room = RegionalCampaignNodeController(
+          nodeId: nodeId,
+          entry: entry,
+          progress: CampaignFloorState(),
+          layout: layouts.room(nodeId),
+        );
+        expect(
+          room.playerSpawn.x,
+          inInclusiveRange(130, 830),
+          reason:
+              '${nodeId.name}/${entry.name} must start between the locked seals.',
         );
       }
     }
@@ -98,6 +130,7 @@ void main() {
           nodeId: expectation.$1,
           entry: CampaignNodeEntry.west,
           progress: game.temporalHallProgress,
+          layout: layouts.room(expectation.$1),
         );
         expect(room.usesExpandedTemporalGeometry, isTrue);
         expect(room.worldSize.x, 1920);
@@ -135,6 +168,7 @@ void main() {
           nodeId: expectation.$1,
           entry: CampaignNodeEntry.east,
           progress: game.temporalHallProgress,
+          layout: layouts.room(expectation.$1),
         );
         expect(
           _hasStaticUniversalRoute(room, eastEntryRoom.playerSpawn),
@@ -188,6 +222,7 @@ void main() {
           nodeId: expectation.$1,
           entry: CampaignNodeEntry.west,
           progress: game.collisionArchiveProgress,
+          layout: layouts.room(expectation.$1),
         );
         expect(room.usesExpandedCollisionGeometry, isTrue);
         expect(room.usesExpandedRegionalGeometry, isTrue);
@@ -219,6 +254,7 @@ void main() {
           nodeId: expectation.$1,
           entry: CampaignNodeEntry.east,
           progress: game.collisionArchiveProgress,
+          layout: layouts.room(expectation.$1),
         );
         expect(
           _hasStaticUniversalRoute(room, eastEntryRoom.playerSpawn),
@@ -641,8 +677,8 @@ void _expectMountedExpandedTemporalRoom(
     case CampaignNodeId.temporalPendulum:
       expect(rewindPlatforms, hasLength(1));
       expect(
-        room.children.whereType<LoadoutEventTerminalComponent>(),
-        hasLength(1),
+        room.children.whereType<LoadoutEventTerminalComponent>().single.eventId,
+        CampaignLoadoutEventId.temporalHall,
       );
     default:
       fail('Unexpected expanded Temporal Hall node: $nodeId');
@@ -691,8 +727,8 @@ void _expectMountedExpandedCollisionRoom(
       merging.update(merging.periodSeconds * .3);
       expect(merging.isMerged, isTrue);
       expect(
-        room.children.whereType<LoadoutEventTerminalComponent>(),
-        hasLength(1),
+        room.children.whereType<LoadoutEventTerminalComponent>().single.eventId,
+        CampaignLoadoutEventId.collisionArchive,
       );
       stateSurface = merging;
     default:
@@ -742,12 +778,11 @@ Future<void> _verifyDamageBranchJunction(
   final labels = game.world.activeRoom!.children
       .whereType<CampaignDoorComponent>()
       .map((door) => door.labelLocalizationKey);
+  expect(labels, contains('interaction.enterTemporalHall'));
   expect(
     labels,
-    containsAll(<String>[
-      'interaction.enterTemporalHall',
-      'interaction.enterCollisionArchive',
-    ]),
+    isNot(contains('interaction.enterCollisionArchive')),
+    reason: 'ROOM3 must stay locked until the ROOM2 boss patch is applied.',
   );
   await _useDoor(
     tester,
@@ -791,6 +826,28 @@ Future<void> _defeatActiveEncounter(
   for (var frame = 0; frame < 4; frame += 1) {
     await tester.pump(const Duration(milliseconds: 16));
   }
+  final room = game.world.activeRoom! as RegionalCampaignNodeController;
+  await _completeActiveRoomObjective(tester, game, room);
+}
+
+Future<void> _completeActiveRoomObjective(
+  WidgetTester tester,
+  PatchWorldGame game,
+  RegionalCampaignNodeController room,
+) async {
+  for (final nodeIndex in room.roomObjectiveSpec.activationOrder) {
+    final node = room.objectiveNodes.singleWhere(
+      (candidate) => candidate.nodeIndex == nodeIndex,
+    );
+    for (var attempt = 0; attempt < 160; attempt += 1) {
+      game.world.player.position.setFrom(node.position);
+      expect(game.world.tryInteract(game.world.player), isTrue);
+      await tester.pump(const Duration(milliseconds: 50));
+      if (node.activated || room.roomObjectiveComplete) break;
+    }
+    expect(node.activated || room.roomObjectiveComplete, isTrue);
+  }
+  expect(room.roomExitUnlocked, isTrue);
 }
 
 Future<void> _traverseRegion(

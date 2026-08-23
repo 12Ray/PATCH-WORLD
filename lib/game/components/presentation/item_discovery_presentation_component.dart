@@ -6,33 +6,39 @@ import 'package:flame/text.dart';
 import 'package:patch_world/game/items/run_item_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 
-enum ItemRewardTier { cache, quest, boss }
+enum ItemRewardTier { cache, quest, boss, loadoutEvent }
 
 /// Camera-following discovery card shown whenever a run item is collected.
 final class ItemDiscoveryPresentationComponent extends PositionComponent
     with HasGameReference<PatchWorldGame> {
   ItemDiscoveryPresentationComponent({
-    required this.item,
+    required this.result,
     required this.rewardTier,
     this.duration = 2.6,
   }) : super(size: Vector2(590, 122), anchor: Anchor.center, priority: 80);
 
-  final RunItemId item;
+  final RunItemAcquisitionResult result;
   final ItemRewardTier rewardTier;
   final double duration;
   double _elapsed = 0;
+
+  RunItemId get item => result.item;
 
   Color get accentColor => switch (rewardTier) {
     ItemRewardTier.cache => const Color(0xFF9D8CFF),
     ItemRewardTier.quest => const Color(0xFF36E1FF),
     ItemRewardTier.boss => const Color(0xFFFFD35A),
+    ItemRewardTier.loadoutEvent => const Color(0xFFFF8CEB),
   };
 
-  String get tierLocalizationKey => switch (rewardTier) {
-    ItemRewardTier.cache => 'itemDiscovery.cache',
-    ItemRewardTier.quest => 'itemDiscovery.questReward',
-    ItemRewardTier.boss => 'itemDiscovery.bossReward',
-  };
+  String get tierLocalizationKey => result.isDuplicate
+      ? 'itemDiscovery.duplicateConverted'
+      : switch (rewardTier) {
+          ItemRewardTier.cache => 'itemDiscovery.cache',
+          ItemRewardTier.quest => 'itemDiscovery.questReward',
+          ItemRewardTier.boss => 'itemDiscovery.bossReward',
+          ItemRewardTier.loadoutEvent => 'itemDiscovery.loadoutEvent',
+        };
 
   double get revealProgress => (_elapsed / .35).clamp(0, 1).toDouble();
 
@@ -70,7 +76,14 @@ final class ItemDiscoveryPresentationComponent extends PositionComponent
         ),
       ),
       TextComponent(
-        text: game.localization.text(item.descriptionLocalizationKey),
+        text: result.isInstalled
+            ? game.localization.text(item.descriptionLocalizationKey)
+            : game.localization.text(
+                'itemDiscovery.duplicateIntegrity',
+                parameters: <String, Object>{
+                  'item': game.localization.text(item.localizationKey),
+                },
+              ),
         position: Vector2(96, 84),
         anchor: Anchor.centerLeft,
         textRenderer: TextPaint(

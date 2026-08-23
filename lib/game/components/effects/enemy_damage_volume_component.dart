@@ -3,11 +3,12 @@ import 'dart:ui';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
+import 'package:patch_world/game/patch_world_game.dart';
 
 /// A short-lived hitbox used by telegraphed enemy melee and shockwave attacks.
 /// It can damage the player at most once during its active lifetime.
 final class EnemyDamageVolumeComponent extends PositionComponent
-    with CollisionCallbacks {
+    with CollisionCallbacks, HasGameReference<PatchWorldGame> {
   EnemyDamageVolumeComponent({
     required super.position,
     required super.size,
@@ -40,7 +41,8 @@ final class EnemyDamageVolumeComponent extends PositionComponent
 
   @override
   void update(double dt) {
-    _remaining -= dt;
+    final enemyDt = isMounted ? game.clock.enemyDt : dt;
+    _remaining -= enemyDt;
     if (_remaining <= 0) removeFromParent();
     super.update(dt);
   }

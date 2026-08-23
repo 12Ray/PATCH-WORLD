@@ -6,7 +6,9 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 import 'package:patch_world/game/combat/attack_tier.dart';
+import 'package:patch_world/game/components/boss/overflow_warden_attack_pattern.dart';
 import 'package:patch_world/game/components/effects/enemy_damage_volume_component.dart';
+import 'package:patch_world/game/components/enemies/platformer/enemy_action_timeline.dart';
 import 'package:patch_world/game/components/projectiles/enemy_projectile_component.dart';
 import 'package:patch_world/game/core/health_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -48,8 +50,10 @@ final class OverflowWardenBossComponent extends PositionComponent
   double _attackCooldown = 1.1;
   double _phaseTimer = 0;
   double _defeatTimer = 0;
-  String? _pendingAttack;
+  EnemyActionTimeline? _attackAction;
   final List<String> _recentAttacks = <String>[];
+  final Vector2 _lockedAttackTarget = Vector2.zero();
+  double _lockedAttackFacing = 1;
   int _decisionCursor = 0;
   bool _resolved = false;
 
@@ -58,6 +62,9 @@ final class OverflowWardenBossComponent extends PositionComponent
   int get health => healthState.current;
   int get maximumOverflowHealth => healthState.overflowThreshold;
   bool get hasArtV3Visual => _frames?.length == 8;
+  String? get activeAttackId => _attackAction?.id;
+  EnemyActionPhase? get attackPhase => _attackAction?.phase;
+  int get diagnosticVisualFrameIndex => _resolveVisualFrameIndex();
   bool get isActive => switch (phase) {
     OverflowWardenPhase.shielded ||
     OverflowWardenPhase.breached ||
@@ -186,7 +193,7 @@ final class OverflowWardenBossComponent extends PositionComponent
     if (_resolved) return;
     phase = OverflowWardenPhase.overflowing;
     onPhaseChanged?.call(phase);
-    _pendingAttack = null;
+    _attackAction = null;
     _defeatTimer = 1.35;
     game.triggerCombatSlowMotion();
     game.triggerImpactFeedback();
@@ -220,17 +227,19 @@ final class OverflowWardenBossComponent extends PositionComponent
     }
 
     _attackCooldown = math.max(0, _attackCooldown - simulationDt);
-    _phaseTimer = math.max(0, _phaseTimer - simulationDt);
-    if (_pendingAttack != null && _phaseTimer <= 0) {
-      final attack = _pendingAttack!;
-      _pendingAttack = null;
-      _executeAttack(attack);
-      _attackCooldown = switch (phase) {
-        OverflowWardenPhase.critical => .72,
-        OverflowWardenPhase.breached => .92,
-        _ => 1.15,
-      };
-    } else if (_pendingAttack == null && _attackCooldown <= 0) {
+    final attackAction = _attackAction;
+    if (attackAction != null) {
+      final tick = attackAction.advance(simulationDt);
+      if (tick.enteredActive) _executeAttack(attackAction.id);
+      if (tick.completed) {
+        _attackAction = null;
+        _attackCooldown = switch (phase) {
+          OverflowWardenPhase.critical => .72,
+          OverflowWardenPhase.breached => .92,
+          _ => 1.15,
+        };
+      }
+    } else if (_attackCooldown <= 0) {
       _telegraph(_chooseAttack());
     }
     _syncVisual();
@@ -257,12 +266,12 @@ final class OverflowWardenBossComponent extends PositionComponent
   }
 
   void _telegraph(String attack) {
-    _pendingAttack = attack;
-    _phaseTimer = switch (attack) {
-      'memoryQuake' => .82,
-      'shieldCharge' => .62,
-      _ => .48,
-    };
+    _attackAction = OverflowWardenAttackCatalog.byId(attack).createTimeline();
+    _lockedAttackTarget.setFrom(game.world.player.position);
+    final horizontal = _lockedAttackTarget.x - position.x;
+    if (horizontal.abs() > .01) {
+      _lockedAttackFacing = horizontal.sign.toDouble();
+    }
     unawaited(game.audio.playEnemyAttack('warden.telegraph.$attack'));
   }
 
@@ -285,7 +294,7 @@ final class OverflowWardenBossComponent extends PositionComponent
           ),
         );
       case 'overflowGrenade':
-        final direction = game.world.player.position - position;
+        final direction = _lockedAttackTarget - position;
         if (direction.length2 == 0) direction.x = 1;
         direction.normalize();
         unawaited(
@@ -305,7 +314,7 @@ final class OverflowWardenBossComponent extends PositionComponent
         );
       case 'checksumFan':
         for (final angle in <double>[-.32, -.16, 0, .16, .32]) {
-          final direction = game.world.player.position - position;
+          final direction = _lockedAttackTarget - position;
           if (direction.length2 == 0) direction.x = 1;
           direction
             ..normalize()
@@ -321,6 +330,7 @@ final class OverflowWardenBossComponent extends PositionComponent
                     ? AttackTier.parryable
                     : AttackTier.normal,
                 projectileRadius: angle == 0 ? 9 : 6,
+                assetSlug: 'overflow-warden',
               ),
             ),
           );
@@ -341,8 +351,7 @@ final class OverflowWardenBossComponent extends PositionComponent
           );
         }
       case 'shieldCharge':
-        final direction = (game.world.player.position.x - position.x).sign;
-        final facing = direction == 0 ? 1.0 : direction.toDouble();
+        final facing = _lockedAttackFacing;
         unawaited(
           _addToOwner(
             owner,
@@ -376,14 +385,7 @@ final class OverflowWardenBossComponent extends PositionComponent
     final visual = _visual;
     final frames = _frames;
     if (visual == null || frames == null) return;
-    final frameIndex = switch (phase) {
-      OverflowWardenPhase.dormant => 0,
-      OverflowWardenPhase.intro => 2 + ((_clock * 6).floor() % 2),
-      OverflowWardenPhase.shielded => _pendingAttack == null ? 0 : 4,
-      OverflowWardenPhase.breached => _pendingAttack == null ? 1 : 5,
-      OverflowWardenPhase.critical => _pendingAttack == null ? 3 : 6,
-      OverflowWardenPhase.overflowing || OverflowWardenPhase.defeated => 7,
-    };
+    final frameIndex = _resolveVisualFrameIndex();
     visual.sprite = frames[frameIndex];
     visual.position.setValues(
       size.x / 2,
@@ -407,7 +409,8 @@ final class OverflowWardenBossComponent extends PositionComponent
         Paint()..color = const Color(0xFFFFD35A),
       );
     }
-    if (_pendingAttack != null) {
+    if (_attackAction?.phase == EnemyActionPhase.telegraph) {
+      _renderAttackTelegraph(canvas, _attackAction!.id);
       canvas.drawCircle(
         Offset(size.x / 2, size.y / 2),
         52 + math.sin(_clock * 20).abs() * 7,
@@ -418,5 +421,89 @@ final class OverflowWardenBossComponent extends PositionComponent
       );
     }
     super.render(canvas);
+  }
+
+  void _renderAttackTelegraph(Canvas canvas, String attack) {
+    final center = Offset(size.x / 2, size.y / 2);
+    final tell = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = const Color(0xCCFFD35A);
+    switch (attack) {
+      case 'shieldSlam':
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: center + const Offset(0, 28),
+            width: 210,
+            height: 44,
+          ),
+          tell,
+        );
+      case 'overflowGrenade':
+        final path = Path()
+          ..moveTo(center.dx, center.dy)
+          ..quadraticBezierTo(
+            center.dx + _lockedAttackFacing * 94,
+            center.dy - 110,
+            center.dx + _lockedAttackFacing * 188,
+            center.dy + 38,
+          );
+        canvas.drawPath(path, tell);
+      case 'checksumFan':
+        final direction = _lockedAttackTarget - position;
+        if (direction.length2 == 0) direction.x = _lockedAttackFacing;
+        direction.normalize();
+        for (final angle in <double>[-.32, -.16, 0, .16, .32]) {
+          final ray = direction.clone()..rotate(angle);
+          canvas.drawLine(
+            center,
+            center + Offset(ray.x, ray.y) * 190,
+            tell..strokeWidth = angle == 0 ? 4 : 2,
+          );
+        }
+      case 'memoryQuake':
+        final floorY = size.y / 2 + arenaFloorY - position.y - 30;
+        for (final offset in <double>[-300, -180, -60, 60, 180, 300]) {
+          canvas.drawRect(
+            Rect.fromCenter(
+              center: Offset(size.x / 2 + offset, floorY),
+              width: 64,
+              height: 60,
+            ),
+            tell,
+          );
+        }
+      case 'shieldCharge':
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: center + Offset(_lockedAttackFacing * 105, 8),
+            width: 190,
+            height: 74,
+          ),
+          tell..strokeWidth = 5,
+        );
+    }
+  }
+
+  int _resolveVisualFrameIndex() {
+    if (phase == OverflowWardenPhase.dormant) return 0;
+    if (phase == OverflowWardenPhase.intro) {
+      return 2 + ((_clock * 6).floor() % 2);
+    }
+    if (phase == OverflowWardenPhase.overflowing ||
+        phase == OverflowWardenPhase.defeated) {
+      return 7;
+    }
+    final idleFrame = switch (phase) {
+      OverflowWardenPhase.shielded => 0,
+      OverflowWardenPhase.breached => 1,
+      OverflowWardenPhase.critical => 3,
+      _ => 0,
+    };
+    return resolveOverflowWardenAttackFrame(
+      actionPhase: _attackAction?.phase,
+      visualClock: _clock,
+      idleFrame: idleFrame,
+    );
   }
 }

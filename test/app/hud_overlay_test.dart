@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlays/hud_overlay.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/core/ui_snapshot.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/systems/frame_burst_controller.dart';
 
 void main() {
-  testWidgets('boss HUD fits objective and concurrent patch statuses', (
+  testWidgets('HUD fits boss and localized regional objectives', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(960, 540);
@@ -14,6 +15,34 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final game = PatchWorldGame();
+    final localizedObjectives =
+        <({String languageCode, String anomaly, String objective})>[];
+    for (final languageCode in <String>['ko', 'en', 'ja']) {
+      await game.localization.load(languageCode);
+      for (final objectiveKey in <String>[
+        'objective.temporalAscentTask',
+        'objective.temporalFractureTask',
+        'objective.temporalPendulumTask',
+        'objective.collisionCompressionTask',
+        'objective.collisionFractureTask',
+        'objective.collisionMergeTask',
+      ]) {
+        localizedObjectives.add((
+          languageCode: languageCode,
+          anomaly: game.localization.text('rule.collisionMerge'),
+          objective: game.localization.text(
+            objectiveKey,
+            parameters: const <String, Object>{
+              'objective': 2,
+              'total': 3,
+              'defeated': 3,
+              'enemies': 4,
+              'time': 9,
+            },
+          ),
+        ));
+      }
+    }
     await game.localization.load('ko');
     game.uiSnapshot.value = const UiSnapshot(
       integrity: 5,
@@ -47,5 +76,19 @@ void main() {
     expect(find.textContaining('OPTIMIZATION CORE'), findsOneWidget);
     expect(find.textContaining('75/150'), findsWidgets);
     expect(tester.takeException(), isNull);
+
+    for (final localized in localizedObjectives) {
+      game.uiSnapshot.value = UiSnapshot(
+        integrity: 3,
+        maxIntegrity: 3,
+        roomLabel: 'COLLISION ARCHIVE',
+        anomalyLabel: localized.anomaly,
+        objectiveLabel: localized.objective,
+        selectedPatchIds: const <String>[],
+        selectedWeapon: PlayerWeapon.gun,
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull, reason: localized.languageCode);
+    }
   });
 }
