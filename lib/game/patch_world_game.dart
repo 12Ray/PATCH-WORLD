@@ -34,8 +34,6 @@ import 'package:patch_world/game/rooms/damage_lab_room_status.dart';
 import 'package:patch_world/game/rooms/maps/damage_lab_room_layout.dart';
 import 'package:patch_world/game/rooms/maps/regional_campaign_room_layout.dart';
 import 'package:patch_world/game/rooms/regional_campaign_node_controller.dart';
-import 'package:patch_world/game/rooms/room_two_controller.dart';
-import 'package:patch_world/game/rooms/room_three_controller.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
@@ -1428,7 +1426,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void openRoomOnePatchSelection() {
-    if (pendingPatchSelection != null || pendingWeaponBuildSelection != null) {
+    if (!_canOpenChapterPatchSelection(
+      bossNode: CampaignNodeId.overflowWarden,
+      bossDefeated: damageLabProgress.bossDefeated,
+      bossRewardClaimed: damageLabProgress.bossRewardClaimed,
+      patchApplied: damageLabProgress.patchApplied,
+    )) {
       return;
     }
     pendingPatchSelection = const PatchSelectionRequest(
@@ -1479,19 +1482,6 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
 
   void selectPatch(String patchId) {
     unawaited(_selectPatchAndContinue(patchId));
-  }
-
-  bool travelToCampaignRoom(RoomId targetRoom) {
-    if (mode != PatchWorldMode.campaign ||
-        targetRoom == RoomId.survivalArena ||
-        _roomTransitionInProgress ||
-        targetRoom == currentRoom) {
-      return false;
-    }
-    // Door interaction runs inside a component callback. Queue the room swap
-    // so the active component tree can finish the callback before removal.
-    unawaited(Future<void>.microtask(() => _travelToCampaignRoom(targetRoom)));
-    return true;
   }
 
   bool travelToCampaignNode(
@@ -1572,6 +1562,14 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
     if (currentNode == CampaignNodeId.damageAssembly &&
         targetNode == CampaignNodeId.damageOverflow) {
+      return damageLabProgress.clearedEncounterIds.contains(1);
+    }
+    if (currentNode == CampaignNodeId.damageAssembly &&
+        const <CampaignNodeId>{
+          CampaignNodeId.damageDashCache,
+          CampaignNodeId.damageUpperArchive,
+          CampaignNodeId.damageTurretControl,
+        }.contains(targetNode)) {
       return damageLabProgress.clearedEncounterIds.contains(1);
     }
     if (currentNode == CampaignNodeId.damageOverflow &&
@@ -1698,26 +1696,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
   }
 
-  Future<void> _travelToCampaignRoom(RoomId targetRoom) async {
-    _roomTransitionInProgress = true;
-    input.clearAll();
-    resumeEngine();
-    try {
-      currentRoom = targetRoom;
-      await world.loadRoom(currentRoom);
-      syncCampaignExploration();
-      publishUiSnapshot(force: true);
-    } finally {
-      input.clearAll();
-      _roomTransitionInProgress = false;
-      resumeEngine();
-    }
-  }
-
   Future<void> _selectPatchAndContinue(String patchId) async {
     final request = pendingPatchSelection;
     if (request == null ||
-        !request.choices.any((PatchDefinition item) => item.id == patchId)) {
+        !request.choices.any((PatchDefinition item) => item.id == patchId) ||
+        !_isChapterPatchReady(request.roomId)) {
       return;
     }
     runState.selectPatch(patchId);
@@ -1733,46 +1716,30 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       if (request.roomId == 'damage-lab') {
         ruleEngine.removeRule(RuleIds.damageSignInverted);
         patchEffects.resetTransientForRoomTransition();
-        if (world.activeRoom is CampaignNodeRoom) {
-          damageLabProgress.patchApplied = true;
-          currentRoom = RoomId.damageLab;
-          await world.loadCampaignNode(
-            CampaignNodeId.overflowWarden,
-            entry: CampaignNodeEntry.west,
-          );
-        } else {
-          currentRoom = RoomId.temporalHall;
-          await world.loadRoom(currentRoom);
-        }
+        damageLabProgress.patchApplied = true;
+        currentRoom = RoomId.damageLab;
+        await world.loadCampaignNode(
+          CampaignNodeId.overflowWarden,
+          entry: CampaignNodeEntry.west,
+        );
       } else if (request.roomId == 'temporal-hall') {
         enemyTempo.resetForRoomRestart();
         patchEffects.resetTransientForRoomTransition();
-        if (world.activeRoom is RegionalCampaignNodeController) {
-          temporalHallProgress.patchApplied = true;
-          currentRoom = RoomId.temporalHall;
-          await world.loadCampaignNode(
-            CampaignNodeId.chronoJailer,
-            entry: CampaignNodeEntry.west,
-          );
-        } else {
-          currentRoom = RoomId.collisionArchive;
-          await world.loadRoom(currentRoom);
-        }
+        temporalHallProgress.patchApplied = true;
+        currentRoom = RoomId.temporalHall;
+        await world.loadCampaignNode(
+          CampaignNodeId.chronoJailer,
+          entry: CampaignNodeEntry.west,
+        );
       } else if (request.roomId == 'collision-archive') {
         enemyTempo.resetForRoomRestart();
         patchEffects.resetTransientForRoomTransition();
-        if (world.activeRoom is RegionalCampaignNodeController) {
-          collisionArchiveProgress.patchApplied = true;
-          currentRoom = RoomId.collisionArchive;
-          await world.loadCampaignNode(
-            CampaignNodeId.kernelChimera,
-            entry: CampaignNodeEntry.west,
-          );
-        } else {
-          currentRoom = RoomId.optimizerCore;
-          await world.loadRoom(currentRoom);
-          unawaited(audio.startOptimizerBgm());
-        }
+        collisionArchiveProgress.patchApplied = true;
+        currentRoom = RoomId.collisionArchive;
+        await world.loadCampaignNode(
+          CampaignNodeId.kernelChimera,
+          entry: CampaignNodeEntry.west,
+        );
       } else {
         throw StateError('Unknown patch room: ${request.roomId}');
       }
@@ -1802,7 +1769,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void openRoomTwoPatchSelection() {
-    if (pendingPatchSelection != null || pendingWeaponBuildSelection != null) {
+    if (!_canOpenChapterPatchSelection(
+      bossNode: CampaignNodeId.chronoJailer,
+      bossDefeated: temporalHallProgress.bossDefeated,
+      bossRewardClaimed: temporalHallProgress.bossRewardClaimed,
+      patchApplied: temporalHallProgress.patchApplied,
+    )) {
       return;
     }
     pendingPatchSelection = const PatchSelectionRequest(
@@ -1815,7 +1787,12 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void openRoomThreePatchSelection() {
-    if (pendingPatchSelection != null || pendingWeaponBuildSelection != null) {
+    if (!_canOpenChapterPatchSelection(
+      bossNode: CampaignNodeId.kernelChimera,
+      bossDefeated: collisionArchiveProgress.bossDefeated,
+      bossRewardClaimed: collisionArchiveProgress.bossRewardClaimed,
+      patchApplied: collisionArchiveProgress.patchApplied,
+    )) {
       return;
     }
     pendingPatchSelection = const PatchSelectionRequest(
@@ -1825,6 +1802,64 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     input.clearAll();
     pauseEngine();
     overlays.add(OverlayIds.patchSelection);
+  }
+
+  bool _canOpenChapterPatchSelection({
+    required CampaignNodeId bossNode,
+    required bool bossDefeated,
+    required bool bossRewardClaimed,
+    required bool patchApplied,
+  }) {
+    if (mode != PatchWorldMode.campaign ||
+        pendingPatchSelection != null ||
+        pendingWeaponBuildSelection != null ||
+        _roomTransitionInProgress ||
+        !bossDefeated ||
+        !bossRewardClaimed ||
+        patchApplied) {
+      return false;
+    }
+    final activeRoom = world.activeRoom;
+    return activeRoom is CampaignNodeRoom &&
+        (activeRoom as CampaignNodeRoom).campaignNodeId == bossNode;
+  }
+
+  bool _isChapterPatchReady(String roomId) => switch (roomId) {
+    'damage-lab' => _canApplyChapterPatch(
+      CampaignNodeId.overflowWarden,
+      damageLabProgress.bossDefeated,
+      damageLabProgress.bossRewardClaimed,
+      damageLabProgress.patchApplied,
+    ),
+    'temporal-hall' => _canApplyChapterPatch(
+      CampaignNodeId.chronoJailer,
+      temporalHallProgress.bossDefeated,
+      temporalHallProgress.bossRewardClaimed,
+      temporalHallProgress.patchApplied,
+    ),
+    'collision-archive' => _canApplyChapterPatch(
+      CampaignNodeId.kernelChimera,
+      collisionArchiveProgress.bossDefeated,
+      collisionArchiveProgress.bossRewardClaimed,
+      collisionArchiveProgress.patchApplied,
+    ),
+    _ => false,
+  };
+
+  bool _canApplyChapterPatch(
+    CampaignNodeId bossNode,
+    bool bossDefeated,
+    bool bossRewardClaimed,
+    bool patchApplied,
+  ) {
+    final activeRoom = world.activeRoom;
+    return mode == PatchWorldMode.campaign &&
+        !_roomTransitionInProgress &&
+        bossDefeated &&
+        bossRewardClaimed &&
+        !patchApplied &&
+        activeRoom is CampaignNodeRoom &&
+        (activeRoom as CampaignNodeRoom).campaignNodeId == bossNode;
   }
 
   void showEnding() {
@@ -2310,12 +2345,6 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     final DamageLabRoomStatus? damageLabRoom = activeRoom is DamageLabRoomStatus
         ? activeRoom as DamageLabRoomStatus
         : null;
-    final temporalHallRoom = activeRoom is RoomTwoController
-        ? activeRoom
-        : null;
-    final collisionArchiveRoom = activeRoom is RoomThreeController
-        ? activeRoom
-        : null;
     final regionalRoom = activeRoom is RegionalCampaignNodeController
         ? activeRoom
         : null;
@@ -2436,28 +2465,15 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           _ =>
             regionalObjectiveLabel ??
                 localization.text(
-                  (regionalTemporalRoom?.isCompleted ??
-                              temporalHallRoom?.isCompleted) ==
-                          true
+                  regionalTemporalRoom?.isCompleted == true
                       ? 'objective.temporalHallExit'
-                      : (regionalTemporalRoom?.currentCellNumber ??
-                                temporalHallRoom?.currentCellNumber) ==
-                            4
+                      : regionalTemporalRoom?.currentCellNumber == 4
                       ? 'objective.temporalHallBoss'
                       : 'objective.temporalHall',
                   parameters: <String, Object>{
-                    'room':
-                        regionalTemporalRoom?.currentCellNumber ??
-                        temporalHallRoom?.currentCellNumber ??
-                        1,
-                    'cleared':
-                        regionalTemporalRoom?.clearedEncounterCount ??
-                        temporalHallRoom?.clearedEncounterCount ??
-                        0,
-                    'records':
-                        regionalTemporalRoom?.recordCount ??
-                        temporalHallRoom?.recordCount ??
-                        0,
+                    'room': regionalTemporalRoom?.currentCellNumber ?? 1,
+                    'cleared': regionalTemporalRoom?.clearedEncounterCount ?? 0,
+                    'records': regionalTemporalRoom?.recordCount ?? 0,
                   },
                 ),
         },
@@ -2470,28 +2486,16 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           _ =>
             regionalObjectiveLabel ??
                 localization.text(
-                  (regionalCollisionRoom?.isCompleted ??
-                              collisionArchiveRoom?.isCompleted) ==
-                          true
+                  regionalCollisionRoom?.isCompleted == true
                       ? 'objective.collisionArchiveExit'
-                      : (regionalCollisionRoom?.currentCellNumber ??
-                                collisionArchiveRoom?.currentCellNumber) ==
-                            4
+                      : regionalCollisionRoom?.currentCellNumber == 4
                       ? 'objective.collisionArchiveBoss'
                       : 'objective.collisionArchive',
                   parameters: <String, Object>{
-                    'room':
-                        regionalCollisionRoom?.currentCellNumber ??
-                        collisionArchiveRoom?.currentCellNumber ??
-                        1,
+                    'room': regionalCollisionRoom?.currentCellNumber ?? 1,
                     'cleared':
-                        regionalCollisionRoom?.clearedEncounterCount ??
-                        collisionArchiveRoom?.clearedEncounterCount ??
-                        0,
-                    'records':
-                        regionalCollisionRoom?.recordCount ??
-                        collisionArchiveRoom?.recordCount ??
-                        0,
+                        regionalCollisionRoom?.clearedEncounterCount ?? 0,
+                    'records': regionalCollisionRoom?.recordCount ?? 0,
                   },
                 ),
         },
@@ -2558,15 +2562,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       frameBurstProgress: burst?.phaseProgress,
       bossHealth:
           damageLabRoom?.bossHealth ??
-          temporalHallRoom?.bossHealth ??
-          collisionArchiveRoom?.bossHealth ??
           regionalRoom?.bossHealth ??
           boss?.health ??
           survivalRoom?.milestoneBossHealth,
       bossMaxHealth:
           damageLabRoom?.bossMaxHealth ??
-          temporalHallRoom?.bossMaxHealth ??
-          collisionArchiveRoom?.bossMaxHealth ??
           regionalRoom?.bossMaxHealth ??
           (boss == null ? survivalRoom?.milestoneBossMaxHealth : 20),
       bossStability: boss?.phase.name == 'perfect'
@@ -2575,8 +2575,6 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       patternConfidence: boss == null ? null : pattern.confidence,
       bossPhase:
           damageLabRoom?.bossPhaseKey ??
-          temporalHallRoom?.bossPhaseKey ??
-          collisionArchiveRoom?.bossPhaseKey ??
           regionalRoom?.bossPhaseKey ??
           boss?.phase.name ??
           survivalRoom?.milestoneBossLabel,
@@ -2586,33 +2584,13 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
   }
 
-  /// Keeps the current linear room implementation compatible with the new
-  /// graph-based campaign state while rooms are split into independent scenes.
+  /// Synchronizes exploration from the independently loaded scene itself.
   void syncCampaignExploration() {
     if (mode != PatchWorldMode.campaign || !world.isReady) return;
     final activeRoom = world.activeRoom;
     final nodeId = activeRoom is CampaignNodeRoom
         ? (activeRoom as CampaignNodeRoom).campaignNodeId
-        : switch (currentRoom) {
-            RoomId.bootSector => CampaignNodeId.bootSector,
-            RoomId.damageLab =>
-              CampaignWorldGraph.damageMainPath[(world.player.position.x /
-                      logicalWidth)
-                  .floor()
-                  .clamp(0, 3)],
-            RoomId.temporalHall =>
-              CampaignWorldGraph.temporalMainPath[(world.player.position.x /
-                      logicalWidth)
-                  .floor()
-                  .clamp(0, 3)],
-            RoomId.collisionArchive =>
-              CampaignWorldGraph.collisionMainPath[(world.player.position.x /
-                      logicalWidth)
-                  .floor()
-                  .clamp(0, 3)],
-            RoomId.optimizerCore => CampaignNodeId.optimizerCore,
-            RoomId.survivalArena => null,
-          };
+        : null;
     if (nodeId != null) campaignExploration.enterNode(nodeId, campaignWorld);
 
     if (damageLabProgress.bossDefeated) {

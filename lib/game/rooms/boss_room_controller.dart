@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
 import 'package:patch_world/game/components/environment/legacy_glitch_terminal.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
@@ -22,7 +23,8 @@ final class BossRoomController extends Component
     implements
         PlatformerRoomGeometry,
         PlatformerRoomCameraTarget,
-        PlatformerRoomCameraZoom {
+        PlatformerRoomCameraZoom,
+        CampaignNodeRoom {
   late final OptimizerBossComponent boss;
   late final LegacyGlitchTerminal terminal;
   final PhaseLeakController _phaseLeak = PhaseLeakController();
@@ -36,6 +38,9 @@ final class BossRoomController extends Component
   BossNameCardComponent? _bossNameCard;
 
   bool get isBossIntroActive => _bossIntroRemaining > 0;
+
+  @override
+  CampaignNodeId get campaignNodeId => CampaignNodeId.optimizerCore;
 
   @override
   final Vector2 playerSpawn = Vector2(180, 988);

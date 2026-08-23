@@ -31,10 +31,7 @@ import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/boot_sector_controller.dart';
 import 'package:patch_world/game/rooms/damage_lab_node_controller.dart';
 import 'package:patch_world/game/rooms/damage_lab_secret_controller.dart';
-import 'package:patch_world/game/rooms/room_one_controller.dart';
 import 'package:patch_world/game/rooms/boss_room_controller.dart';
-import 'package:patch_world/game/rooms/room_three_controller.dart';
-import 'package:patch_world/game/rooms/room_two_controller.dart';
 import 'package:patch_world/game/rooms/regional_campaign_node_controller.dart';
 import 'package:patch_world/game/rooms/regional_secret_controller.dart';
 import 'package:patch_world/game/rooms/survival_arena_controller.dart';
@@ -161,19 +158,29 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
   }
 
   Future<void> loadRoom(RoomId roomId) async {
+    final entry = CampaignNodeEntry.west;
     final nextRoom = switch (roomId) {
       RoomId.bootSector => BootSectorController(),
-      RoomId.damageLab => RoomOneController(progress: game.damageLabProgress),
-      RoomId.temporalHall => RoomTwoController(
-        progress: game.temporalHallProgress,
+      RoomId.damageLab => _controllerForCampaignNode(
+        CampaignWorldGraph.damageMainPath[game.damageLabProgress.resumeCell],
+        entry,
       ),
-      RoomId.collisionArchive => RoomThreeController(
-        progress: game.collisionArchiveProgress,
+      RoomId.temporalHall => _controllerForCampaignNode(
+        CampaignWorldGraph.temporalMainPath[game
+            .temporalHallProgress
+            .resumeCell],
+        entry,
+      ),
+      RoomId.collisionArchive => _controllerForCampaignNode(
+        CampaignWorldGraph.collisionMainPath[game
+            .collisionArchiveProgress
+            .resumeCell],
+        entry,
       ),
       RoomId.optimizerCore => BossRoomController(),
       RoomId.survivalArena => SurvivalArenaController(),
     };
-    _activeCampaignEntry = CampaignNodeEntry.west;
+    _activeCampaignEntry = entry;
     await _replaceActiveRoom(nextRoom);
   }
 
@@ -181,58 +188,63 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     CampaignNodeId nodeId, {
     required CampaignNodeEntry entry,
   }) async {
-    final nextRoom = switch (nodeId) {
-      CampaignNodeId.bootSector => BootSectorController(entry: entry),
-      CampaignNodeId.damageWorkshop ||
-      CampaignNodeId.damageAssembly ||
-      CampaignNodeId.damageOverflow ||
-      CampaignNodeId.overflowWarden => DamageLabNodeController(
-        nodeId: nodeId,
-        entry: entry,
-        progress: game.damageLabProgress,
-        layout: game.damageLabRoomLayouts.room(nodeId),
-      ),
-      CampaignNodeId.damageDashCache ||
-      CampaignNodeId.damageUpperArchive ||
-      CampaignNodeId.damageTurretControl => DamageLabSecretController(
-        nodeId: nodeId,
-        progress: game.damageLabProgress,
-      ),
-      CampaignNodeId.temporalAscent ||
-      CampaignNodeId.temporalFracture ||
-      CampaignNodeId.temporalPendulum ||
-      CampaignNodeId.chronoJailer => RegionalCampaignNodeController(
-        nodeId: nodeId,
-        entry: entry,
-        progress: game.temporalHallProgress,
-        layout: game.regionalRoomLayouts.room(nodeId),
-      ),
-      CampaignNodeId.temporalDashRift ||
-      CampaignNodeId.temporalUpperLoop ||
-      CampaignNodeId.temporalRelayControl => RegionalSecretController(
-        nodeId: nodeId,
-        progress: game.temporalHallProgress,
-      ),
-      CampaignNodeId.collisionCompression ||
-      CampaignNodeId.collisionFracture ||
-      CampaignNodeId.collisionMerge ||
-      CampaignNodeId.kernelChimera => RegionalCampaignNodeController(
-        nodeId: nodeId,
-        entry: entry,
-        progress: game.collisionArchiveProgress,
-        layout: game.regionalRoomLayouts.room(nodeId),
-      ),
-      CampaignNodeId.collisionVectorCache ||
-      CampaignNodeId.collisionUpperMatrix ||
-      CampaignNodeId.collisionPrismControl => RegionalSecretController(
-        nodeId: nodeId,
-        progress: game.collisionArchiveProgress,
-      ),
-      CampaignNodeId.optimizerCore => BossRoomController(),
-    };
+    final nextRoom = _controllerForCampaignNode(nodeId, entry);
     _activeCampaignEntry = entry;
     await _replaceActiveRoom(nextRoom);
   }
+
+  Component _controllerForCampaignNode(
+    CampaignNodeId nodeId,
+    CampaignNodeEntry entry,
+  ) => switch (nodeId) {
+    CampaignNodeId.bootSector => BootSectorController(entry: entry),
+    CampaignNodeId.damageWorkshop ||
+    CampaignNodeId.damageAssembly ||
+    CampaignNodeId.damageOverflow ||
+    CampaignNodeId.overflowWarden => DamageLabNodeController(
+      nodeId: nodeId,
+      entry: entry,
+      progress: game.damageLabProgress,
+      layout: game.damageLabRoomLayouts.room(nodeId),
+    ),
+    CampaignNodeId.damageDashCache ||
+    CampaignNodeId.damageUpperArchive ||
+    CampaignNodeId.damageTurretControl => DamageLabSecretController(
+      nodeId: nodeId,
+      progress: game.damageLabProgress,
+    ),
+    CampaignNodeId.temporalAscent ||
+    CampaignNodeId.temporalFracture ||
+    CampaignNodeId.temporalPendulum ||
+    CampaignNodeId.chronoJailer => RegionalCampaignNodeController(
+      nodeId: nodeId,
+      entry: entry,
+      progress: game.temporalHallProgress,
+      layout: game.regionalRoomLayouts.room(nodeId),
+    ),
+    CampaignNodeId.temporalDashRift ||
+    CampaignNodeId.temporalUpperLoop ||
+    CampaignNodeId.temporalRelayControl => RegionalSecretController(
+      nodeId: nodeId,
+      progress: game.temporalHallProgress,
+    ),
+    CampaignNodeId.collisionCompression ||
+    CampaignNodeId.collisionFracture ||
+    CampaignNodeId.collisionMerge ||
+    CampaignNodeId.kernelChimera => RegionalCampaignNodeController(
+      nodeId: nodeId,
+      entry: entry,
+      progress: game.collisionArchiveProgress,
+      layout: game.regionalRoomLayouts.room(nodeId),
+    ),
+    CampaignNodeId.collisionVectorCache ||
+    CampaignNodeId.collisionUpperMatrix ||
+    CampaignNodeId.collisionPrismControl => RegionalSecretController(
+      nodeId: nodeId,
+      progress: game.collisionArchiveProgress,
+    ),
+    CampaignNodeId.optimizerCore => BossRoomController(),
+  };
 
   Future<void> _replaceActiveRoom(Component nextRoom) async {
     _isReady = false;
@@ -259,9 +271,6 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
       DamageLabSecretController controller => controller.playerSpawn,
       RegionalCampaignNodeController controller => controller.playerSpawn,
       RegionalSecretController controller => controller.playerSpawn,
-      RoomOneController controller => controller.playerSpawn,
-      RoomTwoController controller => controller.playerSpawn,
-      RoomThreeController controller => controller.playerSpawn,
       BossRoomController controller => controller.playerSpawn,
       SurvivalArenaController controller => controller.playerSpawn,
       _ => throw StateError('Room controller does not expose a spawn.'),
@@ -284,18 +293,10 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
         player,
       ),
       RegionalSecretController controller => controller.tryInteract(player),
-      RoomOneController controller => controller.tryInteract(player),
-      RoomTwoController controller => controller.tryInteract(player),
-      RoomThreeController controller => controller.tryInteract(player),
       BossRoomController controller => controller.tryInteract(player),
       SurvivalArenaController _ => false,
       _ => false,
     };
-  }
-
-  bool tryMergeCrawlers(CrawlerComponent first, CrawlerComponent second) {
-    final room = _activeRoom;
-    return room is RoomThreeController ? room.tryMerge(first, second) : false;
   }
 
   bool isPulseBlocked(Vector2 from, Vector2 to) {

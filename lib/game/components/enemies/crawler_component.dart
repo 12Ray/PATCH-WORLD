@@ -304,21 +304,8 @@ final class CrawlerComponent extends RectangleComponent
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     if (other is WallComponent) {
       position.setFrom(_previousPosition);
-    } else if (other is CrawlerComponent && canMerge && other.canMerge) {
-      game.world.tryMergeCrawlers(this, other);
     }
     super.onCollision(intersectionPoints, other);
-  }
-
-  @override
-  void onCollisionStart(
-    Set<Vector2> intersectionPoints,
-    PositionComponent other,
-  ) {
-    if (other is CrawlerComponent && canMerge && other.canMerge) {
-      game.world.tryMergeCrawlers(this, other);
-    }
-    super.onCollisionStart(intersectionPoints, other);
   }
 
   @override

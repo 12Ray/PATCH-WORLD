@@ -695,7 +695,7 @@ final class DamageLabNodeController extends Component
   }
 
   Future<void> _spawnExitTerminal() async {
-    if (_exitTerminal != null) return;
+    if (_exitTerminal != null || progress.patchApplied) return;
     final terminal = PatchExitTerminalComponent(
       position: layout
           .requireAnchor(DamageLabAnchorId.exitTerminal)

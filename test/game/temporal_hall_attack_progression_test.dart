@@ -2,8 +2,10 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/components/enemies/crawler_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/regional_campaign_node_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
 import 'package:patch_world/game/rules/rule_ids.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -25,6 +27,10 @@ void main() {
       );
       await tester.runAsync(game.ready);
       await tester.runAsync(() => game.world.loaded);
+
+      final room = game.world.activeRoom! as RegionalCampaignNodeController;
+      expect(room.campaignNodeId, CampaignNodeId.temporalAscent);
+      expect(room.layout, same(game.regionalRoomLayouts.room(room.nodeId)));
 
       // Entering Temporal Hall normally removes the Damage Lab anomaly.
       game.ruleEngine.removeRule(RuleIds.damageSignInverted);
