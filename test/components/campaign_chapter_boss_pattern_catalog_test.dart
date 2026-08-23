@@ -3,6 +3,22 @@ import 'package:patch_world/game/components/boss/campaign_chapter_boss_pattern_c
 
 void main() {
   group('campaign chapter boss pattern contract', () {
+    test(
+      'phase gates use three descending floors and a readable quiet beat',
+      () {
+        expect(CampaignBossPhaseGateSpec.maxHealth, 20);
+        expect(CampaignBossPhaseGateSpec.healthFloors, <int>[13, 6, 1]);
+        expect(
+          CampaignBossPhaseGateSpec.transitionQuietSeconds,
+          inInclusiveRange(.6, .9),
+        );
+        expect(
+          () => CampaignBossPhaseGateSpec.healthFloorForPhaseIndex(3),
+          throwsRangeError,
+        );
+      },
+    );
+
     test('each boss owns five unique and fully timed attacks', () {
       for (final set in <CampaignChapterBossPatternSet>[
         CampaignChapterBossPatternCatalog.chronoJailer,

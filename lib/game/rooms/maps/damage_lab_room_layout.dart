@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
+import 'package:patch_world/game/campaign/campaign_encounter_contract.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
@@ -146,6 +147,7 @@ final class DamageLabRoomLayout {
     required this.surfaces,
     required this.traversalLinks,
     required this.enemies,
+    required this.encounter,
     required this.features,
     required this.secretDoors,
     required this.terrainPulse,
@@ -164,6 +166,7 @@ final class DamageLabRoomLayout {
   final List<DamageLabSurfaceSpec> surfaces;
   final List<DamageLabTraversalLinkSpec> traversalLinks;
   final List<DamageLabEnemySpawnSpec> enemies;
+  final CampaignEncounterSpec? encounter;
   final List<DamageLabFeatureSpec> features;
   final List<DamageLabSecretDoorSpec> secretDoors;
   final DamageLabTerrainPulseSpec? terrainPulse;
@@ -215,6 +218,7 @@ final class DamageLabRoomLayoutCatalog {
 
   static DamageLabRoomLayoutCatalog fromJson(String source) {
     final root = _requireMap(jsonDecode(source), 'root');
+    _rejectUnknownKeys(root, const <String>{'schemaVersion', 'rooms'}, 'root');
     final schemaVersion = _requireInt(root, 'schemaVersion', 'root');
     if (schemaVersion != 1) {
       throw FormatException(
@@ -240,6 +244,23 @@ final class DamageLabRoomLayoutCatalog {
   }
 
   static DamageLabRoomLayout _parseRoom(Map<String, Object?> map, String path) {
+    _rejectUnknownKeys(map, const <String>{
+      'node',
+      'size',
+      'killPlaneY',
+      'backdropAligned',
+      'environmentAsset',
+      'camera',
+      'spawns',
+      'anchors',
+      'surfaces',
+      'traversal',
+      'enemies',
+      'encounter',
+      'features',
+      'secretDoors',
+      'terrainPulse',
+    }, path);
     final nodeId = _enumByName(
       CampaignNodeId.values,
       _requireString(map, 'node', path),
@@ -250,10 +271,21 @@ final class DamageLabRoomLayoutCatalog {
       _requireValue(map, 'camera', path),
       '$path.camera',
     );
+    _rejectUnknownKeys(cameraMap, const <String>{
+      'zoom',
+      'horizontalLead',
+      'horizontalDeadZone',
+      'verticalDeadZone',
+      'followResponsiveness',
+    }, '$path.camera');
     final spawnMap = _requireMap(
       _requireValue(map, 'spawns', path),
       '$path.spawns',
     );
+    _rejectUnknownKeys(spawnMap, const <String>{
+      'west',
+      'east',
+    }, '$path.spawns');
     final anchorMap = _requireMap(
       _requireValue(map, 'anchors', path),
       '$path.anchors',
@@ -270,6 +302,12 @@ final class DamageLabRoomLayoutCatalog {
         .map((entry) {
           final surfacePath = '$path.surfaces[${entry.$1}]';
           final surface = _requireMap(entry.$2, surfacePath);
+          _rejectUnknownKeys(surface, const <String>{
+            'id',
+            'rect',
+            'boundary',
+            'renderArtwork',
+          }, surfacePath);
           return DamageLabSurfaceSpec(
             id: _requireString(surface, 'id', surfacePath),
             bounds: _parseRect(
@@ -294,6 +332,15 @@ final class DamageLabRoomLayoutCatalog {
         .map((entry) {
           final segmentPath = '$path.traversal[${entry.$1}]';
           final segment = _requireMap(entry.$2, segmentPath);
+          _rejectUnknownKeys(segment, const <String>{
+            'id',
+            'fromSurfaceId',
+            'toSurfaceId',
+            'requiredForCompletion',
+            'requirement',
+            'requiresMovingPlatform',
+            'requiresBreakablePlatform',
+          }, segmentPath);
           final fromSurfaceId = _requireString(
             segment,
             'fromSurfaceId',
@@ -364,6 +411,11 @@ final class DamageLabRoomLayoutCatalog {
         .map((entry) {
           final enemyPath = '$path.enemies[${entry.$1}]';
           final enemy = _requireMap(entry.$2, enemyPath);
+          _rejectUnknownKeys(enemy, const <String>{
+            'id',
+            'archetype',
+            'position',
+          }, enemyPath);
           return DamageLabEnemySpawnSpec(
             id: _requireString(enemy, 'id', enemyPath),
             archetype: _enumByName(
@@ -379,10 +431,23 @@ final class DamageLabRoomLayoutCatalog {
         })
         .toList(growable: false);
 
+    final encounterValue = _requireValue(map, 'encounter', path);
+    final encounter = encounterValue == null
+        ? null
+        : CampaignEncounterSpecParser.parse(encounterValue, '$path.encounter');
+
     final features = _requireList(map, 'features', path).indexed
         .map((entry) {
           final featurePath = '$path.features[${entry.$1}]';
           final feature = _requireMap(entry.$2, featurePath);
+          _rejectUnknownKeys(feature, const <String>{
+            'id',
+            'kind',
+            'position',
+            'size',
+            'sourceId',
+            'phaseOffset',
+          }, featurePath);
           final sourceId = feature['sourceId'];
           if (sourceId != null && sourceId is! String) {
             throw FormatException('$featurePath.sourceId must be a String.');
@@ -413,6 +478,10 @@ final class DamageLabRoomLayoutCatalog {
         .map((entry) {
           final doorPath = '$path.secretDoors[${entry.$1}]';
           final door = _requireMap(entry.$2, doorPath);
+          _rejectUnknownKeys(door, const <String>{
+            'weapon',
+            'position',
+          }, doorPath);
           return DamageLabSecretDoorSpec(
             weapon: _enumByName(
               PlayerWeapon.values,
@@ -430,6 +499,11 @@ final class DamageLabRoomLayoutCatalog {
     DamageLabTerrainPulseSpec? terrainPulse;
     if (map['terrainPulse'] != null) {
       final pulse = _requireMap(map['terrainPulse'], '$path.terrainPulse');
+      _rejectUnknownKeys(pulse, const <String>{
+        'routeId',
+        'bridge',
+        'node',
+      }, '$path.terrainPulse');
       terrainPulse = DamageLabTerrainPulseSpec(
         routeId: _requireString(pulse, 'routeId', '$path.terrainPulse'),
         bridgeBounds: _parseRect(
@@ -489,6 +563,7 @@ final class DamageLabRoomLayoutCatalog {
       surfaces: List.unmodifiable(surfaces),
       traversalLinks: List.unmodifiable(traversal),
       enemies: List.unmodifiable(enemies),
+      encounter: encounter,
       features: List.unmodifiable(features),
       secretDoors: List.unmodifiable(secretDoors),
       terrainPulse: terrainPulse,
@@ -621,6 +696,18 @@ final class DamageLabRoomLayoutCatalog {
       if (value.name == name) return value;
     }
     throw FormatException('$path has unsupported value "$name".');
+  }
+
+  static void _rejectUnknownKeys(
+    Map<String, Object?> map,
+    Set<String> allowed,
+    String path,
+  ) {
+    for (final key in map.keys) {
+      if (!allowed.contains(key)) {
+        throw FormatException('$path contains unknown key "$key".');
+      }
+    }
   }
 }
 
@@ -838,6 +925,9 @@ abstract final class DamageLabRoomLayoutValidator {
     }
 
     if (room.nodeId == CampaignNodeId.overflowWarden) {
+      if (room.encounter != null) {
+        errors.add('$prefix boss room encounter must be null');
+      }
       for (final id in <String>[
         DamageLabAnchorId.bossSpawn,
         DamageLabAnchorId.bossReward,
@@ -871,6 +961,24 @@ abstract final class DamageLabRoomLayoutValidator {
         errors.add('$prefix requires exactly two boss seals');
       }
     } else {
+      final encounter = room.encounter;
+      if (encounter == null) {
+        errors.add('$prefix requires an encounter contract');
+      } else {
+        errors.addAll(
+          CampaignEncounterSpecValidator.validate(
+            encounter: encounter,
+            roomLabel: prefix,
+            roomBounds: Rect.fromLTWH(0, 0, room.width, room.height),
+            enemyPositions: <String, Offset>{
+              for (final enemy in room.enemies)
+                enemy.id: Offset(enemy.position.x, enemy.position.y),
+            },
+            westEntry: Offset(room.westSpawn.x, room.westSpawn.y),
+            eastEntry: Offset(room.eastSpawn.x, room.eastSpawn.y),
+          ),
+        );
+      }
       if (room.anchor(DamageLabAnchorId.qaRecord) == null) {
         errors.add('$prefix is missing qaRecord');
       }

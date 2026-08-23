@@ -120,6 +120,13 @@ Future<void> _verifySupportRuntime(
     await leech.mounted;
   });
 
+  expect(ally.isActiveThreat, isFalse);
+  expect(leech.isActiveThreat, isFalse);
+  ally.activateEncounter();
+  leech.activateEncounter();
+  expect(ally.isActiveThreat, isTrue);
+  expect(leech.isActiveThreat, isTrue);
+
   expect(ally.health, 2);
   leech.debugExecutePatternSlot(EnemyActionSlot.enhanced);
   expect(ally.health, 4, reason: 'repair capsule restores the nearest ally');

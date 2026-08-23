@@ -50,6 +50,89 @@ void main() {
     expect(airlock.segment.landingWidth, 740);
   });
 
+  test('exploration encounters partition every enemy into paced waves', () {
+    final catalog = DamageLabRoomLayoutCatalog.fromJson(source);
+
+    for (final room in catalog.rooms) {
+      if (room.nodeId == CampaignNodeId.overflowWarden) {
+        expect(room.encounter, isNull);
+        continue;
+      }
+      final encounter = room.encounter!;
+      expect(encounter.waves.length, greaterThanOrEqualTo(2));
+      expect(encounter.maxActiveEnemies, inInclusiveRange(1, 3));
+      expect(
+        encounter.enemyIds,
+        unorderedEquals(room.enemies.map((enemy) => enemy.id)),
+        reason: room.nodeId.name,
+      );
+      expect(room.westSpawn.x, lessThan(encounter.triggerZone.left));
+      expect(room.eastSpawn.x, greaterThan(encounter.triggerZone.right));
+      expect(
+        encounter.combatCamera.zone.left,
+        lessThanOrEqualTo(encounter.triggerZone.left),
+      );
+      expect(
+        encounter.combatCamera.zone.right,
+        greaterThanOrEqualTo(encounter.triggerZone.right),
+      );
+    }
+  });
+
+  test('encounter parser rejects unknown keys and validator rejects drift', () {
+    final unknownKey = _decodedSource(source);
+    final workshop = _room(unknownKey, 'damageWorkshop');
+    final encounter = workshop['encounter']! as Map<String, dynamic>;
+    encounter['intermissionSecond'] = encounter.remove('intermissionSeconds');
+    expect(
+      () => DamageLabRoomLayoutCatalog.fromJson(jsonEncode(unknownKey)),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('unknown key "intermissionSecond"'),
+        ),
+      ),
+    );
+
+    final duplicateEnemy = _decodedSource(source);
+    final duplicateEncounter =
+        _room(duplicateEnemy, 'damageWorkshop')['encounter']!
+            as Map<String, dynamic>;
+    final waves = duplicateEncounter['waves']! as List<dynamic>;
+    final firstIds =
+        (waves.first! as Map<String, dynamic>)['enemyIds']! as List<dynamic>;
+    final secondIds =
+        (waves.last! as Map<String, dynamic>)['enemyIds']! as List<dynamic>;
+    secondIds[0] = firstIds[0];
+    expect(
+      () => DamageLabRoomLayoutCatalog.fromJson(jsonEncode(duplicateEnemy)),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          allOf(contains('more than once'), contains('omits enemies')),
+        ),
+      ),
+    );
+
+    final bossEncounter = _decodedSource(source);
+    _room(bossEncounter, 'overflowWarden')['encounter'] = _room(
+      bossEncounter,
+      'damageWorkshop',
+    )['encounter'];
+    expect(
+      () => DamageLabRoomLayoutCatalog.fromJson(jsonEncode(bossEncounter)),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('boss room encounter must be null'),
+        ),
+      ),
+    );
+  });
+
   test(
     'weapon sockets store placement while the world graph owns topology',
     () {

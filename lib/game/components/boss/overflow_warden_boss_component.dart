@@ -38,6 +38,9 @@ final class OverflowWardenBossComponent extends PositionComponent
   }) : healthState = HealthState(max: 18, current: 12, overflowMargin: 6),
        super(size: Vector2(76, 88), anchor: Anchor.center, priority: 17);
 
+  static const List<int> _phaseHealthCeilings = <int>[18, 21, 24];
+  static const double _phaseTransitionSeconds = .75;
+
   final HealthState healthState;
   final VoidCallback onDefeated;
   final void Function(OverflowWardenPhase phase)? onPhaseChanged;
@@ -49,12 +52,17 @@ final class OverflowWardenBossComponent extends PositionComponent
   double _clock = 0;
   double _attackCooldown = 1.1;
   double _phaseTimer = 0;
+  double _phaseTransitionRemaining = 0;
   double _defeatTimer = 0;
   EnemyActionTimeline? _attackAction;
   final List<String> _recentAttacks = <String>[];
   final Vector2 _lockedAttackTarget = Vector2.zero();
   double _lockedAttackFacing = 1;
   int _decisionCursor = 0;
+  int _hazardEpoch = 0;
+  final Set<Component> _spawnedHazards = <Component>{};
+  bool _completedAttackInCurrentPhase = false;
+  bool _phaseThresholdReached = false;
   bool _resolved = false;
 
   @override
@@ -64,6 +72,10 @@ final class OverflowWardenBossComponent extends PositionComponent
   bool get hasArtV3Visual => _frames?.length == 8;
   String? get activeAttackId => _attackAction?.id;
   EnemyActionPhase? get attackPhase => _attackAction?.phase;
+  bool get hasCompletedAttackInCurrentPhase => _completedAttackInCurrentPhase;
+  bool get isPhaseTransitioning => _phaseTransitionRemaining > 0;
+  double get phaseTransitionSecondsRemaining => _phaseTransitionRemaining;
+  int get spawnedHazardCount => _spawnedHazards.length;
   int get diagnosticVisualFrameIndex => _resolveVisualFrameIndex();
   bool get isActive => switch (phase) {
     OverflowWardenPhase.shielded ||
@@ -151,53 +163,129 @@ final class OverflowWardenBossComponent extends PositionComponent
     if (phase != OverflowWardenPhase.intro) return;
     phase = OverflowWardenPhase.shielded;
     _attackCooldown = .7;
+    _completedAttackInCurrentPhase = false;
+    _phaseThresholdReached = false;
+    _phaseTransitionRemaining = 0;
     onPhaseChanged?.call(phase);
     game.publishUiSnapshot(force: true);
   }
 
   @override
   void receiveDamage(int amount) {
-    if (!isActive || amount <= 0) return;
-    final previous = phase;
-    healthState.applyDamage(amount);
-    _refreshPhase(previous);
+    if (!isActive || amount <= 0 || isPhaseTransitioning) return;
+    final acceptedDamage = math.min(amount, math.max(0, health - 1));
+    if (acceptedDamage > 0) healthState.applyDamage(acceptedDamage);
+    if (health < _currentPhaseHealthCeiling) {
+      _phaseThresholdReached = false;
+    }
   }
 
   @override
   void receiveHealing(int amount) {
-    if (!isActive || amount <= 0) return;
-    final previous = phase;
-    final mutation = healthState.applyHealing(amount);
-    if (mutation == HealthMutation.overflowed) {
-      _beginOverflowDefeat();
-      return;
-    }
-    _refreshPhase(previous);
+    if (!isActive || amount <= 0 || isPhaseTransitioning) return;
+    final ceiling = _currentPhaseHealthCeiling;
+    final acceptedHealing = math.min(amount, math.max(0, ceiling - health));
+    if (acceptedHealing > 0) healthState.applyHealing(acceptedHealing);
+    if (health < ceiling) return;
+    _phaseThresholdReached = true;
+    _tryAdvancePhaseGate();
   }
 
-  void _refreshPhase(OverflowWardenPhase previous) {
-    phase = switch (healthState.current) {
-      >= 21 => OverflowWardenPhase.critical,
-      >= 18 => OverflowWardenPhase.breached,
-      _ => OverflowWardenPhase.shielded,
-    };
-    if (phase != previous) {
-      _attackCooldown = .35;
-      onPhaseChanged?.call(phase);
-      game.triggerImpactFeedback();
-      game.publishUiSnapshot(force: true);
+  int get _activePhaseIndex => switch (phase) {
+    OverflowWardenPhase.shielded => 0,
+    OverflowWardenPhase.breached => 1,
+    OverflowWardenPhase.critical => 2,
+    _ => throw StateError('$phase is not an active Warden phase.'),
+  };
+
+  int get _currentPhaseHealthCeiling => _phaseHealthCeilings[_activePhaseIndex];
+
+  void _tryAdvancePhaseGate() {
+    if (!_phaseThresholdReached || !_completedAttackInCurrentPhase) return;
+    switch (phase) {
+      case OverflowWardenPhase.shielded:
+        _beginPhaseTransition(OverflowWardenPhase.breached);
+      case OverflowWardenPhase.breached:
+        _beginPhaseTransition(OverflowWardenPhase.critical);
+      case OverflowWardenPhase.critical:
+        _beginOverflowDefeat();
+      case OverflowWardenPhase.dormant ||
+          OverflowWardenPhase.intro ||
+          OverflowWardenPhase.overflowing ||
+          OverflowWardenPhase.defeated:
+        return;
     }
+  }
+
+  void _beginPhaseTransition(OverflowWardenPhase nextPhase) {
+    phase = nextPhase;
+    _phaseTransitionRemaining = _phaseTransitionSeconds;
+    _completedAttackInCurrentPhase = false;
+    _phaseThresholdReached = false;
+    _attackCooldown = 0;
+    _attackAction = null;
+    _removeSpawnedHazards();
+    scale.setAll(1.12);
+    onPhaseChanged?.call(phase);
+    game.triggerImpactFeedback();
+    game.publishUiSnapshot(force: true);
+  }
+
+  void _finishPhaseTransition() {
+    _phaseTransitionRemaining = 0;
+    scale.setAll(1);
+    _attackCooldown = 0;
+  }
+
+  void _recordCompletedAttack() {
+    _completedAttackInCurrentPhase = true;
+    _tryAdvancePhaseGate();
+    if (!isPhaseTransitioning && phase != OverflowWardenPhase.overflowing) {
+      _attackCooldown = switch (phase) {
+        OverflowWardenPhase.critical => .72,
+        OverflowWardenPhase.breached => .92,
+        _ => 1.15,
+      };
+    }
+  }
+
+  void _clearPhaseGate() {
+    _phaseTransitionRemaining = 0;
+    _completedAttackInCurrentPhase = false;
+    _phaseThresholdReached = false;
   }
 
   void _beginOverflowDefeat() {
     if (_resolved) return;
     phase = OverflowWardenPhase.overflowing;
+    _clearPhaseGate();
     onPhaseChanged?.call(phase);
     _attackAction = null;
+    _removeSpawnedHazards();
     _defeatTimer = 1.35;
     game.triggerCombatSlowMotion();
     game.triggerImpactFeedback();
     game.publishUiSnapshot(force: true);
+  }
+
+  void _updatePhaseTransition(double dt) {
+    _phaseTransitionRemaining = math.max(0, _phaseTransitionRemaining - dt);
+    final progress = _phaseTransitionRemaining / _phaseTransitionSeconds;
+    scale.setAll(1 + progress * .12);
+    if (_phaseTransitionRemaining <= 0) _finishPhaseTransition();
+  }
+
+  void _trackHazard(Component hazard) {
+    _spawnedHazards.add(hazard);
+    unawaited(hazard.removed.then((_) => _spawnedHazards.remove(hazard)));
+  }
+
+  void _removeSpawnedHazards() {
+    _hazardEpoch += 1;
+    for (final hazard in _spawnedHazards.toList(growable: false)) {
+      if (!hazard.isRemoving) hazard.removeFromParent();
+    }
+    _spawnedHazards.clear();
   }
 
   @override
@@ -220,6 +308,15 @@ final class OverflowWardenBossComponent extends PositionComponent
       super.update(dt);
       return;
     }
+    if (isPhaseTransitioning) {
+      final transitionDt = isMounted ? game.clock.realDt : dt;
+      _updatePhaseTransition(
+        transitionDt > 0 && transitionDt.isFinite ? transitionDt : 0,
+      );
+      _syncVisual();
+      super.update(dt);
+      return;
+    }
     if (!isActive) {
       _syncVisual();
       super.update(dt);
@@ -233,11 +330,7 @@ final class OverflowWardenBossComponent extends PositionComponent
       if (tick.enteredActive) _executeAttack(attackAction.id);
       if (tick.completed) {
         _attackAction = null;
-        _attackCooldown = switch (phase) {
-          OverflowWardenPhase.critical => .72,
-          OverflowWardenPhase.breached => .92,
-          _ => 1.15,
-        };
+        _recordCompletedAttack();
       }
     } else if (_attackCooldown <= 0) {
       _telegraph(_chooseAttack());
@@ -368,7 +461,19 @@ final class OverflowWardenBossComponent extends PositionComponent
   }
 
   Future<void> _addToOwner(Component owner, Component child) async {
+    final spawnEpoch = _hazardEpoch;
+    if (_resolved || isRemoving || parent != owner || owner.isRemoving) return;
     await owner.add(child);
+    if ((_resolved ||
+            isRemoving ||
+            parent != owner ||
+            owner.isRemoving ||
+            spawnEpoch != _hazardEpoch) &&
+        child.parent == owner) {
+      child.removeFromParent();
+      return;
+    }
+    _trackHazard(child);
   }
 
   void _finishDefeat() {

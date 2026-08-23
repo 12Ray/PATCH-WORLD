@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
 import 'package:patch_world/game/builds/weapon_build_state.dart';
+import 'package:patch_world/game/campaign/campaign_encounter_director.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
@@ -94,14 +95,7 @@ void main() {
         closeTo(workshop.playerSpawn.y, .01),
       );
 
-      final enemies = workshop.children
-          .whereType<PlatformerEnemyComponent>()
-          .toList(growable: false);
-      expect(enemies, hasLength(2));
-      for (final enemy in enemies) {
-        enemy.receiveDamage(99);
-      }
-      await tester.pump(const Duration(milliseconds: 80));
+      await _clearDamageEncounter(tester, game, workshop);
       expect(game.pendingWeaponBuildSelection, isNotNull);
       expect(
         game.selectRoomOneBuildUpgrade(WeaponBuildUpgradeId.swordDashCircuit),
@@ -195,6 +189,53 @@ Future<void> _mountGame(WidgetTester tester, PatchWorldGame game) async {
   await tester.runAsync(game.ready);
   await tester.runAsync(() => game.world.loaded);
   await tester.pump(const Duration(milliseconds: 16));
+}
+
+Future<void> _clearDamageEncounter(
+  WidgetTester tester,
+  PatchWorldGame game,
+  DamageLabNodeController room,
+) async {
+  final encounter = room.layout.encounter!;
+  final enemies = room.children.whereType<PlatformerEnemyComponent>().toList(
+    growable: false,
+  );
+  expect(enemies, hasLength(2));
+  expect(enemies.every((enemy) => !enemy.isActiveThreat), isTrue);
+
+  game.world.player.position.setValues(
+    encounter.triggerZone.center.dx,
+    encounter.triggerZone.center.dy,
+  );
+  await _pumpRealSeconds(tester, encounter.sealSeconds + .1);
+  expect(room.encounterPhase, CampaignEncounterPhase.wave);
+
+  for (var wave = 0; wave < encounter.waves.length; wave += 1) {
+    final activeEnemies = room.activeEncounterEnemies;
+    expect(activeEnemies, hasLength(encounter.waves[wave].enemyIds.length));
+    expect(activeEnemies.every((enemy) => enemy.isActiveThreat), isTrue);
+    for (final enemy in activeEnemies) {
+      enemy.receiveDamage(99);
+    }
+    await tester.pump(const Duration(milliseconds: 16));
+    if (wave < encounter.waves.length - 1) {
+      expect(room.encounterPhase, CampaignEncounterPhase.intermission);
+      await _pumpRealSeconds(tester, encounter.intermissionSeconds + .1);
+      expect(room.encounterPhase, CampaignEncounterPhase.wave);
+    }
+  }
+
+  expect(room.encounterPhase, CampaignEncounterPhase.clearBeat);
+  expect(game.pendingWeaponBuildSelection, isNull);
+  await _pumpRealSeconds(tester, encounter.clearBeatSeconds + .1);
+  expect(room.encounterPhase, CampaignEncounterPhase.cleared);
+}
+
+Future<void> _pumpRealSeconds(WidgetTester tester, double seconds) async {
+  final frameCount = (seconds / .05).ceil();
+  for (var frame = 0; frame < frameCount; frame += 1) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
 }
 
 Future<void> _useDoor(

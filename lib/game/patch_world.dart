@@ -94,6 +94,7 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     final room = _activeRoom;
     if (room == null) return;
     for (final child in room.children.whereType<PositionComponent>()) {
+      if (child is PlatformerEnemyComponent && !child.isActiveThreat) continue;
       if (child is CombatTarget && !child.isRemoving) yield child;
     }
   }

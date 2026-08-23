@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:patch_world/game/campaign/campaign_encounter_director.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/damage_lab_floor_state.dart';
 import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
@@ -42,6 +43,7 @@ final class DamageLabNodeController extends Component
         PlatformerRoomCameraLead,
         PlatformerRoomCameraFollow,
         CampaignNodeRoom,
+        CampaignNodeTravelGuard,
         DamageLabRoomStatus {
   DamageLabNodeController({
     required this.nodeId,
@@ -62,8 +64,10 @@ final class DamageLabNodeController extends Component
   final DamageLabFloorState progress;
   final DamageLabRoomLayout layout;
   final List<PlatformSurfaceComponent> _surfaces = <PlatformSurfaceComponent>[];
-  final Map<PlatformerEnemyComponent, int> _enemyEncounterIds =
-      <PlatformerEnemyComponent, int>{};
+  final Map<PlatformerEnemyComponent, String> _enemyIds =
+      <PlatformerEnemyComponent, String>{};
+  final Map<String, PlatformerEnemyComponent> _enemiesById =
+      <String, PlatformerEnemyComponent>{};
   final Set<PlatformerEnemyComponent> _defeatedEnemies =
       <PlatformerEnemyComponent>{};
   final List<QaRecordTerminalComponent> _recordTerminals =
@@ -87,7 +91,9 @@ final class DamageLabNodeController extends Component
   final List<BossSealGateComponent> _bossSeals = <BossSealGateComponent>[];
   bool _bossEncounterStarted = false;
   bool _patchSelectionOpened = false;
+  CampaignEncounterDirector? _encounterDirector;
   double _bossIntroRemaining = 0;
+  double _bossRewardDiscoveryRemaining = 0;
   int _defeatedCount = 0;
 
   int get encounterId => switch (nodeId) {
@@ -143,7 +149,18 @@ final class DamageLabNodeController extends Component
   String? get bossPhaseKey => _bossEncounterStarted ? _boss?.phaseId : null;
 
   int get defeatedCount => _defeatedCount;
+  CampaignEncounterPhase? get encounterPhase => _encounterDirector?.phase;
+  int get activeWaveIndex => _encounterDirector?.waveIndex ?? -1;
+  int get activeEncounterEnemyCount =>
+      _encounterDirector?.activeEnemyCount ?? 0;
+  bool get isEncounterSealed => _encounterDirector?.isSealed ?? false;
+  List<PlatformerEnemyComponent> get activeEncounterEnemies => _enemiesById
+      .values
+      .where((enemy) => enemy.isActiveThreat)
+      .toList(growable: false);
   bool get isBossIntroActive => _bossIntroRemaining > 0;
+  bool get isBossRewardDiscoveryActive => _bossRewardDiscoveryRemaining > 0;
+  bool get hasExitTerminal => _exitTerminal != null;
   OverflowWardenBossComponent? get boss => _boss;
   BossArenaPresentationComponent? get bossArenaPresentation =>
       _bossArenaPresentation;
@@ -154,6 +171,9 @@ final class DamageLabNodeController extends Component
       layout.enemies
           .map((enemy) => (enemy.archetype, enemy.position.x, enemy.position.y))
           .toList(growable: false);
+
+  @override
+  bool canLeaveCampaignNode(CampaignNodeId targetNode) => !isEncounterSealed;
 
   List<TraversalSegment> get requiredTraversalSegments =>
       layout.requiredTraversalSegments;
@@ -174,10 +194,38 @@ final class DamageLabNodeController extends Component
 
   @override
   Vector2 cameraTargetFor(Vector2 playerPosition) {
-    if (isBossIntroActive) return Vector2(585, 250);
+    if (isBossIntroActive) return worldSize / 2;
     final boss = _boss;
     if (_bossEncounterStarted && boss != null && boss.isActive) {
       return Vector2(playerPosition.x * .58 + boss.position.x * .42, 270);
+    }
+    final director = _encounterDirector;
+    final encounter = layout.encounter;
+    if (director?.usesCombatCamera ?? false) {
+      if (encounter == null) {
+        throw StateError('$nodeId is missing its encounter camera contract.');
+      }
+      final activeEnemies = activeEncounterEnemies;
+      PlatformerEnemyComponent? nearest;
+      var nearestDistance = double.infinity;
+      for (final enemy in activeEnemies) {
+        final distance = playerPosition.distanceToSquared(enemy.position);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearest = enemy;
+        }
+      }
+      final target = nearest == null
+          ? Vector2(playerPosition.x, playerPosition.y - 68)
+          : Vector2(
+              playerPosition.x * .58 + nearest.position.x * .42,
+              (playerPosition.y - 54) * .58 + nearest.position.y * .42,
+            );
+      final zone = encounter.combatCamera.zone;
+      return Vector2(
+        target.x.clamp(zone.left, zone.right).toDouble(),
+        target.y.clamp(zone.top, zone.bottom).toDouble(),
+      );
     }
     return usesBackdropAlignedGeometry
         ? Vector2(playerPosition.x, playerPosition.y - 68)
@@ -186,22 +234,30 @@ final class DamageLabNodeController extends Component
 
   @override
   double cameraZoomFor(Vector2 playerPosition) {
-    if (isBossIntroActive) return 1.32;
-    if (_bossEncounterStarted && (_boss?.isActive ?? false)) return 1.08;
+    if (isBossIntroActive) return .94;
+    if (_bossEncounterStarted && (_boss?.isActive ?? false)) return 1;
+    if (_encounterDirector?.usesCombatCamera ?? false) {
+      return layout.encounter!.combatCamera.zoom;
+    }
     return layout.camera.zoom;
   }
 
   @override
-  double get horizontalCameraLead => layout.camera.horizontalLead;
+  double get horizontalCameraLead =>
+      isEncounterSealed ? 0 : layout.camera.horizontalLead;
 
   @override
-  double get horizontalCameraDeadZone => layout.camera.horizontalDeadZone;
+  double get horizontalCameraDeadZone =>
+      isEncounterSealed ? 42 : layout.camera.horizontalDeadZone;
 
   @override
-  double get verticalCameraDeadZone => layout.camera.verticalDeadZone;
+  double get verticalCameraDeadZone =>
+      isEncounterSealed ? 30 : layout.camera.verticalDeadZone;
 
   @override
-  double get cameraFollowResponsiveness => layout.camera.followResponsiveness;
+  double get cameraFollowResponsiveness => isEncounterSealed
+      ? math.max(8, layout.camera.followResponsiveness)
+      : layout.camera.followResponsiveness;
 
   @override
   Future<void> onLoad() async {
@@ -308,17 +364,45 @@ final class DamageLabNodeController extends Component
   }
 
   Future<void> _addCombatEncounter() async {
-    if (progress.clearedEncounterIds.contains(encounterId)) return;
+    final encounter = layout.encounter;
+    if (encounter == null) {
+      throw StateError('$nodeId is missing an encounter contract.');
+    }
+    final alreadyCleared = progress.clearedEncounterIds.contains(encounterId);
+    _encounterDirector = CampaignEncounterDirector(
+      spec: encounter,
+      initiallyCleared: alreadyCleared,
+      reverseWaves: entry == CampaignNodeEntry.east,
+      onWaveActivated: _activateEncounterWave,
+      onClearBeatStarted: _showEncounterClearBeat,
+      onCleared: _finishEncounterClear,
+      onPhaseChanged: (_) => game.publishUiSnapshot(force: true),
+    );
+    if (alreadyCleared) return;
     for (final spec in layout.enemies) {
       late final PlatformerEnemyComponent enemy;
       enemy = PlatformerEnemyComponent(
         archetype: spec.archetype,
         position: spec.position.toVector2(),
         onDefeated: _onEnemyDefeated,
+        startsDormant: true,
       );
-      _enemyEncounterIds[enemy] = encounterId;
+      _enemyIds[enemy] = spec.id;
+      _enemiesById[spec.id] = enemy;
       await add(enemy);
     }
+  }
+
+  void _activateEncounterWave(int waveIndex, List<String> enemyIds) {
+    for (final enemyId in enemyIds) {
+      final enemy = _enemiesById[enemyId];
+      if (enemy == null) {
+        throw StateError('$nodeId wave $waveIndex has no enemy "$enemyId".');
+      }
+      enemy.activateEncounter();
+    }
+    game.triggerImpactFeedback();
+    game.publishUiSnapshot(force: true);
   }
 
   Future<void> _addTerrainPulseRoute() async {
@@ -416,16 +500,18 @@ final class DamageLabNodeController extends Component
       await add(boss);
       return;
     }
-    if (!progress.bossRewardClaimed) await _spawnBossReward();
-    await _spawnExitTerminal();
+    if (!progress.bossRewardClaimed) {
+      await _spawnBossReward();
+    } else {
+      await _spawnExitTerminal();
+    }
   }
 
   Future<void> _spawnAvailableDoors() async {
     if (nodeId != CampaignNodeId.overflowWarden || progress.bossDefeated) {
       await _spawnBackDoor();
     }
-    if (nodeId != CampaignNodeId.overflowWarden &&
-        progress.clearedEncounterIds.contains(encounterId)) {
+    if (nodeId != CampaignNodeId.overflowWarden) {
       await _spawnForwardDoor();
     }
     if (nodeId == CampaignNodeId.damageAssembly &&
@@ -464,6 +550,9 @@ final class DamageLabNodeController extends Component
       accentColor: const Color(0xFF9D8CFF),
       onInteract: () =>
           game.travelToCampaignNode(target, entry: CampaignNodeEntry.east),
+      isUnlockedResolver: () => !isEncounterSealed,
+      lockedLabelLocalizationKeyResolver: () => 'interaction.clearThreats',
+      onLockedInteract: _onRoomExitLocked,
     );
     _backDoor = door;
     await add(door);
@@ -484,6 +573,11 @@ final class DamageLabNodeController extends Component
           : 'interaction.nextRoom',
       onInteract: () =>
           game.travelToCampaignNode(target, entry: CampaignNodeEntry.west),
+      isUnlockedResolver: () =>
+          !isEncounterSealed &&
+          progress.clearedEncounterIds.contains(encounterId),
+      lockedLabelLocalizationKeyResolver: () => 'interaction.clearThreats',
+      onLockedInteract: _onRoomExitLocked,
     );
     _forwardDoor = door;
     await add(door);
@@ -534,6 +628,9 @@ final class DamageLabNodeController extends Component
       accentColor: const Color(0xFF45F3A6),
       onInteract: () =>
           game.travelToCampaignNode(target, entry: CampaignNodeEntry.east),
+      isUnlockedResolver: () => !isEncounterSealed,
+      lockedLabelLocalizationKeyResolver: () => 'interaction.clearThreats',
+      onLockedInteract: _onRoomExitLocked,
     );
     _maintenanceShortcutDoor = door;
     await add(door);
@@ -558,28 +655,64 @@ final class DamageLabNodeController extends Component
 
   void _onEnemyDefeated(PlatformerEnemyComponent enemy) {
     if (!_defeatedEnemies.add(enemy)) return;
+    final enemyId = _enemyIds[enemy];
+    if (enemyId == null) {
+      throw StateError('$nodeId defeated an unregistered encounter enemy.');
+    }
     _defeatedCount += 1;
     game.runMetrics.recordOverflow();
-    if (_enemyEncounterIds.keys.every(_defeatedEnemies.contains)) {
-      progress.clearedEncounterIds.add(encounterId);
-      if (nodeId == CampaignNodeId.damageOverflow) {
-        game.campaignExploration.unlockShortcut(
-          CampaignWorldGraph.damageMaintenanceShortcutId,
-        );
-        unawaited(_spawnMaintenanceShortcutDoor());
-      }
-      if (game.runItems.contains(RunItemId.conduitHeart)) {
-        game.world.player.restoreIntegrity(1);
-      }
-      unawaited(_spawnForwardDoor());
-      if (!progress.claimedBuildRewardIds.contains(encounterId)) {
-        unawaited(
-          Future<void>.microtask(
-            () => game.openRoomOneBuildSelection(encounterId),
-          ),
-        );
-      }
+    _encounterDirector?.notifyEnemyDefeated(enemyId);
+    game.publishUiSnapshot(force: true);
+  }
+
+  void _showEncounterClearBeat() {
+    add(
+      BossNameCardComponent(
+        center: game.world.player.position + Vector2(0, -145),
+        title: game.localization.text('objective.roomTaskComplete'),
+        subtitle: game.localization.text(
+          nodeId == CampaignNodeId.damageOverflow
+              ? 'interaction.enterBossRoom'
+              : 'interaction.nextRoom',
+        ),
+        accentColor: const Color(0xFF45F3A6),
+        style: BossNameCardStyle.victory,
+        duration: layout.encounter!.clearBeatSeconds,
+      ),
+    );
+    game.publishUiSnapshot(force: true);
+  }
+
+  void _finishEncounterClear() {
+    // Progress and its reward are committed together after the clear beat.
+    // Restarting during the beat therefore replays the encounter instead of
+    // leaving behind a permanently cleared room with an unclaimed reward.
+    if (!progress.clearedEncounterIds.add(encounterId)) return;
+    if (game.runItems.contains(RunItemId.conduitHeart)) {
+      game.world.player.restoreIntegrity(1);
     }
+    if (nodeId == CampaignNodeId.damageAssembly) {
+      unawaited(_spawnSecretDoor());
+    }
+    if (nodeId == CampaignNodeId.damageOverflow) {
+      game.campaignExploration.unlockShortcut(
+        CampaignWorldGraph.damageMaintenanceShortcutId,
+      );
+      unawaited(_spawnMaintenanceShortcutDoor());
+    }
+    if (!progress.claimedBuildRewardIds.contains(encounterId)) {
+      unawaited(
+        Future<void>.microtask(
+          () => game.openRoomOneBuildSelection(encounterId),
+        ),
+      );
+    }
+    game.triggerImpactFeedback();
+    game.publishUiSnapshot(force: true);
+  }
+
+  void _onRoomExitLocked() {
+    game.triggerImpactFeedback();
     game.publishUiSnapshot(force: true);
   }
 
@@ -642,7 +775,6 @@ final class DamageLabNodeController extends Component
     unawaited(_showCoreSignatureCard());
     unawaited(_spawnBackDoor());
     unawaited(_spawnBossReward());
-    unawaited(_spawnExitTerminal());
     game.publishUiSnapshot(force: true);
   }
 
@@ -655,6 +787,7 @@ final class DamageLabNodeController extends Component
       onCollected: (_) {
         progress.bossRewardClaimed = true;
         _bossReward = null;
+        _bossRewardDiscoveryRemaining = 2.6;
       },
     );
     _bossReward = reward;
@@ -695,7 +828,11 @@ final class DamageLabNodeController extends Component
   }
 
   Future<void> _spawnExitTerminal() async {
-    if (_exitTerminal != null || progress.patchApplied) return;
+    if (_exitTerminal != null ||
+        progress.patchApplied ||
+        !progress.bossRewardClaimed) {
+      return;
+    }
     final terminal = PatchExitTerminalComponent(
       position: layout
           .requireAnchor(DamageLabAnchorId.exitTerminal)
@@ -733,6 +870,14 @@ final class DamageLabNodeController extends Component
 
   @override
   void update(double dt) {
+    if (game.world.isReady && nodeId != CampaignNodeId.overflowWarden) {
+      final director = _encounterDirector;
+      if (director != null) {
+        final player = game.world.player.position;
+        director.tryTrigger(Offset(player.x, player.y));
+        director.update(game.clock.realDt);
+      }
+    }
     if (game.world.isReady &&
         nodeId == CampaignNodeId.overflowWarden &&
         !progress.bossDefeated) {
@@ -741,13 +886,22 @@ final class DamageLabNodeController extends Component
     if (_bossIntroRemaining > 0) {
       _bossIntroRemaining = math.max(
         0,
-        _bossIntroRemaining - game.clock.simulationDt,
+        _bossIntroRemaining - game.clock.realDt,
       );
       if (_bossIntroRemaining <= 0) {
         _bossBanner?.removeFromParent();
         _bossBanner = null;
         game.setCinematicInputLocked(false);
         _boss?.activate();
+      }
+    }
+    if (_bossRewardDiscoveryRemaining > 0) {
+      _bossRewardDiscoveryRemaining = math.max(
+        0,
+        _bossRewardDiscoveryRemaining - game.clock.realDt,
+      );
+      if (_bossRewardDiscoveryRemaining <= 0) {
+        unawaited(_spawnExitTerminal());
       }
     }
     super.update(dt);

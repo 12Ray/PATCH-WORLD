@@ -6,6 +6,32 @@ enum CampaignBossAttackVisualPhase { idle, telegraph, active, recovery }
 
 enum CampaignBossAttackCycleEvent { execute, activeEnded, recovered }
 
+/// Shared health-gate and transition contract for the connected-campaign
+/// chapter bosses.
+///
+/// Damage is clamped at the current phase's floor. Crossing that floor can
+/// only advance one phase, and only after an attack has completed in the
+/// current phase. The final floor deliberately leaves one health point so the
+/// boss cannot enter a defeated health condition before phase three has
+/// demonstrated its attack pattern.
+abstract final class CampaignBossPhaseGateSpec {
+  static const int maxHealth = 20;
+  static const List<int> healthFloors = <int>[13, 6, 1];
+  static const double transitionQuietSeconds = .75;
+
+  static int healthFloorForPhaseIndex(int phaseIndex) {
+    if (phaseIndex < 0 || phaseIndex >= healthFloors.length) {
+      throw RangeError.range(
+        phaseIndex,
+        0,
+        healthFloors.length - 1,
+        'phaseIndex',
+      );
+    }
+    return healthFloors[phaseIndex];
+  }
+}
+
 /// Art v3 enemy strips reserve frame 4 for telegraph, 5 for the damaging pose,
 /// and 6-7 for follow-through/recovery. Idle returns -1 so the runtime can use
 /// its health-phase locomotion frame.

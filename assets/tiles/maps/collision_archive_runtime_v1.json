@@ -64,6 +64,18 @@
         {"id": "compression.phase-mimic", "archetype": "phaseMimic", "position": [1110, 559]},
         {"id": "compression.shard-lobber", "archetype": "shardLobber", "position": [1580, 504]}
       ],
+      "encounter": {
+        "triggerZone": [360, 0, 1200, 1080],
+        "waves": [
+          {"enemyIds": ["compression.vector-ram", "compression.polarity-drone"]},
+          {"enemyIds": ["compression.phase-mimic", "compression.shard-lobber"]}
+        ],
+        "intermissionSeconds": 1.0,
+        "sealSeconds": 0.35,
+        "clearBeatSeconds": 0.95,
+        "maxActiveEnemies": 2,
+        "combatCamera": {"zone": [120, 0, 1680, 1080], "zoom": 0.96}
+      },
       "features": [
         {
           "id": "compression.mover.left",
@@ -181,6 +193,18 @@
         {"id": "fracture.shard-lobber", "archetype": "shardLobber", "position": [1160, 484]},
         {"id": "fracture.polarity-drone", "archetype": "polarityDrone", "position": [1640, 259]}
       ],
+      "encounter": {
+        "triggerZone": [360, 0, 1200, 1080],
+        "waves": [
+          {"enemyIds": ["fracture.phase-mimic", "fracture.vector-ram"]},
+          {"enemyIds": ["fracture.shard-lobber", "fracture.polarity-drone"]}
+        ],
+        "intermissionSeconds": 1.1,
+        "sealSeconds": 0.4,
+        "clearBeatSeconds": 1.05,
+        "maxActiveEnemies": 2,
+        "combatCamera": {"zone": [120, 0, 1680, 1080], "zoom": 0.97}
+      },
       "features": [
         {
           "id": "fracture.platform.breakable-fragment",
@@ -293,6 +317,18 @@
         {"id": "merge.vector-ram", "archetype": "vectorRam", "position": [1180, 559]},
         {"id": "merge.phase-mimic", "archetype": "phaseMimic", "position": [1660, 259]}
       ],
+      "encounter": {
+        "triggerZone": [360, 0, 1200, 1080],
+        "waves": [
+          {"enemyIds": ["merge.shard-lobber", "merge.polarity-drone"]},
+          {"enemyIds": ["merge.vector-ram", "merge.phase-mimic"]}
+        ],
+        "intermissionSeconds": 1.2,
+        "sealSeconds": 0.45,
+        "clearBeatSeconds": 1.15,
+        "maxActiveEnemies": 2,
+        "combatCamera": {"zone": [120, 0, 1680, 1080], "zoom": 0.98}
+      },
       "features": [
         {
           "id": "merge.platform.fusion-bridge",
@@ -375,6 +411,7 @@
         {"id": "collisionArchive.boss.arena-floor", "fromSurfaceId": "chimera.arena.floor", "toSurfaceId": "chimera.arena.floor"}
       ],
       "enemies": [],
+      "encounter": null,
       "features": [
         {
           "id": "chimera.seal.west",

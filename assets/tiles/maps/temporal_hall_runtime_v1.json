@@ -67,6 +67,18 @@
         {"id": "ascent.delay-sniper", "archetype": "delaySniper", "position": [1160, 479]},
         {"id": "ascent.rewind-skater", "archetype": "rewindSkater", "position": [1680, 254]}
       ],
+      "encounter": {
+        "triggerZone": [360, 0, 1200, 1080],
+        "waves": [
+          {"enemyIds": ["ascent.tick-runner", "ascent.echo-bat"]},
+          {"enemyIds": ["ascent.delay-sniper", "ascent.rewind-skater"]}
+        ],
+        "intermissionSeconds": 1.0,
+        "sealSeconds": 0.35,
+        "clearBeatSeconds": 0.95,
+        "maxActiveEnemies": 2,
+        "combatCamera": {"zone": [120, 0, 1680, 1080], "zoom": 0.96}
+      },
       "features": [
         {
           "id": "ascent.moving-platform",
@@ -160,6 +172,18 @@
         {"id": "fracture.echo-bat", "archetype": "echoBat", "position": [1080, 500]},
         {"id": "fracture.rewind-skater", "archetype": "rewindSkater", "position": [1580, 379]}
       ],
+      "encounter": {
+        "triggerZone": [360, 0, 1200, 1080],
+        "waves": [
+          {"enemyIds": ["fracture.delay-sniper", "fracture.tick-runner"]},
+          {"enemyIds": ["fracture.echo-bat", "fracture.rewind-skater"]}
+        ],
+        "intermissionSeconds": 1.1,
+        "sealSeconds": 0.4,
+        "clearBeatSeconds": 1.05,
+        "maxActiveEnemies": 2,
+        "combatCamera": {"zone": [120, 0, 1680, 1080], "zoom": 0.97}
+      },
       "features": [
         {
           "id": "fracture.breakable-platform",
@@ -259,6 +283,18 @@
         {"id": "pendulum.tick-runner", "archetype": "tickRunner", "position": [1160, 429]},
         {"id": "pendulum.delay-sniper", "archetype": "delaySniper", "position": [1600, 279]}
       ],
+      "encounter": {
+        "triggerZone": [360, 0, 1200, 1080],
+        "waves": [
+          {"enemyIds": ["pendulum.rewind-skater", "pendulum.echo-bat"]},
+          {"enemyIds": ["pendulum.tick-runner", "pendulum.delay-sniper"]}
+        ],
+        "intermissionSeconds": 1.2,
+        "sealSeconds": 0.45,
+        "clearBeatSeconds": 1.15,
+        "maxActiveEnemies": 2,
+        "combatCamera": {"zone": [120, 0, 1680, 1080], "zoom": 0.98}
+      },
       "features": [
         {
           "id": "pendulum.rewind-platform",
@@ -332,6 +368,7 @@
         {"id": "temporal.jailer.floor", "fromSurfaceId": "jailer.floor", "toSurfaceId": "jailer.floor", "requiredForCompletion": true, "requirement": "universal"}
       ],
       "enemies": [],
+      "encounter": null,
       "features": [
         {"id": "jailer.seal.west", "kind": "bossSeal", "position": [96, 172], "size": [18, 312]},
         {"id": "jailer.seal.east", "kind": "bossSeal", "position": [846, 172], "size": [18, 312]}

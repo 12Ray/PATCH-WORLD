@@ -48,9 +48,17 @@ void main() {
 
     expect(game.world.activeRoom, isA<DamageLabNodeController>());
     expect(game.campaignExploration.currentNode, CampaignNodeId.damageWorkshop);
-    final returnDoor = game.world.activeRoom!.children
+    final damageDoors = game.world.activeRoom!.children
         .whereType<CampaignDoorComponent>()
-        .single;
+        .toList(growable: false);
+    final returnDoor = damageDoors.singleWhere(
+      (door) => door.labelLocalizationKey == 'interaction.returnBootSector',
+    );
+    final forwardDoor = damageDoors.singleWhere(
+      (door) => door.labelLocalizationKey == 'interaction.nextRoom',
+    );
+    expect(returnDoor.isUnlocked, isTrue);
+    expect(forwardDoor.isUnlocked, isFalse);
     game.world.player.position.setValues(
       returnDoor.position.x,
       returnDoor.position.y - 36,

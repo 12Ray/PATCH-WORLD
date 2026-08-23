@@ -167,6 +167,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   String? get activeActionId => _action?.id;
   bool get dealsContactDamage => false;
   bool get isDormant => _dormant;
+  bool get isActiveThreat => !_dormant && !_resolved && !isRemoving;
 
   @visibleForTesting
   void debugExecutePatternSlot(EnemyActionSlot slot) {
@@ -207,6 +208,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    if (_dormant) scale.setAll(0);
     _homePosition = position.clone();
     unawaited(_loadSpriteVisual());
     await add(
@@ -347,7 +349,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     if (_dormant) {
       _combatState = EnemyCombatState.idle;
       _syncSpriteVisual();
-      scale.setAll(1);
+      scale.setAll(0);
       super.update(dt);
       return;
     }
@@ -1220,7 +1222,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     for (final target in game.world.activeCombatTargets) {
       if (target is! PlatformerEnemyComponent ||
           identical(target, this) ||
-          target._resolved) {
+          !target.isActiveThreat) {
         continue;
       }
       final distance = position.distanceToSquared(target.position);

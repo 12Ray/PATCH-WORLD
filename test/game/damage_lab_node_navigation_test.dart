@@ -331,10 +331,30 @@ void main() {
     );
 
     final room = game.world.activeRoom! as DamageLabNodeController;
-    final doorKeys = room.children.whereType<CampaignDoorComponent>().map(
-      (door) => door.labelLocalizationKey,
+    final doors = room.children.whereType<CampaignDoorComponent>().toList(
+      growable: false,
     );
-    expect(doorKeys, <String>['interaction.returnBootSector']);
+    expect(doors.map((door) => door.labelLocalizationKey), <String>[
+      'interaction.returnBootSector',
+      'interaction.nextRoom',
+    ]);
+    expect(
+      doors
+          .singleWhere(
+            (door) =>
+                door.labelLocalizationKey == 'interaction.returnBootSector',
+          )
+          .isUnlocked,
+      isTrue,
+    );
+    final lockedForwardDoor = doors.singleWhere(
+      (door) => door.labelLocalizationKey == 'interaction.nextRoom',
+    );
+    expect(lockedForwardDoor.isUnlocked, isFalse);
+    expect(
+      lockedForwardDoor.currentLabelLocalizationKey,
+      'interaction.clearThreats',
+    );
     expect(
       game.travelToCampaignNode(
         CampaignNodeId.damageAssembly,

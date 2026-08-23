@@ -56,7 +56,11 @@ final class CampaignChapterBossComponent extends PositionComponent
     required this.kind,
     required this.onDefeated,
     this.onPhaseChanged,
-  }) : healthState = HealthState(max: 20, current: 20, overflowMargin: 0),
+  }) : healthState = HealthState(
+         max: CampaignBossPhaseGateSpec.maxHealth,
+         current: CampaignBossPhaseGateSpec.maxHealth,
+         overflowMargin: 0,
+       ),
        super(size: Vector2(78, 90), anchor: Anchor.center, priority: 17);
 
   final CampaignChapterBossKind kind;
@@ -72,6 +76,7 @@ final class CampaignChapterBossComponent extends PositionComponent
   final CampaignBossAttackCycle _attackCycle = CampaignBossAttackCycle();
   double _clock = 0;
   double _attackCooldown = .9;
+  double _phaseTransitionRemaining = 0;
   double _defeatRemaining = 0;
   final List<String> _recentAttacks = <String>[];
   final Set<Component> _spawnedHazards = <Component>{};
@@ -79,7 +84,10 @@ final class CampaignChapterBossComponent extends PositionComponent
   Vector2? _recordedAttackTarget;
   Vector2? _splitEchoWorld;
   double? _activeDamageWindowCap;
+  int _hazardEpoch = 0;
   int _decisionCursor = 0;
+  bool _completedAttackInCurrentPhase = false;
+  bool _phaseThresholdReached = false;
   bool _resolved = false;
   bool _defeatDispatched = false;
 
@@ -91,6 +99,10 @@ final class CampaignChapterBossComponent extends PositionComponent
   CampaignBossAttackVisualPhase get attackVisualPhase => _attackCycle.phase;
   String? get visualAttackId => _attackCycle.attack?.id;
   double get attackVisualSecondsRemaining => _attackCycle.remaining;
+  bool get hasCompletedAttackInCurrentPhase => _completedAttackInCurrentPhase;
+  bool get isPhaseTransitioning => _phaseTransitionRemaining > 0;
+  double get phaseTransitionSecondsRemaining => _phaseTransitionRemaining;
+  int get spawnedHazardCount => _spawnedHazards.length;
   String get patternFingerprint => _patternSet.fingerprint;
   int get diagnosticVisualFrameIndex => _resolveVisualFrameIndex();
   bool get isActive => switch (phase) {
@@ -178,43 +190,49 @@ final class CampaignChapterBossComponent extends PositionComponent
     if (phase != CampaignChapterBossPhase.intro) return;
     phase = CampaignChapterBossPhase.phaseOne;
     _attackCooldown = .6;
+    _completedAttackInCurrentPhase = false;
+    _phaseThresholdReached = false;
+    _phaseTransitionRemaining = 0;
     onPhaseChanged?.call(phase);
     game.publishUiSnapshot(force: true);
   }
 
   @override
   void receiveDamage(int amount) {
-    if (!isActive || amount <= 0) return;
-    final previousPhase = phase;
-    final mutation = healthState.applyDamage(amount);
-    if (mutation == HealthMutation.defeated) {
-      _beginDefeat();
-      return;
-    }
-    phase = switch (healthState.current) {
-      <= 6 => CampaignChapterBossPhase.phaseThree,
-      <= 13 => CampaignChapterBossPhase.phaseTwo,
-      _ => CampaignChapterBossPhase.phaseOne,
-    };
-    if (phase != previousPhase) {
-      _attackCooldown = .25;
-      scale.setAll(1.12);
-      onPhaseChanged?.call(phase);
-      game.triggerImpactFeedback();
-      game.publishUiSnapshot(force: true);
-    }
+    if (!isActive || amount <= 0 || isPhaseTransitioning) return;
+    final healthFloor = CampaignBossPhaseGateSpec.healthFloorForPhaseIndex(
+      _activePhaseIndex,
+    );
+    final acceptedDamage = math.min(
+      amount,
+      math.max(0, healthState.current - healthFloor),
+    );
+    if (acceptedDamage > 0) healthState.applyDamage(acceptedDamage);
+    if (healthState.current > healthFloor) return;
+    _phaseThresholdReached = true;
+    _tryAdvancePhaseGate();
   }
 
   @override
   void receiveHealing(int amount) {
-    if (!isActive || amount <= 0) return;
+    if (!isActive || amount <= 0 || isPhaseTransitioning) return;
     healthState.applyHealing(amount);
+    final healthFloor = CampaignBossPhaseGateSpec.healthFloorForPhaseIndex(
+      _activePhaseIndex,
+    );
+    if (healthState.current > healthFloor) _phaseThresholdReached = false;
   }
 
   void _beginDefeat() {
     if (_resolved) return;
     _resolved = true;
+    if (!healthState.isDefeated) {
+      healthState.applyDamage(healthState.current);
+    }
     phase = CampaignChapterBossPhase.defeated;
+    _phaseTransitionRemaining = 0;
+    _completedAttackInCurrentPhase = false;
+    _phaseThresholdReached = false;
     onPhaseChanged?.call(phase);
     _attackCycle.reset();
     _recordedAttackOrigin = null;
@@ -222,6 +240,45 @@ final class CampaignChapterBossComponent extends PositionComponent
     _splitEchoWorld = null;
     _removeSpawnedHazards();
     _defeatRemaining = 1.1;
+    game.triggerImpactFeedback();
+    game.publishUiSnapshot(force: true);
+  }
+
+  int get _activePhaseIndex => switch (phase) {
+    CampaignChapterBossPhase.phaseOne => 0,
+    CampaignChapterBossPhase.phaseTwo => 1,
+    CampaignChapterBossPhase.phaseThree => 2,
+    _ => throw StateError('$phase is not an active boss phase.'),
+  };
+
+  void _tryAdvancePhaseGate() {
+    if (!_phaseThresholdReached || !_completedAttackInCurrentPhase) return;
+    switch (phase) {
+      case CampaignChapterBossPhase.phaseOne:
+        _beginPhaseTransition(CampaignChapterBossPhase.phaseTwo);
+      case CampaignChapterBossPhase.phaseTwo:
+        _beginPhaseTransition(CampaignChapterBossPhase.phaseThree);
+      case CampaignChapterBossPhase.phaseThree:
+        _beginDefeat();
+      case CampaignChapterBossPhase.dormant ||
+          CampaignChapterBossPhase.intro ||
+          CampaignChapterBossPhase.defeated:
+        return;
+    }
+  }
+
+  void _beginPhaseTransition(CampaignChapterBossPhase nextPhase) {
+    phase = nextPhase;
+    _phaseTransitionRemaining =
+        CampaignBossPhaseGateSpec.transitionQuietSeconds;
+    _completedAttackInCurrentPhase = false;
+    _phaseThresholdReached = false;
+    _attackCooldown = 0;
+    _attackCycle.reset();
+    _clearAttackDiagnostics();
+    _removeSpawnedHazards();
+    scale.setAll(1.12);
+    onPhaseChanged?.call(phase);
     game.triggerImpactFeedback();
     game.publishUiSnapshot(force: true);
   }
@@ -249,6 +306,25 @@ final class CampaignChapterBossComponent extends PositionComponent
       return;
     }
     if (!isActive) {
+      _syncVisual();
+      super.update(dt);
+      return;
+    }
+    if (_phaseTransitionRemaining > 0) {
+      final sampledTransitionDt = isMounted ? game.clock.realDt : dt;
+      final transitionDt =
+          sampledTransitionDt > 0 && sampledTransitionDt.isFinite
+          ? sampledTransitionDt
+          : 0.0;
+      _phaseTransitionRemaining = math.max(
+        0,
+        _phaseTransitionRemaining - transitionDt,
+      );
+      final transitionProgress =
+          _phaseTransitionRemaining /
+          CampaignBossPhaseGateSpec.transitionQuietSeconds;
+      scale.setAll(1 + transitionProgress * .12);
+      if (_phaseTransitionRemaining <= 0) scale.setAll(1);
       _syncVisual();
       super.update(dt);
       return;
@@ -282,10 +358,14 @@ final class CampaignChapterBossComponent extends PositionComponent
               _finishAttackMotion(advancingAttack.id);
             case CampaignBossAttackCycleEvent.recovered:
               _clearAttackDiagnostics();
+              _completedAttackInCurrentPhase = true;
+              _tryAdvancePhaseGate();
           }
         }
       }
-      if (_attackCycle.isIdle && _attackCooldown <= 0) {
+      if (!isPhaseTransitioning &&
+          _attackCycle.isIdle &&
+          _attackCooldown <= 0) {
         _telegraph(_chooseAttack());
       }
     }
@@ -698,9 +778,14 @@ final class CampaignChapterBossComponent extends PositionComponent
   }
 
   Future<void> _addToOwner(Component owner, Component child) async {
+    final spawnEpoch = _hazardEpoch;
     if (_resolved || isRemoving || parent != owner || owner.isRemoving) return;
     await owner.add(child);
-    if ((_resolved || isRemoving || parent != owner || owner.isRemoving) &&
+    if ((_resolved ||
+            isRemoving ||
+            parent != owner ||
+            owner.isRemoving ||
+            spawnEpoch != _hazardEpoch) &&
         child.parent == owner) {
       child.removeFromParent();
       return;
@@ -710,6 +795,7 @@ final class CampaignChapterBossComponent extends PositionComponent
   }
 
   void _removeSpawnedHazards() {
+    _hazardEpoch += 1;
     for (final hazard in _spawnedHazards.toList(growable: false)) {
       if (!hazard.isRemoving) hazard.removeFromParent();
     }

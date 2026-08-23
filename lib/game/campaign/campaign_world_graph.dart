@@ -18,6 +18,13 @@ abstract interface class CampaignNodeRoom {
   CampaignNodeId get campaignNodeId;
 }
 
+/// Optional scene-local guard for temporary locks such as a sealed encounter.
+/// It is consulted only by direct travel, never by the world-map availability
+/// predicate, so temporary combat state cannot corrupt exploration topology.
+abstract interface class CampaignNodeTravelGuard {
+  bool canLeaveCampaignNode(CampaignNodeId targetNode);
+}
+
 enum CampaignNodeId {
   bootSector,
   damageWorkshop,

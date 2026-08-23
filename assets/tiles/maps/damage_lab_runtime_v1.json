@@ -79,6 +79,18 @@
         {"id": "workshop.patch-mite", "archetype": "patchMite", "position": [760, 474]},
         {"id": "workshop.checksum-hopper", "archetype": "checksumHopper", "position": [1390, 474]}
       ],
+      "encounter": {
+        "triggerZone": [360, 0, 1200, 1080],
+        "waves": [
+          {"enemyIds": ["workshop.patch-mite"]},
+          {"enemyIds": ["workshop.checksum-hopper"]}
+        ],
+        "intermissionSeconds": 0.75,
+        "sealSeconds": 0.3,
+        "clearBeatSeconds": 0.85,
+        "maxActiveEnemies": 1,
+        "combatCamera": {"zone": [120, 0, 1680, 1080], "zoom": 0.98}
+      },
       "features": [],
       "secretDoors": []
     },
@@ -145,6 +157,18 @@
         {"id": "assembly.checksum-hopper", "archetype": "checksumHopper", "position": [800, 379]},
         {"id": "assembly.repair-leech", "archetype": "repairLeech", "position": [1500, 529]}
       ],
+      "encounter": {
+        "triggerZone": [360, 0, 1200, 1080],
+        "waves": [
+          {"enemyIds": ["assembly.patch-mite", "assembly.pulse-turret"]},
+          {"enemyIds": ["assembly.checksum-hopper", "assembly.repair-leech"]}
+        ],
+        "intermissionSeconds": 1.0,
+        "sealSeconds": 0.35,
+        "clearBeatSeconds": 1.0,
+        "maxActiveEnemies": 2,
+        "combatCamera": {"zone": [120, 0, 1680, 1080], "zoom": 0.97}
+      },
       "features": [
         {"id": "assembly.jump-pad.west", "kind": "jumpPad", "position": [490, 553]},
         {"id": "assembly.jump-pad.east", "kind": "jumpPad", "position": [1375, 553]}
@@ -220,6 +244,18 @@
         {"id": "overflow.checksum-hopper", "archetype": "checksumHopper", "position": [1200, 614]},
         {"id": "overflow.patch-mite", "archetype": "patchMite", "position": [1500, 614]}
       ],
+      "encounter": {
+        "triggerZone": [360, 0, 1200, 1080],
+        "waves": [
+          {"enemyIds": ["overflow.pulse-turret", "overflow.repair-leech"]},
+          {"enemyIds": ["overflow.checksum-hopper", "overflow.patch-mite"]}
+        ],
+        "intermissionSeconds": 1.1,
+        "sealSeconds": 0.4,
+        "clearBeatSeconds": 1.15,
+        "maxActiveEnemies": 2,
+        "combatCamera": {"zone": [120, 0, 1680, 1080], "zoom": 0.98}
+      },
       "features": [
         {"id": "overflow.laser.west", "kind": "pulsingLaser", "position": [860, 390], "size": [12, 260], "sourceId": "hazard.damage-lab.overflow.laser-west", "phaseOffset": 0},
         {"id": "overflow.laser.center", "kind": "pulsingLaser", "position": [1040, 390], "size": [12, 260], "sourceId": "hazard.damage-lab.overflow.laser-center", "phaseOffset": 0.8},
@@ -264,6 +300,7 @@
         {"id": "damage.warden.arena-floor", "fromSurfaceId": "warden.arena.floor", "toSurfaceId": "warden.arena.floor"}
       ],
       "enemies": [],
+      "encounter": null,
       "features": [
         {"id": "warden.seal.west", "kind": "bossSeal", "position": [96, 172], "size": [18, 312]},
         {"id": "warden.seal.east", "kind": "bossSeal", "position": [846, 172], "size": [18, 312]}

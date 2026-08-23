@@ -1509,6 +1509,13 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     syncCampaignExploration();
     final currentNode = campaignExploration.currentNode;
     if (currentNode == null || currentNode == targetNode) return false;
+    final activeRoom = world.activeRoom;
+    if (activeRoom is CampaignNodeTravelGuard &&
+        !(activeRoom as CampaignNodeTravelGuard).canLeaveCampaignNode(
+          targetNode,
+        )) {
+      return false;
+    }
     CampaignWorldConnection connection;
     try {
       connection = campaignWorld.connectionBetween(currentNode, targetNode);

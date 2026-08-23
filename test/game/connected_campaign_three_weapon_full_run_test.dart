@@ -6,8 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
 import 'package:patch_world/game/builds/weapon_build_state.dart';
+import 'package:patch_world/game/campaign/campaign_encounter_director.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
+import 'package:patch_world/game/components/boss/campaign_chapter_boss_component.dart';
+import 'package:patch_world/game/components/boss/overflow_warden_boss_component.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
 import 'package:patch_world/game/components/environment/qa_record_terminal_component.dart';
@@ -289,11 +292,10 @@ Future<void> _clearEncounter(
       : 2;
   expect(enemies, hasLength(expectedEnemyCount));
   encountered.addAll(enemies.map((enemy) => enemy.archetype));
-  for (final enemy in enemies) {
-    enemy.receiveDamage(99);
-  }
-  await _pumpFrames(tester, 2, const Duration(milliseconds: 16));
+  expect(enemies.every((enemy) => !enemy.isActiveThreat), isTrue);
+
   if (activeRoom is DamageLabNodeController) {
+    await _clearDamageEncounterWaves(tester, game, activeRoom);
     final request = game.pendingWeaponBuildSelection;
     expect(request, isNotNull);
     expect(request!.encounterId, activeRoom.encounterId);
@@ -303,9 +305,109 @@ Future<void> _clearEncounter(
       isTrue,
     );
   } else if (activeRoom is RegionalCampaignNodeController) {
+    await _clearRegionalEncounterWaves(tester, game, activeRoom);
     await _completeRegionalRoomObjective(tester, game, activeRoom);
+    expect(activeRoom.encounterPhase, CampaignEncounterPhase.clearBeat);
+    expect(activeRoom.roomExitUnlocked, isFalse);
+    await _pumpRealSeconds(
+      tester,
+      activeRoom.layout.encounter!.clearBeatSeconds + .1,
+    );
+    expect(activeRoom.encounterPhase, CampaignEncounterPhase.cleared);
+    expect(activeRoom.roomExitUnlocked, isTrue);
   }
   await _pumpFrames(tester, 3, const Duration(milliseconds: 16));
+}
+
+Future<void> _clearDamageEncounterWaves(
+  WidgetTester tester,
+  PatchWorldGame game,
+  DamageLabNodeController room,
+) async {
+  final encounter = room.layout.encounter!;
+  await _triggerEncounter(tester, game, encounter.triggerZone.center);
+  await _pumpRealSeconds(tester, encounter.sealSeconds + .1);
+  expect(room.encounterPhase, CampaignEncounterPhase.wave);
+
+  for (var wave = 0; wave < encounter.waves.length; wave += 1) {
+    final authoredWave = room.entry == CampaignNodeEntry.east
+        ? encounter.waves.length - 1 - wave
+        : wave;
+    final expectedIds = encounter.waves[authoredWave].enemyIds.toSet();
+    final expectedArchetypes = room.layout.enemies
+        .where((enemy) => expectedIds.contains(enemy.id))
+        .map((enemy) => enemy.archetype);
+    final activeEnemies = room.activeEncounterEnemies;
+    expect(activeEnemies, hasLength(expectedIds.length));
+    expect(
+      activeEnemies.map((enemy) => enemy.archetype),
+      unorderedEquals(expectedArchetypes),
+      reason: '${room.nodeId.name}/${room.entry.name} wave $wave',
+    );
+    expect(activeEnemies.every((enemy) => enemy.isActiveThreat), isTrue);
+    for (final enemy in activeEnemies) {
+      enemy.receiveDamage(99);
+    }
+    await tester.pump(const Duration(milliseconds: 16));
+    if (wave < encounter.waves.length - 1) {
+      expect(room.encounterPhase, CampaignEncounterPhase.intermission);
+      await _pumpRealSeconds(tester, encounter.intermissionSeconds + .1);
+      expect(room.encounterPhase, CampaignEncounterPhase.wave);
+    }
+  }
+
+  expect(room.encounterPhase, CampaignEncounterPhase.clearBeat);
+  expect(game.pendingWeaponBuildSelection, isNull);
+  await _pumpRealSeconds(tester, encounter.clearBeatSeconds + .1);
+  expect(room.encounterPhase, CampaignEncounterPhase.cleared);
+}
+
+Future<void> _clearRegionalEncounterWaves(
+  WidgetTester tester,
+  PatchWorldGame game,
+  RegionalCampaignNodeController room,
+) async {
+  final encounter = room.layout.encounter!;
+  await _triggerEncounter(tester, game, encounter.triggerZone.center);
+  await _pumpRealSeconds(tester, encounter.sealSeconds + .1);
+  expect(room.encounterPhase, CampaignEncounterPhase.wave);
+
+  for (var wave = 0; wave < encounter.waves.length; wave += 1) {
+    final authoredWave = room.entry == CampaignNodeEntry.east
+        ? encounter.waves.length - 1 - wave
+        : wave;
+    final expectedIds = encounter.waves[authoredWave].enemyIds.toSet();
+    final expectedArchetypes = room.layout.enemies
+        .where((enemy) => expectedIds.contains(enemy.id))
+        .map((enemy) => enemy.archetype);
+    final activeEnemies = room.activeEncounterEnemies;
+    expect(activeEnemies, hasLength(expectedIds.length));
+    expect(
+      activeEnemies.map((enemy) => enemy.archetype),
+      unorderedEquals(expectedArchetypes),
+      reason: '${room.nodeId.name}/${room.entry.name} wave $wave',
+    );
+    expect(activeEnemies.every((enemy) => enemy.isActiveThreat), isTrue);
+    for (final enemy in activeEnemies) {
+      enemy.receiveDamage(99);
+    }
+    await tester.pump(const Duration(milliseconds: 16));
+    if (wave < encounter.waves.length - 1) {
+      expect(room.encounterPhase, CampaignEncounterPhase.intermission);
+      await _pumpRealSeconds(tester, encounter.intermissionSeconds + .1);
+      expect(room.encounterPhase, CampaignEncounterPhase.wave);
+    }
+  }
+  expect(room.encounterPhase, CampaignEncounterPhase.objectiveHold);
+}
+
+Future<void> _triggerEncounter(
+  WidgetTester tester,
+  PatchWorldGame game,
+  Offset triggerCenter,
+) async {
+  game.world.player.position.setValues(triggerCenter.dx, triggerCenter.dy);
+  await tester.pump(const Duration(milliseconds: 16));
 }
 
 Future<void> _completeRegionalRoomObjective(
@@ -330,16 +432,71 @@ Future<void> _completeRegionalRoomObjective(
     );
   }
   expect(room.roomObjectiveComplete, isTrue);
-  expect(room.roomExitUnlocked, isTrue);
 }
 
 Future<void> _defeatDamageBoss(WidgetTester tester, PatchWorldGame game) async {
   await _pumpFrames(tester, 90, const Duration(milliseconds: 100));
   final room = game.world.activeRoom! as DamageLabNodeController;
   expect(room.boss, isNotNull);
-  room.boss!.receiveHealing(99);
-  await _pumpFrames(tester, 30, const Duration(milliseconds: 100));
+  final boss = room.boss!;
+  expect(boss.phase, OverflowWardenPhase.shielded);
+  for (final nextPhase in <OverflowWardenPhase>[
+    OverflowWardenPhase.breached,
+    OverflowWardenPhase.critical,
+    OverflowWardenPhase.overflowing,
+  ]) {
+    await _waitForDamageBossAttackGate(tester, game, boss);
+    boss.receiveHealing(99);
+    expect(boss.phase, nextPhase);
+  }
+  await _waitForDamageBossDefeat(tester, game, boss);
   expect(game.damageLabProgress.bossDefeated, isTrue);
+}
+
+Future<void> _waitForDamageBossAttackGate(
+  WidgetTester tester,
+  PatchWorldGame game,
+  OverflowWardenBossComponent boss,
+) async {
+  game.resumeEngine();
+  game.input.setVirtualMovement(.01, 0);
+  try {
+    for (var frame = 0; frame < 240; frame += 1) {
+      if (!boss.isPhaseTransitioning && boss.hasCompletedAttackInCurrentPhase) {
+        return;
+      }
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+  } finally {
+    game.input.clearVirtualMovement();
+  }
+  throw StateError(
+    'Timed out waiting for ${boss.phase.name} attack completion; '
+    'attack=${boss.activeAttackId}, actionPhase=${boss.attackPhase?.name}, '
+    'transition=${boss.phaseTransitionSecondsRemaining}, '
+    'enemyDt=${game.clock.enemyDt}.',
+  );
+}
+
+Future<void> _waitForDamageBossDefeat(
+  WidgetTester tester,
+  PatchWorldGame game,
+  OverflowWardenBossComponent boss,
+) async {
+  game.resumeEngine();
+  game.input.setVirtualMovement(.01, 0);
+  try {
+    for (var frame = 0; frame < 240; frame += 1) {
+      if (game.damageLabProgress.bossDefeated) return;
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+  } finally {
+    game.input.clearVirtualMovement();
+  }
+  throw StateError(
+    'Timed out waiting for Overflow Warden defeat presentation; '
+    'phase=${boss.phase.name}, enemyDt=${game.clock.enemyDt}.',
+  );
 }
 
 Future<void> _collectSubQuestRecord(
@@ -376,9 +533,43 @@ Future<void> _defeatRegionalBoss(
   await _pumpFrames(tester, 90, const Duration(milliseconds: 100));
   final room = game.world.activeRoom! as RegionalCampaignNodeController;
   expect(room.boss, isNotNull);
-  room.boss!.receiveDamage(99);
+  final boss = room.boss!;
+  for (final nextPhase in <CampaignChapterBossPhase>[
+    CampaignChapterBossPhase.phaseTwo,
+    CampaignChapterBossPhase.phaseThree,
+    CampaignChapterBossPhase.defeated,
+  ]) {
+    await _waitForRegionalBossAttackGate(tester, game, boss);
+    boss.receiveDamage(99);
+    expect(boss.phase, nextPhase);
+  }
   await _pumpFrames(tester, 20, const Duration(milliseconds: 100));
   expect(room.isCompleted, isTrue);
+}
+
+Future<void> _waitForRegionalBossAttackGate(
+  WidgetTester tester,
+  PatchWorldGame game,
+  CampaignChapterBossComponent boss,
+) async {
+  game.resumeEngine();
+  game.input.setVirtualMovement(.01, 0);
+  try {
+    for (var frame = 0; frame < 180; frame += 1) {
+      if (!boss.isPhaseTransitioning && boss.hasCompletedAttackInCurrentPhase) {
+        return;
+      }
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+  } finally {
+    game.input.clearVirtualMovement();
+  }
+  throw StateError(
+    'Timed out waiting for ${boss.phase.name} attack completion; '
+    'mounted=${boss.isMounted}, visual=${boss.attackVisualPhase.name}, '
+    'remaining=${boss.attackVisualSecondsRemaining}, '
+    'enemyDt=${game.clock.enemyDt}.',
+  );
 }
 
 Future<void> _claimBossRewardAndOpenPatch(
@@ -386,8 +577,30 @@ Future<void> _claimBossRewardAndOpenPatch(
   PatchWorldGame game,
 ) async {
   await tester.pump(const Duration(milliseconds: 16));
+  final room = game.world.activeRoom!;
   game.world.player.position.setValues(700, 478);
   expect(game.world.tryInteract(game.world.player), isTrue);
+  switch (room) {
+    case DamageLabNodeController():
+      expect(room.isBossRewardDiscoveryActive, isTrue);
+      expect(room.hasExitTerminal, isFalse);
+    case RegionalCampaignNodeController():
+      expect(room.isBossRewardDiscoveryActive, isTrue);
+      expect(room.hasExitTerminal, isFalse);
+    default:
+      fail('Boss reward helper mounted in ${room.runtimeType}.');
+  }
+  await _pumpRealSeconds(tester, 2.7);
+  switch (room) {
+    case DamageLabNodeController():
+      expect(room.isBossRewardDiscoveryActive, isFalse);
+      expect(room.hasExitTerminal, isTrue);
+    case RegionalCampaignNodeController():
+      expect(room.isBossRewardDiscoveryActive, isFalse);
+      expect(room.hasExitTerminal, isTrue);
+    default:
+      fail('Boss reward helper mounted in ${room.runtimeType}.');
+  }
   game.world.player.position.setValues(850, 478);
   expect(game.world.tryInteract(game.world.player), isTrue);
   await tester.pump();
@@ -507,5 +720,12 @@ Future<void> _pumpFrames(
 ) async {
   for (var frame = 0; frame < count; frame += 1) {
     await tester.pump(duration);
+  }
+}
+
+Future<void> _pumpRealSeconds(WidgetTester tester, double seconds) async {
+  final frameCount = (seconds / .05).ceil();
+  for (var frame = 0; frame < frameCount; frame += 1) {
+    await tester.pump(const Duration(milliseconds: 50));
   }
 }

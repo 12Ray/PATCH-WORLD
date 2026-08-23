@@ -58,6 +58,113 @@ void main() {
     }
   });
 
+  test('six exploration encounters have exact bounded wave contracts', () {
+    final catalog = loadCatalog();
+    for (final layout in catalog.rooms) {
+      final isBoss = RegionalCampaignRoomLayoutValidator.bossNodes.contains(
+        layout.nodeId,
+      );
+      if (isBoss) {
+        expect(layout.encounter, isNull, reason: layout.nodeId.name);
+        continue;
+      }
+      final encounter = layout.encounter!;
+      expect(encounter.waves.length, greaterThanOrEqualTo(2));
+      expect(encounter.maxActiveEnemies, inInclusiveRange(1, 3));
+      expect(
+        encounter.enemyIds,
+        unorderedEquals(layout.enemies.map((enemy) => enemy.id)),
+        reason: layout.nodeId.name,
+      );
+      expect(layout.westSpawn.x, lessThan(encounter.triggerZone.left));
+      expect(layout.eastSpawn.x, greaterThan(encounter.triggerZone.right));
+      for (final enemy in layout.enemies) {
+        expect(
+          encounter.combatCamera.zone.contains(
+            Offset(enemy.position.x, enemy.position.y),
+          ),
+          isTrue,
+          reason: '${layout.nodeId.name}/${enemy.id}',
+        );
+      }
+    }
+  });
+
+  test('encounter validation rejects caps, bad partitions and boss data', () {
+    final invalidCap = jsonDecode(temporalSource) as Map<String, dynamic>;
+    final ascent = _room(invalidCap, CampaignNodeId.temporalAscent);
+    (ascent['encounter']! as Map<String, dynamic>)['maxActiveEnemies'] = 4;
+    expect(
+      () => loadCatalog(temporal: jsonEncode(invalidCap)),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('maxActiveEnemies must be between 1 and 3'),
+        ),
+      ),
+    );
+
+    final unknownEnemy = jsonDecode(collisionSource) as Map<String, dynamic>;
+    final compression = _room(
+      unknownEnemy,
+      CampaignNodeId.collisionCompression,
+    );
+    final waves =
+        (compression['encounter']! as Map<String, dynamic>)['waves']!
+            as List<dynamic>;
+    final ids =
+        (waves.first! as Map<String, dynamic>)['enemyIds']! as List<dynamic>;
+    ids[0] = 'compression.typo';
+    expect(
+      () => loadCatalog(collision: jsonEncode(unknownEnemy)),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          allOf(contains('unknown enemy'), contains('omits enemies')),
+        ),
+      ),
+    );
+
+    final bossData = jsonDecode(temporalSource) as Map<String, dynamic>;
+    _room(bossData, CampaignNodeId.chronoJailer)['encounter'] = _room(
+      bossData,
+      CampaignNodeId.temporalAscent,
+    )['encounter'];
+    expect(
+      () => loadCatalog(temporal: jsonEncode(bossData)),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('boss room encounter must be null'),
+        ),
+      ),
+    );
+  });
+
+  test('trigger zones must be crossed from either room entrance', () {
+    final decoded = jsonDecode(temporalSource) as Map<String, dynamic>;
+    final ascent = _room(decoded, CampaignNodeId.temporalAscent);
+    (ascent['encounter']! as Map<String, dynamic>)['triggerZone'] = <num>[
+      40,
+      0,
+      1200,
+      1080,
+    ];
+    expect(
+      () => loadCatalog(temporal: jsonEncode(decoded)),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('bidirectional entry'),
+        ),
+      ),
+    );
+  });
+
   test('every mandatory regional route is static and safe for all weapons', () {
     final catalog = loadCatalog();
     for (final layout in catalog.rooms) {
@@ -239,3 +346,10 @@ void main() {
     );
   });
 }
+
+Map<String, dynamic> _room(
+  Map<String, dynamic> source,
+  CampaignNodeId nodeId,
+) => (source['rooms']! as List<dynamic>)
+    .cast<Map<String, dynamic>>()
+    .singleWhere((room) => room['node'] == nodeId.name);

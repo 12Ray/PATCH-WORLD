@@ -57,7 +57,10 @@ void main() {
       expect(room.bossSeals, hasLength(2));
       expect(room.bossSeals.every((seal) => !seal.isUnlocked), isTrue);
       expect(room.isBossIntroActive, isTrue);
-      expect(room.cameraZoomFor(game.world.player.position), greaterThan(1.2));
+      expect(
+        room.cameraZoomFor(game.world.player.position),
+        closeTo(.94, .001),
+      );
       expect(room.children.whereType<BossNameCardComponent>(), isNotEmpty);
       expect(
         room.bossArenaPresentation!.state,
@@ -74,20 +77,29 @@ void main() {
         BossArenaPresentationState.phaseOne,
       );
 
-      boss.receiveHealing(6);
+      await _waitForWardenAttackGate(tester, boss);
+      boss.receiveHealing(99);
       expect(boss.phase, OverflowWardenPhase.breached);
+      expect(boss.health, 18);
+      expect(boss.isPhaseTransitioning, isTrue);
+      boss.receiveHealing(99);
+      expect(boss.health, 18);
       expect(
         room.bossArenaPresentation!.state,
         BossArenaPresentationState.phaseTwo,
       );
-      boss.receiveHealing(3);
+      await _waitForWardenAttackGate(tester, boss);
+      boss.receiveHealing(99);
       expect(boss.phase, OverflowWardenPhase.critical);
+      expect(boss.health, 21);
       expect(
         room.bossArenaPresentation!.state,
         BossArenaPresentationState.phaseThree,
       );
+      await _waitForWardenAttackGate(tester, boss);
       boss.receiveHealing(99);
       expect(boss.phase, OverflowWardenPhase.overflowing);
+      expect(boss.health, boss.maximumOverflowHealth);
       for (var frame = 0; frame < 35; frame += 1) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -105,19 +117,40 @@ void main() {
         ),
         isTrue,
       );
+      expect(room.hasExitTerminal, isFalse);
 
       await tester.pump(const Duration(milliseconds: 16));
       game.world.player.position.setValues(700, 478);
       expect(game.world.tryInteract(game.world.player), isTrue);
       await tester.pump(const Duration(milliseconds: 16));
+      expect(room.isBossRewardDiscoveryActive, isTrue);
+      expect(room.hasExitTerminal, isFalse);
       final discovery = room.children
           .whereType<ItemDiscoveryPresentationComponent>()
           .single;
       expect(discovery.rewardTier, ItemRewardTier.boss);
+      for (var frame = 0; frame < 42; frame += 1) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(room.isBossRewardDiscoveryActive, isFalse);
+      expect(room.hasExitTerminal, isTrue);
 
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+}
+
+Future<void> _waitForWardenAttackGate(
+  WidgetTester tester,
+  OverflowWardenBossComponent boss,
+) async {
+  for (var frame = 0; frame < 240; frame += 1) {
+    if (!boss.isPhaseTransitioning && boss.hasCompletedAttackInCurrentPhase) {
+      return;
+    }
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  throw StateError('Warden did not complete its required phase attack.');
 }
 
 Future<void> _mountGame(WidgetTester tester, PatchWorldGame game) async {

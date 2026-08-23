@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/app/overlay_ids.dart';
+import 'package:patch_world/game/campaign/campaign_encounter_director.dart';
 import 'package:patch_world/game/campaign/campaign_floor_state.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/regional_room_objective.dart';
@@ -136,8 +137,13 @@ void main() {
       final game = PatchWorldGame(initialRoom: RoomId.bootSector);
       await _mountGame(tester, game);
 
+      var roomIndex = 0;
       for (final spec in RegionalRoomObjectiveCatalog.values) {
-        await _loadRegionalNode(tester, game, spec.nodeId);
+        final entry = roomIndex.isOdd
+            ? CampaignNodeEntry.east
+            : CampaignNodeEntry.west;
+        roomIndex += 1;
+        await _loadRegionalNode(tester, game, spec.nodeId, entry: entry);
         var room = game.world.activeRoom! as RegionalCampaignNodeController;
         expect(room.objectiveNodes, hasLength(spec.requiredNodeCount));
         expect(room.roomObjectiveComplete, isFalse);
@@ -169,6 +175,10 @@ void main() {
           await _completeObjective(tester, game, room);
           await _pumpFrames(tester, 2);
           expect(room.roomObjectiveComplete, isTrue);
+          expect(
+            room.children.whereType<BossNameCardComponent>(),
+            hasLength(1),
+          );
           expect(forwardDoor.isUnlocked, isFalse);
           expect(
             forwardDoor.currentLabelLocalizationKey,
@@ -181,22 +191,28 @@ void main() {
         );
         await tester.pump(const Duration(milliseconds: 16));
 
-        final enemies = room.children
-            .whereType<PlatformerEnemyComponent>()
-            .toList(growable: false);
-        expect(enemies, hasLength(4));
-        for (final enemy in enemies) {
-          enemy.receiveDamage(99);
-        }
-        await _pumpFrames(tester, 5);
+        await _defeatEncounterWaves(tester, game, room);
         if (objectiveBeforeCombat) {
+          expect(room.encounterPhase, CampaignEncounterPhase.clearBeat);
+          expect(forwardDoor.isUnlocked, isFalse);
+          await _pumpRealSeconds(
+            tester,
+            room.layout.encounter!.clearBeatSeconds + .1,
+          );
+          expect(room.encounterPhase, CampaignEncounterPhase.cleared);
           expect(forwardDoor.isUnlocked, isTrue);
         } else {
+          expect(room.encounterPhase, CampaignEncounterPhase.objectiveHold);
           expect(forwardDoor.isUnlocked, isFalse);
           expect(
             forwardDoor.currentLabelLocalizationKey,
             'interaction.completeRoomTask',
           );
+          game.world.player.position.setValues(
+            forwardDoor.position.x,
+            forwardDoor.position.y - 36,
+          );
+          await tester.pump(const Duration(milliseconds: 16));
           expect(
             _doorLabel(forwardDoor),
             contains(game.localization.text('interaction.completeRoomTask')),
@@ -243,9 +259,23 @@ void main() {
         await _completeObjective(tester, game, room);
         await _pumpFrames(tester, 2);
         expect(room.roomObjectiveComplete, isTrue);
+        if (!objectiveBeforeCombat) {
+          expect(room.encounterPhase, CampaignEncounterPhase.clearBeat);
+          expect(room.roomExitUnlocked, isFalse);
+          await _pumpRealSeconds(
+            tester,
+            room.layout.encounter!.clearBeatSeconds + .1,
+          );
+          expect(room.encounterPhase, CampaignEncounterPhase.cleared);
+        }
         expect(room.roomExitUnlocked, isTrue);
         expect(forwardDoor.isUnlocked, isTrue);
-        expect(room.children.whereType<BossNameCardComponent>(), hasLength(1));
+        if (!objectiveBeforeCombat) {
+          expect(
+            room.children.whereType<BossNameCardComponent>(),
+            hasLength(1),
+          );
+        }
         if (spec.disabledHazardSourceId case final sourceId?) {
           expect(_hasHazard(room, sourceId), isFalse);
         }
@@ -330,6 +360,53 @@ Future<void> _completeObjective(
   }
 }
 
+Future<void> _defeatEncounterWaves(
+  WidgetTester tester,
+  PatchWorldGame game,
+  RegionalCampaignNodeController room,
+) async {
+  final encounter = room.layout.encounter!;
+  final enemies = room.children.whereType<PlatformerEnemyComponent>().toList(
+    growable: false,
+  );
+  expect(enemies, hasLength(4));
+  expect(enemies.every((enemy) => !enemy.isActiveThreat), isTrue);
+
+  game.world.player.position.setValues(
+    encounter.triggerZone.center.dx,
+    encounter.triggerZone.center.dy,
+  );
+  await _pumpRealSeconds(tester, encounter.sealSeconds + .1);
+  expect(room.encounterPhase, CampaignEncounterPhase.wave);
+
+  for (var wave = 0; wave < encounter.waves.length; wave += 1) {
+    final authoredWave = room.entry == CampaignNodeEntry.east
+        ? encounter.waves.length - 1 - wave
+        : wave;
+    final expectedIds = encounter.waves[authoredWave].enemyIds.toSet();
+    final expectedArchetypes = room.layout.enemies
+        .where((enemy) => expectedIds.contains(enemy.id))
+        .map((enemy) => enemy.archetype);
+    final activeEnemies = room.activeEncounterEnemies;
+    expect(activeEnemies, hasLength(expectedIds.length));
+    expect(
+      activeEnemies.map((enemy) => enemy.archetype),
+      unorderedEquals(expectedArchetypes),
+      reason: '${room.nodeId.name}/${room.entry.name} wave $wave',
+    );
+    expect(activeEnemies.every((enemy) => enemy.isActiveThreat), isTrue);
+    for (final enemy in activeEnemies) {
+      enemy.receiveDamage(99);
+    }
+    await tester.pump(const Duration(milliseconds: 16));
+    if (wave < encounter.waves.length - 1) {
+      expect(room.encounterPhase, CampaignEncounterPhase.intermission);
+      await _pumpRealSeconds(tester, encounter.intermissionSeconds + .1);
+      expect(room.encounterPhase, CampaignEncounterPhase.wave);
+    }
+  }
+}
+
 Future<void> _verifyWrongOrderedActivation(
   WidgetTester tester,
   PatchWorldGame game,
@@ -402,14 +479,15 @@ Future<void> _pumpUntil(WidgetTester tester, bool Function() condition) async {
 Future<void> _loadRegionalNode(
   WidgetTester tester,
   PatchWorldGame game,
-  CampaignNodeId nodeId,
-) async {
+  CampaignNodeId nodeId, {
+  CampaignNodeEntry entry = CampaignNodeEntry.west,
+}) async {
   game.currentRoom = switch (game.campaignWorld.nodes[nodeId]!.region) {
     CampaignRegion.temporalHall => RoomId.temporalHall,
     CampaignRegion.collisionArchive => RoomId.collisionArchive,
     _ => throw StateError('Not a regional exploration node: $nodeId'),
   };
-  unawaited(game.world.loadCampaignNode(nodeId, entry: CampaignNodeEntry.west));
+  unawaited(game.world.loadCampaignNode(nodeId, entry: entry));
   game.resumeEngine();
   for (var attempt = 0; attempt < 180; attempt += 1) {
     await tester.pump(const Duration(milliseconds: 16));
@@ -467,5 +545,12 @@ Future<void> _mountGame(WidgetTester tester, PatchWorldGame game) async {
 Future<void> _pumpFrames(WidgetTester tester, int count) async {
   for (var frame = 0; frame < count; frame += 1) {
     await tester.pump(const Duration(milliseconds: 16));
+  }
+}
+
+Future<void> _pumpRealSeconds(WidgetTester tester, double seconds) async {
+  final frameCount = (seconds / .05).ceil();
+  for (var frame = 0; frame < frameCount; frame += 1) {
+    await tester.pump(const Duration(milliseconds: 50));
   }
 }

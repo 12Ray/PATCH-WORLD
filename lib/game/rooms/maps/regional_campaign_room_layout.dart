@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
+import 'package:patch_world/game/campaign/campaign_encounter_contract.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
 import 'package:patch_world/game/campaign/regional_room_objective.dart';
@@ -184,6 +185,7 @@ final class RegionalCampaignRoomLayout {
     required this.surfaces,
     required this.traversalLinks,
     required this.enemies,
+    required this.encounter,
     required this.features,
     required this.objectiveNodes,
     required this.terrainPulse,
@@ -203,6 +205,7 @@ final class RegionalCampaignRoomLayout {
   final List<RegionalCampaignSurfaceSpec> surfaces;
   final List<RegionalCampaignTraversalLinkSpec> traversalLinks;
   final List<RegionalCampaignEnemySpawnSpec> enemies;
+  final CampaignEncounterSpec? encounter;
   final List<RegionalCampaignFeatureSpec> features;
   final List<RegionalCampaignPointSpec> objectiveNodes;
   final RegionalCampaignTerrainPulseSpec? terrainPulse;
@@ -344,6 +347,7 @@ final class RegionalCampaignRoomLayoutCatalog {
       'surfaces',
       'traversal',
       'enemies',
+      'encounter',
       'features',
       'objectiveNodes',
       'terrainPulse',
@@ -502,6 +506,11 @@ final class RegionalCampaignRoomLayoutCatalog {
         })
         .toList(growable: false);
 
+    final encounterValue = _requireValue(map, 'encounter', path);
+    final encounter = encounterValue == null
+        ? null
+        : CampaignEncounterSpecParser.parse(encounterValue, '$path.encounter');
+
     final features = _requireList(map, 'features', path).indexed
         .map((entry) {
           final featurePath = '$path.features[${entry.$1}]';
@@ -656,6 +665,7 @@ final class RegionalCampaignRoomLayoutCatalog {
         traversal,
       ),
       enemies: List<RegionalCampaignEnemySpawnSpec>.unmodifiable(enemies),
+      encounter: encounter,
       features: List<RegionalCampaignFeatureSpec>.unmodifiable(features),
       objectiveNodes: List<RegionalCampaignPointSpec>.unmodifiable(
         objectiveNodes,
@@ -1008,6 +1018,9 @@ abstract final class RegionalCampaignRoomLayoutValidator {
     }
 
     if (isBoss) {
+      if (room.encounter != null) {
+        errors.add('$prefix boss room encounter must be null');
+      }
       if (room.enemies.isNotEmpty || room.objectiveNodes.isNotEmpty) {
         errors.add(
           '$prefix boss room must not author normal enemies/objectives',
@@ -1028,6 +1041,24 @@ abstract final class RegionalCampaignRoomLayoutValidator {
         errors.add('$prefix boss room may only author boss seals');
       }
     } else {
+      final encounter = room.encounter;
+      if (encounter == null) {
+        errors.add('$prefix requires an encounter contract');
+      } else {
+        errors.addAll(
+          CampaignEncounterSpecValidator.validate(
+            encounter: encounter,
+            roomLabel: prefix,
+            roomBounds: Rect.fromLTWH(0, 0, room.width, room.height),
+            enemyPositions: <String, Offset>{
+              for (final enemy in room.enemies)
+                enemy.id: Offset(enemy.position.x, enemy.position.y),
+            },
+            westEntry: Offset(room.westSpawn.x, room.westSpawn.y),
+            eastEntry: Offset(room.eastSpawn.x, room.eastSpawn.y),
+          ),
+        );
+      }
       if (room.enemies.length != 4) {
         errors.add('$prefix requires exactly four normal enemies');
       }
