@@ -603,12 +603,18 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
   }
 
   void startSurvivalRun([PlayerWeapon? weapon]) => unawaited(
-    _startSurvivalRun(weapon ?? _selectedRunWeapon ?? PlayerWeapon.sword),
+    _startSurvivalRun(
+      weapon ?? _selectedRunWeapon ?? PlayerWeapon.sword,
+      waitForVisuals: false,
+    ),
   );
 
-  Future<void> _startSurvivalRun(PlayerWeapon weapon) async {
+  Future<void> _startSurvivalRun(
+    PlayerWeapon weapon, {
+    bool waitForVisuals = true,
+  }) async {
     await ready();
-    await world.player.visualLoadAttempted;
+    if (waitForVisuals) await world.player.visualLoadAttempted;
     unawaited(audio.unlockFromUserGesture());
     mode = PatchWorldMode.survival;
     _selectedRunWeapon = weapon;

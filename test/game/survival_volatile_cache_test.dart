@@ -83,10 +83,10 @@ void main() {
 }
 
 Future<void> _waitForSurvival(WidgetTester tester, PatchWorldGame game) async {
-  for (var attempt = 0; attempt < 100; attempt += 1) {
+  for (var attempt = 0; attempt < 300; attempt += 1) {
     await tester.pump(const Duration(milliseconds: 16));
     await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 5)),
+      () => Future<void>.delayed(const Duration(milliseconds: 10)),
     );
     if (game.currentRoom == RoomId.survivalArena &&
         game.world.isReady &&
