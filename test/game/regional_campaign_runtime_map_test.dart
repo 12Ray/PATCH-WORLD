@@ -47,14 +47,22 @@ void main() {
       );
       expect(layout.enemies.length, isBoss ? 0 : 4);
       expect(layout.objectiveNodes, isBoss ? isEmpty : isNotEmpty);
-      final environmentAsset = layout.environmentAsset;
-      if (environmentAsset != null) {
-        expect(
-          File(environmentAsset).existsSync(),
-          isTrue,
-          reason: '${layout.nodeId.name} backdrop asset is missing',
-        );
-      }
+      expect(layout.isBackdropAligned, isFalse, reason: layout.nodeId.name);
+      expect(layout.environmentAsset, isNull, reason: layout.nodeId.name);
+      expect(
+        layout.surfaces
+            .where((surface) => !surface.isBoundary)
+            .every((surface) => surface.renderArtwork),
+        isTrue,
+        reason: '${layout.nodeId.name} must render every collidable surface',
+      );
+      expect(
+        layout.surfaces
+            .where((surface) => surface.isBoundary)
+            .every((surface) => !surface.renderArtwork),
+        isTrue,
+        reason: '${layout.nodeId.name} boundary walls stay invisible',
+      );
     }
   });
 

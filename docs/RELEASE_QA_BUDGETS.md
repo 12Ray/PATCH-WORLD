@@ -14,10 +14,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tool\qa_budget.ps1
 
 | Metric | Limit | Phase 5 baseline | Why it is gated |
 | --- | ---: | ---: | --- |
-| Complete `build/web` output | 90 MiB | 79.30 MiB | Includes Flutter's renderer variants and all deployable files. |
-| Flutter asset payload | 45 MiB | 37.59 MiB | Detects accidental font, image, or localization growth. |
-| PATCH//WORLD-owned game assets | 42 MiB | 36.24 MiB | Bounds the content downloaded for rooms, sprites, and audio. |
-| `main.dart.js` | 4 MiB | 2.97 MiB | Detects code-size regressions in the compiled application. |
+| Complete `build/web` output | 90 MiB | 84.97 MiB | Includes Flutter's renderer variants and all deployable files. |
+| Flutter asset payload | 45 MiB | 43.12 MiB | Detects accidental font, image, or localization growth. |
+| PATCH//WORLD-owned game assets | 42 MiB | 41.76 MiB | Bounds the content downloaded for rooms, sprites, and audio. |
+| `main.dart.js` | 4 MiB | 3.17 MiB | Detects code-size regressions in the compiled application. |
 | Largest owned game asset | 3 MiB | 2.29 MiB | Prevents a single unoptimized bitmap or audio file from dominating startup. |
 
 `tool/check.ps1` and the GitHub Pages workflow run the budget gate after the

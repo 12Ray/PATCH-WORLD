@@ -5,7 +5,9 @@ import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
+import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/ranged_route_switch_component.dart';
+import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/components/items/item_pedestal_component.dart';
 import 'package:patch_world/game/items/run_item_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -90,6 +92,23 @@ void main() {
       expect(secret.requiredWeapon, weapon);
       expect(secret.challengeSegment.requiredForCompletion, isFalse);
       expect(secret.challengeSegment.requirement, route.$4);
+      final layers = secret.children
+          .whereType<StoryRoomLayersComponent>()
+          .single;
+      expect(layers.theme, StoryRegionVisualTheme.damage);
+      expect(layers.motif, _motifFor(weapon));
+      expect(
+        secret.children.whereType<PlatformSurfaceComponent>().where(
+          (surface) => !surface.isBoundary,
+        ),
+        everyElement(
+          isA<PlatformSurfaceComponent>().having(
+            (surface) => surface.renderArtwork,
+            'renderArtwork',
+            isTrue,
+          ),
+        ),
+      );
 
       if (weapon == PlayerWeapon.gun) {
         expect(secret.isGunGateOpen, isFalse);
@@ -140,6 +159,12 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 }
+
+StoryRoomVisualMotif _motifFor(PlayerWeapon weapon) => switch (weapon) {
+  PlayerWeapon.sword => StoryRoomVisualMotif.dashSecret,
+  PlayerWeapon.gauntlet => StoryRoomVisualMotif.verticalSecret,
+  PlayerWeapon.gun => StoryRoomVisualMotif.rangedSecret,
+};
 
 Future<void> _useDoor(
   WidgetTester tester,

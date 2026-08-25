@@ -4,11 +4,12 @@ import 'package:flame/components.dart';
 import 'package:patch_world/game/campaign/campaign_floor_state.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
+import 'package:patch_world/game/campaign/story_map_art_contract.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/ranged_route_switch_component.dart';
-import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
+import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/components/items/item_pedestal_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/items/run_item_state.dart';
@@ -118,8 +119,11 @@ final class RegionalSecretController extends Component
       ? PlatformSurfaceStyle.temporal
       : PlatformSurfaceStyle.collision;
 
-  RoomBackdropStyle get backdropStyle =>
-      isTemporal ? RoomBackdropStyle.temporal : RoomBackdropStyle.collision;
+  StoryMapArtSpec get mapArtSpec => StoryMapArtCatalog.specFor(nodeId);
+
+  StoryRegionVisualTheme get visualTheme => mapArtSpec.theme;
+
+  StoryRoomVisualMotif get visualMotif => mapArtSpec.motif;
 
   Color get accentColor =>
       isTemporal ? const Color(0xFF9D8CFF) : const Color(0xFF36E1FF);
@@ -147,7 +151,13 @@ final class RegionalSecretController extends Component
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await add(RoomBackdropComponent(backdropStyle, worldSize: worldSize));
+    await add(
+      StoryRoomLayersComponent(
+        theme: visualTheme,
+        motif: visualMotif,
+        worldSize: worldSize,
+      ),
+    );
     _buildGeometry();
     await addAll(_surfaces);
     if (isSwordRoute) {
@@ -219,6 +229,7 @@ final class RegionalSecretController extends Component
     size: Vector2(width, height),
     isBoundary: boundary,
     style: surfaceStyle,
+    renderArtwork: !boundary,
   );
 
   Future<void> _spawnReward() async {

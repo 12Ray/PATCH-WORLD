@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
+import 'package:patch_world/game/components/environment/platform_surface_component.dart';
+import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/boot_sector_controller.dart';
 import 'package:patch_world/game/rooms/damage_lab_node_controller.dart';
@@ -29,6 +31,26 @@ void main() {
 
     expect(game.world.activeRoom, isA<BootSectorController>());
     expect(game.campaignExploration.currentNode, CampaignNodeId.bootSector);
+    final bootRoom = game.world.activeRoom!;
+    final bootLayers = bootRoom.children
+        .whereType<StoryRoomLayersComponent>()
+        .single;
+    expect(bootLayers.theme, StoryRegionVisualTheme.boot);
+    expect(bootLayers.motif, StoryRoomVisualMotif.hub);
+    final bootSurfaces = bootRoom.children
+        .whereType<PlatformSurfaceComponent>()
+        .toList(growable: false);
+    expect(bootSurfaces.where((surface) => surface.isBoundary), hasLength(2));
+    expect(
+      bootSurfaces.where((surface) => !surface.isBoundary),
+      everyElement(
+        isA<PlatformSurfaceComponent>().having(
+          (surface) => surface.renderArtwork,
+          'renderArtwork',
+          isTrue,
+        ),
+      ),
+    );
     final bootDoor = game.world.activeRoom!.children
         .whereType<CampaignDoorComponent>()
         .single;

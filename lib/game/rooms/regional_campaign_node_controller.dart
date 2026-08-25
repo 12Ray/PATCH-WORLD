@@ -8,6 +8,7 @@ import 'package:patch_world/game/campaign/campaign_floor_state.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
 import 'package:patch_world/game/campaign/regional_room_objective.dart';
+import 'package:patch_world/game/campaign/story_map_art_contract.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/boss/campaign_chapter_boss_component.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
@@ -19,7 +20,7 @@ import 'package:patch_world/game/components/environment/patch_exit_terminal_comp
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
 import 'package:patch_world/game/components/environment/qa_record_terminal_component.dart';
-import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
+import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/components/environment/terrain_pulse_node_component.dart';
 import 'package:patch_world/game/components/items/item_pedestal_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
@@ -128,9 +129,6 @@ final class RegionalCampaignNodeController extends Component
   PlatformSurfaceStyle get surfaceStyle => isTemporal
       ? PlatformSurfaceStyle.temporal
       : PlatformSurfaceStyle.collision;
-
-  RoomBackdropStyle get backdropStyle =>
-      isTemporal ? RoomBackdropStyle.temporal : RoomBackdropStyle.collision;
 
   CampaignChapterBossKind get bossKind => isTemporal
       ? CampaignChapterBossKind.chronoJailer
@@ -251,7 +249,15 @@ final class RegionalCampaignNodeController extends Component
         .map((surface) => surface.bounds),
   );
 
+  List<Rect> get authoredPlatformBounds => List<Rect>.unmodifiable(
+    layout.surfaces
+        .where((surface) => !surface.isBoundary)
+        .map((surface) => surface.bounds),
+  );
+
   String? get environmentAsset => layout.environmentAsset;
+
+  StoryMapArtSpec get mapArtSpec => StoryMapArtCatalog.specFor(nodeId);
 
   Vector2 _anchorVector(String id) => layout.requireAnchor(id).toVector2();
 
@@ -370,10 +376,10 @@ final class RegionalCampaignNodeController extends Component
   Future<void> onLoad() async {
     await super.onLoad();
     await add(
-      RoomBackdropComponent(
-        backdropStyle,
+      StoryRoomLayersComponent(
+        theme: mapArtSpec.theme,
+        motif: mapArtSpec.motif,
         worldSize: worldSize,
-        environmentAsset: environmentAsset,
       ),
     );
     _buildGeometry();

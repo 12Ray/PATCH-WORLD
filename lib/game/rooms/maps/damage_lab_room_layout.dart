@@ -775,6 +775,16 @@ abstract final class DamageLabRoomLayoutValidator {
           '$prefix surface ${surface.id} duplicates authored backdrop art',
         );
       }
+      if (!room.isBackdropAligned &&
+          !surface.isBoundary &&
+          !surface.renderArtwork) {
+        errors.add(
+          '$prefix surface ${surface.id} hides a collidable story surface',
+        );
+      }
+      if (surface.isBoundary && surface.renderArtwork) {
+        errors.add('$prefix boundary ${surface.id} must not render artwork');
+      }
     }
     for (final link in room.traversalLinks) {
       addId(link.segment.id, 'traversal link');

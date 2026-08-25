@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
+import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/boss_room_controller.dart';
 import 'package:patch_world/game/rooms/damage_lab_node_controller.dart';
@@ -29,19 +30,24 @@ Future<void> expectCampaignRoomArtV3Loaded(
   expect(room, isA<CampaignNodeRoom>());
   expect((room as CampaignNodeRoom).campaignNodeId, expectedNode);
 
-  final environmentAsset = switch (room) {
-    DamageLabNodeController controller => controller.environmentAsset,
-    RegionalCampaignNodeController controller => controller.environmentAsset,
-    _ => null,
+  final mapArtSpec = switch (room) {
+    DamageLabNodeController controller => controller.mapArtSpec,
+    RegionalCampaignNodeController controller => controller.mapArtSpec,
+    _ => throw StateError('Unsupported campaign room ${room.runtimeType}'),
   };
-  expect(environmentAsset, isNotNull);
+  final storyLayers = room.children
+      .whereType<StoryRoomLayersComponent>()
+      .single;
+  expect(storyLayers.theme, mapArtSpec.theme);
+  expect(storyLayers.motif, mapArtSpec.motif);
 
   bool visualsReady() {
     final enemies = room.children.whereType<PlatformerEnemyComponent>();
     final renderedSurfaces = room.children
         .whereType<PlatformSurfaceComponent>()
         .where((surface) => surface.renderArtwork);
-    return game.world.player.hasCompleteArtV3Visuals &&
+    return storyLayers.hasFarBackgroundImage &&
+        game.world.player.hasCompleteArtV3Visuals &&
         enemies.isNotEmpty &&
         enemies.every((enemy) => enemy.hasArtV3Visual) &&
         renderedSurfaces.every((surface) => surface.hasArtV3Foreground);

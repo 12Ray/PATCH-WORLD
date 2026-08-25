@@ -5,6 +5,7 @@ import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/effects/patch_pulse_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
+import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/components/projectiles/player_projectile_component.dart';
 import 'package:patch_world/game/components/presentation/boss_arena_presentation_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -28,6 +29,16 @@ void main() {
     expect(
       room.children.whereType<PlatformSurfaceComponent>(),
       hasLength(greaterThanOrEqualTo(18)),
+    );
+    final layers = room.children.whereType<StoryRoomLayersComponent>().single;
+    expect(layers.theme, StoryRegionVisualTheme.optimizer);
+    expect(layers.motif, StoryRoomVisualMotif.finalCore);
+    expect(
+      room.children
+          .whereType<PlatformSurfaceComponent>()
+          .where((surface) => !surface.isBoundary)
+          .every((surface) => surface.renderArtwork),
+      isTrue,
     );
     expect(room.children.whereType<RoomHazardComponent>(), hasLength(2));
     expect(room.children.whereType<JumpPadComponent>(), hasLength(2));

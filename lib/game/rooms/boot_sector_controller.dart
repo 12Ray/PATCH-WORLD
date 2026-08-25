@@ -2,10 +2,12 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
+import 'package:patch_world/game/campaign/story_map_art_contract.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
 import 'package:patch_world/game/components/environment/campaign_map_terminal_component.dart';
 import 'package:patch_world/game/components/environment/core_signature_gate_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
+import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
@@ -55,34 +57,46 @@ final class BootSectorController extends Component
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await add(_BootSectorBackdrop(size: worldSize));
+    final mapArtSpec = StoryMapArtCatalog.specFor(campaignNodeId);
+    await add(
+      StoryRoomLayersComponent(
+        theme: mapArtSpec.theme,
+        motif: mapArtSpec.motif,
+        worldSize: worldSize,
+      ),
+    );
     _surfaces.addAll(<PlatformSurfaceComponent>[
       PlatformSurfaceComponent(
         position: Vector2(0, 484),
         size: Vector2(960, 56),
         style: PlatformSurfaceStyle.damage,
+        renderArtwork: true,
       ),
       PlatformSurfaceComponent(
         position: Vector2(0, 0),
         size: Vector2(24, 540),
         isBoundary: true,
         style: PlatformSurfaceStyle.damage,
+        renderArtwork: false,
       ),
       PlatformSurfaceComponent(
         position: Vector2(936, 0),
         size: Vector2(24, 540),
         isBoundary: true,
         style: PlatformSurfaceStyle.damage,
+        renderArtwork: false,
       ),
       PlatformSurfaceComponent(
         position: Vector2(300, 400),
         size: Vector2(150, 20),
         style: PlatformSurfaceStyle.damage,
+        renderArtwork: true,
       ),
       PlatformSurfaceComponent(
         position: Vector2(520, 328),
         size: Vector2(150, 20),
         style: PlatformSurfaceStyle.damage,
+        renderArtwork: true,
       ),
     ]);
     await addAll(_surfaces);
@@ -175,40 +189,5 @@ final class BootSectorController extends Component
       if (door.tryEnter(player)) return true;
     }
     return _optimizerDoor?.tryEnter(player) ?? false;
-  }
-}
-
-final class _BootSectorBackdrop extends PositionComponent {
-  _BootSectorBackdrop({required super.size}) : super(priority: -85);
-
-  @override
-  void render(Canvas canvas) {
-    final bounds = Offset.zero & Size(size.x, size.y);
-    canvas.drawRect(bounds, Paint()..color = const Color(0xFF080D1B));
-    canvas.drawCircle(
-      const Offset(480, 230),
-      170,
-      Paint()..color = const Color(0x1827C7D9),
-    );
-    final circuitPaint = Paint()
-      ..color = const Color(0x5536E1FF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    for (var index = 0; index < 6; index += 1) {
-      final y = 92.0 + index * 58;
-      canvas.drawLine(Offset(40, y), Offset(920, y), circuitPaint);
-      canvas.drawCircle(Offset(160 + index * 120, y), 5, circuitPaint);
-    }
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(350, 120, 260, 160),
-        const Radius.circular(18),
-      ),
-      Paint()
-        ..color = const Color(0x44265A78)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 4,
-    );
-    super.render(canvas);
   }
 }

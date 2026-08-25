@@ -82,9 +82,13 @@ class PlatformSurfaceComponent extends RectangleComponent
   final bool isBoundary;
   final PlatformSurfaceStyle style;
   final bool renderArtwork;
+  static const double moduleSize = 32;
   Image? _foregroundImage;
+  Picture? _artworkPicture;
+  bool _removed = false;
 
   bool get hasArtV3Foreground => _foregroundImage != null;
+  bool get hasCachedArtwork => _artworkPicture != null;
 
   ArtV3EnvironmentRole get foregroundRole => size.y > size.x * .72
       ? ArtV3EnvironmentRole.cornerWall
@@ -97,6 +101,8 @@ class PlatformSurfaceComponent extends RectangleComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    _removed = false;
+    _rebuildArtworkCache();
     if (renderArtwork) unawaited(_loadForeground());
   }
 
@@ -105,15 +111,43 @@ class PlatformSurfaceComponent extends RectangleComponent
       final image = await game.images.load(
         'sprites/art_v3/environment/${style.assetSlug}-foreground.png',
       );
-      if (!isRemoving) _foregroundImage = image;
+      if (_removed) return;
+      _foregroundImage = image;
+      _rebuildArtworkCache();
     } catch (_) {
       // The procedural material remains the fallback for a missing skin.
     }
   }
 
   @override
+  void onRemove() {
+    _removed = true;
+    _artworkPicture?.dispose();
+    _artworkPicture = null;
+    super.onRemove();
+  }
+
+  @override
   void render(Canvas canvas) {
-    if (isBoundary || !renderArtwork) return;
+    if (_removed || isBoundary || !renderArtwork) return;
+    _artworkPicture ??= _recordArtwork();
+    canvas.drawPicture(_artworkPicture!);
+  }
+
+  void _rebuildArtworkCache() {
+    if (isBoundary || !renderArtwork || _removed) return;
+    final next = _recordArtwork();
+    _artworkPicture?.dispose();
+    _artworkPicture = next;
+  }
+
+  Picture _recordArtwork() {
+    final recorder = PictureRecorder();
+    _renderArtwork(Canvas(recorder));
+    return recorder.endRecording();
+  }
+
+  void _renderArtwork(Canvas canvas) {
     final bounds = size.toRect();
     canvas.drawRect(
       bounds,
@@ -140,7 +174,7 @@ class PlatformSurfaceComponent extends RectangleComponent
         ..strokeWidth = 1
         ..color = const Color(0xAA07101C),
     );
-    for (double x = 8; x < size.x; x += 32) {
+    for (double x = 8; x < size.x; x += moduleSize) {
       _drawSurfaceModule(canvas, x);
     }
     _drawForegroundSkin(canvas);
@@ -150,20 +184,19 @@ class PlatformSurfaceComponent extends RectangleComponent
     final image = _foregroundImage;
     if (image == null || size.x <= 0 || size.y <= 0) return;
     final source = artV3EnvironmentSourceRect(foregroundRole);
-    final tileWidth = math.max(72.0, math.min(192.0, size.y * 4));
-    for (var x = 0.0; x < size.x; x += tileWidth) {
-      final width = math.min(tileWidth, size.x - x);
+    final sourceColumns = (source.width / moduleSize).floor();
+    var moduleIndex = 0;
+    for (var x = 0.0; x < size.x; x += moduleSize) {
+      final width = math.min(moduleSize, size.x - x);
+      final sourceLeft =
+          source.left + (moduleIndex % sourceColumns) * moduleSize;
       canvas.drawImageRect(
         image,
-        Rect.fromLTWH(
-          source.left,
-          source.top,
-          source.width * width / tileWidth,
-          source.height,
-        ),
+        Rect.fromLTWH(sourceLeft, source.top, width, source.height),
         Rect.fromLTWH(x, 0, width, size.y),
         Paint()..filterQuality = FilterQuality.none,
       );
+      moduleIndex += 1;
     }
   }
 

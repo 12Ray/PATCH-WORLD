@@ -4,12 +4,13 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
+import 'package:patch_world/game/campaign/story_map_art_contract.dart';
 import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
 import 'package:patch_world/game/components/environment/legacy_glitch_terminal.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
-import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
+import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/components/presentation/boss_arena_presentation_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -85,8 +86,13 @@ final class BossRoomController extends Component
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    final mapArtSpec = StoryMapArtCatalog.specFor(campaignNodeId);
     await add(
-      RoomBackdropComponent(RoomBackdropStyle.optimizer, worldSize: worldSize),
+      StoryRoomLayersComponent(
+        theme: mapArtSpec.theme,
+        motif: mapArtSpec.motif,
+        worldSize: worldSize,
+      ),
     );
     _surfaces.addAll(<PlatformSurfaceComponent>[
       _surface(0, 0, 24, 1080, boundary: true),
@@ -216,6 +222,7 @@ final class BossRoomController extends Component
     size: Vector2(width, height),
     isBoundary: boundary,
     style: PlatformSurfaceStyle.optimizer,
+    renderArtwork: !boundary,
   );
 
   @override

@@ -13,20 +13,31 @@ void main() {
     source = await File(DamageLabRoomLayoutCatalog.assetPath).readAsString();
   });
 
-  test('runtime map owns all four Damage Lab rooms and their assets', () {
+  test('runtime map owns four rooms with visible collision geometry', () {
     final catalog = DamageLabRoomLayoutCatalog.fromJson(source);
 
     expect(
       catalog.rooms.map((room) => room.nodeId).toSet(),
       DamageLabRoomLayoutValidator.requiredNodes,
     );
-    for (final room in catalog.rooms.where(
-      (candidate) => candidate.isBackdropAligned,
-    )) {
-      expect(File(room.environmentAsset!).existsSync(), isTrue);
-      expect(room.width, 1920);
-      expect(room.height, 1080);
+    for (final room in catalog.rooms) {
+      expect(room.isBackdropAligned, isFalse, reason: room.nodeId.name);
+      expect(room.environmentAsset, isNull, reason: room.nodeId.name);
       expect(room.surfaces, isNotEmpty);
+      expect(
+        room.surfaces
+            .where((surface) => !surface.isBoundary)
+            .every((surface) => surface.renderArtwork),
+        isTrue,
+        reason: '${room.nodeId.name} must render every collidable surface',
+      );
+      expect(
+        room.surfaces
+            .where((surface) => surface.isBoundary)
+            .every((surface) => !surface.renderArtwork),
+        isTrue,
+        reason: '${room.nodeId.name} boundary walls stay invisible',
+      );
     }
   });
 

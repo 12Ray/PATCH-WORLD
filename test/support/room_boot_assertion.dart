@@ -6,6 +6,7 @@ import 'package:patch_world/game/components/boss/campaign_chapter_boss_component
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/campaign_checkpoint_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
+import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/regional_campaign_node_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
@@ -29,7 +30,10 @@ Future<void> expectPlatformerRoomBoot(
   expect(room.layout, same(game.regionalRoomLayouts.room(expectedNode)));
   expect(game.world.player.position, expectedSpawn);
   expect(room.worldSize, Vector2(1920, 1080));
-  expect(room.environmentAsset, isNotNull);
+  expect(room.environmentAsset, isNull);
+  final layers = room.children.whereType<StoryRoomLayersComponent>().single;
+  expect(layers.theme, room.mapArtSpec.theme);
+  expect(layers.motif, room.mapArtSpec.motif);
   expect(
     room.children.whereType<PlatformSurfaceComponent>().length,
     greaterThanOrEqualTo(room.layout.surfaces.length),

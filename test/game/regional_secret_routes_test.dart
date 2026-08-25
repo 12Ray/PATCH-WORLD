@@ -5,7 +5,9 @@ import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
+import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/ranged_route_switch_component.dart';
+import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/components/items/item_pedestal_component.dart';
 import 'package:patch_world/game/items/run_item_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -222,6 +224,28 @@ void main() {
         expect(secret.rewardItem, route.$4);
         expect(secret.challengeSegment.requiredForCompletion, isFalse);
         expect(secret.challengeSegment.requirement, route.$5);
+        final layers = secret.children
+            .whereType<StoryRoomLayersComponent>()
+            .single;
+        expect(
+          layers.theme,
+          isTemporal
+              ? StoryRegionVisualTheme.temporal
+              : StoryRegionVisualTheme.collision,
+        );
+        expect(layers.motif, _motifFor(route.$1));
+        expect(
+          secret.children.whereType<PlatformSurfaceComponent>().where(
+            (surface) => !surface.isBoundary,
+          ),
+          everyElement(
+            isA<PlatformSurfaceComponent>().having(
+              (surface) => surface.renderArtwork,
+              'renderArtwork',
+              isTrue,
+            ),
+          ),
+        );
 
         if (route.$1 == PlayerWeapon.gun) {
           expect(secret.isGunGateOpen, isFalse);
@@ -269,6 +293,12 @@ void main() {
     },
   );
 }
+
+StoryRoomVisualMotif _motifFor(PlayerWeapon weapon) => switch (weapon) {
+  PlayerWeapon.sword => StoryRoomVisualMotif.dashSecret,
+  PlayerWeapon.gauntlet => StoryRoomVisualMotif.verticalSecret,
+  PlayerWeapon.gun => StoryRoomVisualMotif.rangedSecret,
+};
 
 void _expectRewardEffect(PatchWorldGame game, RunItemId item) {
   switch (item) {

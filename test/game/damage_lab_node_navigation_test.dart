@@ -10,7 +10,7 @@ import 'package:patch_world/game/components/environment/campaign_door_component.
 import 'package:patch_world/game/components/environment/campaign_service_components.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
-import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
+import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/components/environment/terrain_pulse_node_component.dart';
 import 'package:patch_world/game/items/campaign_loadout_reward_catalog.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -54,11 +54,11 @@ void main() {
         );
       }
       if (nodeId != CampaignNodeId.overflowWarden) {
-        expect(room.usesBackdropAlignedGeometry, isTrue);
+        expect(room.usesBackdropAlignedGeometry, isFalse);
         expect(room.worldSize, Vector2(1920, 1080));
         expect(room.killPlaneY, greaterThan(room.worldSize.y));
         expect(
-          room.backdropAlignedPlatformBounds.every(
+          room.authoredPlatformBounds.every(
             (bounds) =>
                 bounds.left >= 0 &&
                 bounds.right <= room.worldSize.x &&
@@ -67,12 +67,12 @@ void main() {
           isTrue,
         );
         expect(
-          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top < 300),
+          room.authoredPlatformBounds.any((bounds) => bounds.top < 300),
           isTrue,
           reason: '${nodeId.name} must include an upper exploration band.',
         );
         expect(
-          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top > 850),
+          room.authoredPlatformBounds.any((bounds) => bounds.top > 850),
           isTrue,
           reason: '${nodeId.name} must include a lower exploration band.',
         );
@@ -110,7 +110,7 @@ void main() {
       expect(game.world.player.selectedWeapon, weapon);
       if (weapon == PlayerWeapon.sword) {
         final room = game.world.activeRoom! as DamageLabNodeController;
-        expect(room.usesBackdropAlignedGeometry, isTrue);
+        expect(room.usesBackdropAlignedGeometry, isFalse);
         expect(room.worldSize, Vector2(1920, 1080));
         expect(room.playerSpawn, Vector2(310, 474));
         expect(room.killPlaneY, greaterThan(room.worldSize.y));
@@ -120,7 +120,7 @@ void main() {
         expect(room.horizontalCameraDeadZone, 112);
         expect(room.verticalCameraDeadZone, 58);
         expect(
-          room.backdropAlignedPlatformBounds.every(
+          room.authoredPlatformBounds.every(
             (bounds) =>
                 bounds.left >= 0 &&
                 bounds.right <= room.worldSize.x &&
@@ -129,29 +129,27 @@ void main() {
           isTrue,
         );
         expect(
-          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top == 484),
+          room.authoredPlatformBounds.any((bounds) => bounds.top == 484),
           isFalse,
           reason:
               'The old synthetic floor must not cover the backdrop terrain.',
         );
         expect(
-          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top < 200),
+          room.authoredPlatformBounds.any((bounds) => bounds.top < 200),
           isTrue,
           reason: 'ROOM 1-1 must include a reachable upper exploration band.',
         );
         expect(
-          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top > 900),
+          room.authoredPlatformBounds.any((bounds) => bounds.top > 900),
           isTrue,
           reason: 'ROOM 1-1 must include a lower maintenance band.',
         );
-        final backdrop = room.children
-            .whereType<RoomBackdropComponent>()
+        final layers = room.children
+            .whereType<StoryRoomLayersComponent>()
             .single;
-        expect(backdrop.size, Vector2(1920, 1080));
-        expect(
-          backdrop.environmentAsset,
-          'assets/images/rooms/damage-lab-environment-v3.webp',
-        );
+        expect(layers.size, Vector2(1920, 1080));
+        expect(layers.theme, StoryRegionVisualTheme.damage);
+        expect(layers.motif, StoryRoomVisualMotif.intake);
         expect(
           room.children.whereType<CampaignRepairStationComponent>(),
           hasLength(1),
@@ -174,9 +172,9 @@ void main() {
           reason: 'The west door needs an authored safe landing.',
         );
         expect(
-          visibleSurfaces.every((surface) => !surface.renderArtwork),
+          visibleSurfaces.every((surface) => surface.renderArtwork),
           isTrue,
-          reason: 'Backdrop terrain must not draw a duplicate skin.',
+          reason: 'Every collidable surface must render its own exact skin.',
         );
         for (var frame = 0; frame < 60; frame += 1) {
           await tester.pump(const Duration(milliseconds: 16));
@@ -230,10 +228,8 @@ void main() {
       );
       if (weapon == PlayerWeapon.sword) {
         final room = game.world.activeRoom! as DamageLabNodeController;
-        _expectExpandedBackdropRoom(
+        _expectExpandedStoryRoom(
           room,
-          environmentAsset:
-              'assets/images/rooms/damage-lab-maintenance-v1.webp',
           expectedSpawn: Vector2(140, 529),
           backDoorPosition: Vector2(105, 565),
           forwardDoorPosition: Vector2(1815, 565),
@@ -271,9 +267,8 @@ void main() {
       );
       if (weapon == PlayerWeapon.sword) {
         final room = game.world.activeRoom! as DamageLabNodeController;
-        _expectExpandedBackdropRoom(
+        _expectExpandedStoryRoom(
           room,
-          environmentAsset: 'assets/images/rooms/damage-lab-hazard-v1.webp',
           expectedSpawn: Vector2(140, 614),
           backDoorPosition: Vector2(105, 650),
           forwardDoorPosition: Vector2(1815, 650),
@@ -291,6 +286,21 @@ void main() {
         'interaction.enterBossRoom',
         CampaignNodeId.overflowWarden,
       );
+      if (weapon == PlayerWeapon.sword) {
+        final bossRoom = game.world.activeRoom! as DamageLabNodeController;
+        final layers = bossRoom.children
+            .whereType<StoryRoomLayersComponent>()
+            .single;
+        expect(layers.theme, bossRoom.mapArtSpec.theme);
+        expect(layers.motif, StoryRoomVisualMotif.boss);
+        expect(
+          bossRoom.children
+              .whereType<PlatformSurfaceComponent>()
+              .where((surface) => !surface.isBoundary)
+              .every((surface) => surface.renderArtwork),
+          isTrue,
+        );
+      }
       await _useDoor(
         tester,
         game,
@@ -366,23 +376,23 @@ void main() {
   });
 }
 
-void _expectExpandedBackdropRoom(
+void _expectExpandedStoryRoom(
   DamageLabNodeController room, {
-  required String environmentAsset,
   required Vector2 expectedSpawn,
   required Vector2 backDoorPosition,
   required Vector2 forwardDoorPosition,
 }) {
-  expect(room.usesBackdropAlignedGeometry, isTrue);
+  expect(room.usesBackdropAlignedGeometry, isFalse);
   expect(room.worldSize, Vector2(1920, 1080));
   expect(room.playerSpawn, expectedSpawn);
   expect(room.killPlaneY, greaterThan(room.worldSize.y));
   expect(room.cameraZoomFor(room.playerSpawn), .92);
   expect(room.horizontalCameraDeadZone, 112);
   expect(room.verticalCameraDeadZone, 58);
-  final backdrop = room.children.whereType<RoomBackdropComponent>().single;
-  expect(backdrop.size, Vector2(1920, 1080));
-  expect(backdrop.environmentAsset, environmentAsset);
+  final layers = room.children.whereType<StoryRoomLayersComponent>().single;
+  expect(layers.size, Vector2(1920, 1080));
+  expect(layers.theme, room.mapArtSpec.theme);
+  expect(layers.motif, room.mapArtSpec.motif);
   final authoredSurfaces = room.children
       .whereType<PlatformSurfaceComponent>()
       .where((surface) => surface is! TerrainPulseBridgeComponent)
@@ -399,7 +409,7 @@ void _expectExpandedBackdropRoom(
     (surface) => !surface.isBoundary,
   );
   expect(visibleSurfaces, isNotEmpty);
-  expect(visibleSurfaces.every((surface) => !surface.renderArtwork), isTrue);
+  expect(visibleSurfaces.every((surface) => surface.renderArtwork), isTrue);
   final doors = room.children.whereType<CampaignDoorComponent>();
   expect(
     doors

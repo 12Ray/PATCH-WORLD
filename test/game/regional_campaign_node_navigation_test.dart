@@ -12,7 +12,7 @@ import 'package:patch_world/game/components/enemies/platformer_enemy_component.d
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
 import 'package:patch_world/game/components/environment/campaign_service_components.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
-import 'package:patch_world/game/components/environment/room_backdrop_component.dart';
+import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/components/presentation/boss_arena_presentation_component.dart';
 import 'package:patch_world/game/core/run_state.dart';
 import 'package:patch_world/game/items/campaign_loadout_reward_catalog.dart';
@@ -93,39 +93,35 @@ void main() {
     'Temporal Hall exploration rooms use authored large-world contracts',
     () {
       final game = PatchWorldGame(initialRoom: RoomId.bootSector);
-      const expectations =
-          <(CampaignNodeId, String, List<PlatformerEnemyArchetype>)>[
-            (
-              CampaignNodeId.temporalAscent,
-              'assets/images/rooms/temporal-ascent-v1.webp',
-              <PlatformerEnemyArchetype>[
-                PlatformerEnemyArchetype.tickRunner,
-                PlatformerEnemyArchetype.echoBat,
-                PlatformerEnemyArchetype.delaySniper,
-                PlatformerEnemyArchetype.rewindSkater,
-              ],
-            ),
-            (
-              CampaignNodeId.temporalFracture,
-              'assets/images/rooms/temporal-fracture-v1.webp',
-              <PlatformerEnemyArchetype>[
-                PlatformerEnemyArchetype.delaySniper,
-                PlatformerEnemyArchetype.tickRunner,
-                PlatformerEnemyArchetype.echoBat,
-                PlatformerEnemyArchetype.rewindSkater,
-              ],
-            ),
-            (
-              CampaignNodeId.temporalPendulum,
-              'assets/images/rooms/temporal-pendulum-v1.webp',
-              <PlatformerEnemyArchetype>[
-                PlatformerEnemyArchetype.rewindSkater,
-                PlatformerEnemyArchetype.echoBat,
-                PlatformerEnemyArchetype.tickRunner,
-                PlatformerEnemyArchetype.delaySniper,
-              ],
-            ),
-          ];
+      const expectations = <(CampaignNodeId, List<PlatformerEnemyArchetype>)>[
+        (
+          CampaignNodeId.temporalAscent,
+          <PlatformerEnemyArchetype>[
+            PlatformerEnemyArchetype.tickRunner,
+            PlatformerEnemyArchetype.echoBat,
+            PlatformerEnemyArchetype.delaySniper,
+            PlatformerEnemyArchetype.rewindSkater,
+          ],
+        ),
+        (
+          CampaignNodeId.temporalFracture,
+          <PlatformerEnemyArchetype>[
+            PlatformerEnemyArchetype.delaySniper,
+            PlatformerEnemyArchetype.tickRunner,
+            PlatformerEnemyArchetype.echoBat,
+            PlatformerEnemyArchetype.rewindSkater,
+          ],
+        ),
+        (
+          CampaignNodeId.temporalPendulum,
+          <PlatformerEnemyArchetype>[
+            PlatformerEnemyArchetype.rewindSkater,
+            PlatformerEnemyArchetype.echoBat,
+            PlatformerEnemyArchetype.tickRunner,
+            PlatformerEnemyArchetype.delaySniper,
+          ],
+        ),
+      ];
       for (final expectation in expectations) {
         final room = RegionalCampaignNodeController(
           nodeId: expectation.$1,
@@ -137,33 +133,33 @@ void main() {
         expect(room.worldSize.x, 1920);
         expect(room.worldSize.y, 1080);
         expect(room.killPlaneY, 1160);
-        expect(room.environmentAsset, expectation.$2);
+        expect(room.environmentAsset, isNull);
         expect(room.horizontalCameraLead, 96);
         expect(room.horizontalCameraDeadZone, 112);
         expect(room.verticalCameraDeadZone, 58);
         expect(room.cameraFollowResponsiveness, 5.2);
         expect(room.cameraZoomFor(room.playerSpawn), .92);
-        expect(room.backdropAlignedPlatformBounds, isNotEmpty);
+        expect(room.authoredPlatformBounds, isNotEmpty);
         expect(
-          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top < 300),
+          room.authoredPlatformBounds.any((bounds) => bounds.top < 300),
           isTrue,
           reason: '${expectation.$1.name} needs an upper exploration band',
         );
         expect(
-          room.backdropAlignedPlatformBounds.any(
+          room.authoredPlatformBounds.any(
             (bounds) => bounds.top >= 300 && bounds.top <= 750,
           ),
           isTrue,
           reason: '${expectation.$1.name} needs a middle combat band',
         );
         expect(
-          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top >= 900),
+          room.authoredPlatformBounds.any((bounds) => bounds.top >= 900),
           isTrue,
           reason: '${expectation.$1.name} needs a lower optional loop',
         );
         expect(
           room.combatEncounterSpecs.map((spec) => spec.$1),
-          orderedEquals(expectation.$3),
+          orderedEquals(expectation.$2),
         );
         final eastEntryRoom = RegionalCampaignNodeController(
           nodeId: expectation.$1,
@@ -185,39 +181,35 @@ void main() {
     'Collision Archive exploration rooms use authored large-world contracts',
     () {
       final game = PatchWorldGame(initialRoom: RoomId.bootSector);
-      const expectations =
-          <(CampaignNodeId, String, List<PlatformerEnemyArchetype>)>[
-            (
-              CampaignNodeId.collisionCompression,
-              'assets/images/rooms/collision-compression-v1.webp',
-              <PlatformerEnemyArchetype>[
-                PlatformerEnemyArchetype.vectorRam,
-                PlatformerEnemyArchetype.polarityDrone,
-                PlatformerEnemyArchetype.phaseMimic,
-                PlatformerEnemyArchetype.shardLobber,
-              ],
-            ),
-            (
-              CampaignNodeId.collisionFracture,
-              'assets/images/rooms/collision-fracture-v1.webp',
-              <PlatformerEnemyArchetype>[
-                PlatformerEnemyArchetype.phaseMimic,
-                PlatformerEnemyArchetype.vectorRam,
-                PlatformerEnemyArchetype.shardLobber,
-                PlatformerEnemyArchetype.polarityDrone,
-              ],
-            ),
-            (
-              CampaignNodeId.collisionMerge,
-              'assets/images/rooms/collision-merge-v1.webp',
-              <PlatformerEnemyArchetype>[
-                PlatformerEnemyArchetype.shardLobber,
-                PlatformerEnemyArchetype.polarityDrone,
-                PlatformerEnemyArchetype.vectorRam,
-                PlatformerEnemyArchetype.phaseMimic,
-              ],
-            ),
-          ];
+      const expectations = <(CampaignNodeId, List<PlatformerEnemyArchetype>)>[
+        (
+          CampaignNodeId.collisionCompression,
+          <PlatformerEnemyArchetype>[
+            PlatformerEnemyArchetype.vectorRam,
+            PlatformerEnemyArchetype.polarityDrone,
+            PlatformerEnemyArchetype.phaseMimic,
+            PlatformerEnemyArchetype.shardLobber,
+          ],
+        ),
+        (
+          CampaignNodeId.collisionFracture,
+          <PlatformerEnemyArchetype>[
+            PlatformerEnemyArchetype.phaseMimic,
+            PlatformerEnemyArchetype.vectorRam,
+            PlatformerEnemyArchetype.shardLobber,
+            PlatformerEnemyArchetype.polarityDrone,
+          ],
+        ),
+        (
+          CampaignNodeId.collisionMerge,
+          <PlatformerEnemyArchetype>[
+            PlatformerEnemyArchetype.shardLobber,
+            PlatformerEnemyArchetype.polarityDrone,
+            PlatformerEnemyArchetype.vectorRam,
+            PlatformerEnemyArchetype.phaseMimic,
+          ],
+        ),
+      ];
       for (final expectation in expectations) {
         final room = RegionalCampaignNodeController(
           nodeId: expectation.$1,
@@ -230,26 +222,26 @@ void main() {
         expect(room.worldSize.x, 1920);
         expect(room.worldSize.y, 1080);
         expect(room.killPlaneY, 1160);
-        expect(room.environmentAsset, expectation.$2);
+        expect(room.environmentAsset, isNull);
         expect(room.cameraZoomFor(room.playerSpawn), .92);
-        expect(room.backdropAlignedPlatformBounds, isNotEmpty);
+        expect(room.authoredPlatformBounds, isNotEmpty);
         expect(
-          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top < 300),
+          room.authoredPlatformBounds.any((bounds) => bounds.top < 300),
           isTrue,
         );
         expect(
-          room.backdropAlignedPlatformBounds.any(
+          room.authoredPlatformBounds.any(
             (bounds) => bounds.top >= 300 && bounds.top <= 755,
           ),
           isTrue,
         );
         expect(
-          room.backdropAlignedPlatformBounds.any((bounds) => bounds.top >= 900),
+          room.authoredPlatformBounds.any((bounds) => bounds.top >= 900),
           isTrue,
         );
         expect(
           room.combatEncounterSpecs.map((spec) => spec.$1),
-          orderedEquals(expectation.$3),
+          orderedEquals(expectation.$2),
         );
         final eastEntryRoom = RegionalCampaignNodeController(
           nodeId: expectation.$1,
@@ -293,7 +285,6 @@ void main() {
     _expectMountedExpandedTemporalRoom(
       game,
       nodeId: CampaignNodeId.temporalAscent,
-      environmentAsset: 'assets/images/rooms/temporal-ascent-v1.webp',
     );
     await _defeatActiveEncounter(
       tester,
@@ -314,7 +305,6 @@ void main() {
     _expectMountedExpandedTemporalRoom(
       game,
       nodeId: CampaignNodeId.temporalFracture,
-      environmentAsset: 'assets/images/rooms/temporal-fracture-v1.webp',
     );
     await _defeatActiveEncounter(
       tester,
@@ -335,7 +325,6 @@ void main() {
     _expectMountedExpandedTemporalRoom(
       game,
       nodeId: CampaignNodeId.temporalPendulum,
-      environmentAsset: 'assets/images/rooms/temporal-pendulum-v1.webp',
     );
     await _defeatActiveEncounter(
       tester,
@@ -358,6 +347,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     final room = game.world.activeRoom! as RegionalCampaignNodeController;
+    _expectRegionalStoryLayers(room, expectedMotif: StoryRoomVisualMotif.boss);
     expect(room.bossSeals, hasLength(2));
     final boss = room.boss!;
     expect(boss.phase, CampaignChapterBossPhase.phaseOne);
@@ -434,7 +424,6 @@ void main() {
     _expectMountedExpandedCollisionRoom(
       game,
       nodeId: CampaignNodeId.collisionCompression,
-      environmentAsset: 'assets/images/rooms/collision-compression-v1.webp',
     );
     await _defeatActiveEncounter(
       tester,
@@ -455,7 +444,6 @@ void main() {
     _expectMountedExpandedCollisionRoom(
       game,
       nodeId: CampaignNodeId.collisionFracture,
-      environmentAsset: 'assets/images/rooms/collision-fracture-v1.webp',
     );
     await _defeatActiveEncounter(
       tester,
@@ -476,7 +464,6 @@ void main() {
     _expectMountedExpandedCollisionRoom(
       game,
       nodeId: CampaignNodeId.collisionMerge,
-      environmentAsset: 'assets/images/rooms/collision-merge-v1.webp',
     );
     await _defeatActiveEncounter(
       tester,
@@ -499,6 +486,10 @@ void main() {
     }
     final collisionRoom =
         game.world.activeRoom! as RegionalCampaignNodeController;
+    _expectRegionalStoryLayers(
+      collisionRoom,
+      expectedMotif: StoryRoomVisualMotif.boss,
+    );
     final collisionBoss = collisionRoom.boss!;
     expect(collisionBoss.phase, CampaignChapterBossPhase.phaseOne);
     await _waitForRegionalBossAttackGate(tester, game, collisionBoss);
@@ -608,7 +599,7 @@ bool _hasStaticUniversalRoute(
   RegionalCampaignNodeController westEntryRoom,
   Vector2 eastSpawn,
 ) {
-  final platforms = westEntryRoom.backdropAlignedPlatformBounds
+  final platforms = westEntryRoom.authoredPlatformBounds
       .where(
         (bounds) =>
             bounds.width >=
@@ -657,23 +648,21 @@ bool _hasStaticUniversalRoute(
 void _expectMountedExpandedTemporalRoom(
   PatchWorldGame game, {
   required CampaignNodeId nodeId,
-  required String environmentAsset,
 }) {
   final room = game.world.activeRoom! as RegionalCampaignNodeController;
   expect(room.nodeId, nodeId);
   expect(room.worldSize.x, 1920);
   expect(room.worldSize.y, 1080);
-  expect(
-    room.children.whereType<RoomBackdropComponent>().single.environmentAsset,
-    environmentAsset,
-  );
-  final invisibleAuthoredSurfaces = room.children
+  final layers = room.children.whereType<StoryRoomLayersComponent>().single;
+  expect(layers.theme, room.mapArtSpec.theme);
+  expect(layers.motif, room.mapArtSpec.motif);
+  final visibleAuthoredSurfaces = room.children
       .whereType<PlatformSurfaceComponent>()
-      .where((surface) => !surface.renderArtwork)
+      .where((surface) => !surface.isBoundary)
       .toList(growable: false);
   expect(
-    invisibleAuthoredSurfaces.length,
-    room.backdropAlignedPlatformBounds.length,
+    visibleAuthoredSurfaces.every((surface) => surface.renderArtwork),
+    isTrue,
   );
   final rewindPlatforms = room.children
       .whereType<RewindPlatformComponent>()
@@ -710,27 +699,41 @@ void _expectMountedExpandedTemporalRoom(
   }
 }
 
+void _expectRegionalStoryLayers(
+  RegionalCampaignNodeController room, {
+  required StoryRoomVisualMotif expectedMotif,
+}) {
+  final layers = room.children.whereType<StoryRoomLayersComponent>().single;
+  expect(layers.theme, room.mapArtSpec.theme);
+  expect(layers.motif, expectedMotif);
+  expect(
+    room.children
+        .whereType<PlatformSurfaceComponent>()
+        .where((surface) => !surface.isBoundary)
+        .every((surface) => surface.renderArtwork),
+    isTrue,
+  );
+}
+
 void _expectMountedExpandedCollisionRoom(
   PatchWorldGame game, {
   required CampaignNodeId nodeId,
-  required String environmentAsset,
 }) {
   final room = game.world.activeRoom! as RegionalCampaignNodeController;
   expect(room.nodeId, nodeId);
   expect(room.usesExpandedCollisionGeometry, isTrue);
   expect(room.worldSize.x, 1920);
   expect(room.worldSize.y, 1080);
-  expect(
-    room.children.whereType<RoomBackdropComponent>().single.environmentAsset,
-    environmentAsset,
-  );
-  final invisibleAuthoredSurfaces = room.children
+  final layers = room.children.whereType<StoryRoomLayersComponent>().single;
+  expect(layers.theme, room.mapArtSpec.theme);
+  expect(layers.motif, room.mapArtSpec.motif);
+  final visibleAuthoredSurfaces = room.children
       .whereType<PlatformSurfaceComponent>()
-      .where((surface) => !surface.renderArtwork)
+      .where((surface) => !surface.isBoundary)
       .toList(growable: false);
   expect(
-    invisibleAuthoredSurfaces.length,
-    room.backdropAlignedPlatformBounds.length,
+    visibleAuthoredSurfaces.every((surface) => surface.renderArtwork),
+    isTrue,
   );
   late final PlatformSurfaceComponent stateSurface;
   switch (nodeId) {
