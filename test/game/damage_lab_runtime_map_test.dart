@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
+import 'package:patch_world/game/campaign/ordinary_jump_reachability.dart';
+import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/rooms/maps/damage_lab_room_layout.dart';
 
@@ -60,6 +62,112 @@ void main() {
     expect(airlock.segment.gap, 0);
     expect(airlock.segment.landingWidth, 740);
   });
+
+  test('sword ordinary movement reaches every mandatory Damage Lab anchor', () {
+    final catalog = DamageLabRoomLayoutCatalog.fromJson(source);
+    for (final room in catalog.rooms) {
+      final surfaces = room.surfaces
+          .where((surface) => !surface.isBoundary)
+          .map(
+            (surface) =>
+                OrdinaryJumpSurface(id: surface.id, bounds: surface.bounds),
+          )
+          .toList(growable: false);
+      final destinationIds = room.nodeId == CampaignNodeId.overflowWarden
+          ? const <String>[
+              DamageLabAnchorId.backDoor,
+              DamageLabAnchorId.bossReward,
+              DamageLabAnchorId.exitTerminal,
+              DamageLabAnchorId.regionBranchDoor,
+            ]
+          : const <String>[
+              DamageLabAnchorId.backDoor,
+              DamageLabAnchorId.forwardDoor,
+            ];
+      final destinations = <OrdinaryJumpAnchor>[
+        for (final id in destinationIds)
+          OrdinaryJumpAnchor(
+            id: id,
+            feet: Offset(room.requireAnchor(id).x, room.requireAnchor(id).y),
+            settleDistance: 8,
+          ),
+      ];
+
+      for (final entry in <(String, DamageLabPointSpec)>[
+        ('westSpawn', room.westSpawn),
+        ('eastSpawn', room.eastSpawn),
+      ]) {
+        final result = OrdinaryJumpReachability.analyze(
+          surfaces: surfaces,
+          start: OrdinaryJumpAnchor(
+            id: entry.$1,
+            feet: Offset(entry.$2.x, entry.$2.y + 16),
+            settleDistance: 64,
+          ),
+          requiredAnchors: destinations,
+        );
+        for (final destination in destinations) {
+          expect(
+            result.isAnchorReachable(destination.id),
+            isTrue,
+            reason:
+                '${room.nodeId.name}/${entry.$1} must reach '
+                '${destination.id} without dash, double jump, or unlocks. '
+                'Reachable: ${result.reachableSurfaceIds.join(', ')}',
+          );
+          expect(result.surfacePathTo(destination.id), isNotEmpty);
+        }
+      }
+    }
+  });
+
+  test(
+    'Warden owns a two-level pressure hangar with a universal floor route',
+    () {
+      final catalog = DamageLabRoomLayoutCatalog.fromJson(source);
+      final warden = catalog.room(CampaignNodeId.overflowWarden);
+      final mechanic = warden.bossMechanic!;
+
+      expect(warden.width, greaterThanOrEqualTo(1440));
+      expect(warden.height, greaterThanOrEqualTo(832));
+      expect(
+        warden.surfaces.where((surface) => !surface.isBoundary),
+        hasLength(greaterThanOrEqualTo(5)),
+      );
+      expect(mechanic.pressureVents, hasLength(greaterThanOrEqualTo(3)));
+      expect(mechanic.phasePlatforms, hasLength(greaterThanOrEqualTo(2)));
+      expect(mechanic.safeZones, hasLength(greaterThanOrEqualTo(2)));
+      expect(mechanic.summonGates, hasLength(greaterThanOrEqualTo(2)));
+
+      final floorRoute = warden.requiredTraversalSegments.singleWhere(
+        (segment) => segment.id == 'damage.warden.universal-floor',
+      );
+      expect(floorRoute.rise, 0);
+      expect(floorRoute.gap, 0);
+      expect(floorRoute.requirement, TraversalAbilityRequirement.universal);
+      for (final weapon in PlayerWeapon.values) {
+        expect(
+          PlatformerTraversalContract.validateRequiredRoute(
+            warden.requiredTraversalSegments,
+            weapon: weapon,
+          ),
+          isEmpty,
+          reason: '${weapon.name} must clear the Warden by the ground route',
+        );
+      }
+
+      for (final platform in mechanic.phasePlatforms) {
+        expect(
+          warden.surfaces.any(
+            (surface) =>
+                !surface.isBoundary && surface.bounds.overlaps(platform.bounds),
+          ),
+          isFalse,
+          reason: '${platform.id} must not duplicate visible static collision',
+        );
+      }
+    },
+  );
 
   test('exploration encounters partition every enemy into paced waves', () {
     final catalog = DamageLabRoomLayoutCatalog.fromJson(source);
@@ -190,6 +298,40 @@ void main() {
     );
   });
 
+  test('validator rejects a tall collision wall across an authored jump', () {
+    final decoded = _decodedSource(source);
+    final assembly = _room(decoded, 'damageAssembly');
+    final surfaces = (assembly['surfaces']! as List<dynamic>)
+        .cast<Map<String, dynamic>>();
+    final west = surfaces.singleWhere(
+      (surface) => surface['id'] == 'assembly.route.west',
+    );
+    final ascent = surfaces.singleWhere(
+      (surface) => surface['id'] == 'assembly.route.ascent-a',
+    );
+    west['rect'] = <num>[40, 565, 460, 30];
+    ascent['rect'] = <num>[580, 490, 180, 24];
+    surfaces.add(<String, dynamic>{
+      'id': 'assembly.route.blocking-wall',
+      'rect': <num>[520, 365, 24, 200],
+      'renderArtwork': true,
+    });
+
+    expect(
+      () => DamageLabRoomLayoutCatalog.fromJson(jsonEncode(decoded)),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          allOf(
+            contains('damage.assembly.ascent-a'),
+            contains('blocked for ordinary sword movement'),
+          ),
+        ),
+      ),
+    );
+  });
+
   test(
     'validator rejects duplicate weapon sockets and out-of-bounds terrain',
     () {
@@ -217,6 +359,41 @@ void main() {
       );
     },
   );
+
+  test('boss mechanic parser and validator reject authored contract drift', () {
+    final unknownKey = _decodedSource(source);
+    final mechanic =
+        _room(unknownKey, 'overflowWarden')['bossMechanic']!
+            as Map<String, dynamic>;
+    mechanic['pressureValve'] = <dynamic>[];
+    expect(
+      () => DamageLabRoomLayoutCatalog.fromJson(jsonEncode(unknownKey)),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('unknown key "pressureValve"'),
+        ),
+      ),
+    );
+
+    final missingVent = _decodedSource(source);
+    final missingVentMechanic =
+        _room(missingVent, 'overflowWarden')['bossMechanic']!
+            as Map<String, dynamic>;
+    final vents = missingVentMechanic['pressureVents']! as List<dynamic>;
+    vents.removeLast();
+    expect(
+      () => DamageLabRoomLayoutCatalog.fromJson(jsonEncode(missingVent)),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('requires at least three pressure vents'),
+        ),
+      ),
+    );
+  });
 }
 
 Map<String, dynamic> _decodedSource(String source) =>

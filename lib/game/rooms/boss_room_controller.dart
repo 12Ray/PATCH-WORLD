@@ -7,6 +7,7 @@ import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/campaign/story_map_art_contract.dart';
 import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
 import 'package:patch_world/game/components/environment/legacy_glitch_terminal.dart';
+import 'package:patch_world/game/components/environment/optimizer_arena_stage_component.dart';
 import 'package:patch_world/game/components/environment/phase_wall_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
@@ -18,6 +19,7 @@ import 'package:patch_world/game/rules/anomalies/damage_sign_inverted_rule.dart'
 import 'package:patch_world/game/rules/rule_ids.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/systems/phase_leak_controller.dart';
+import 'package:patch_world/services/audio_service.dart';
 
 final class BossRoomController extends Component
     with HasGameReference<PatchWorldGame>
@@ -28,17 +30,35 @@ final class BossRoomController extends Component
         CampaignNodeRoom {
   late final OptimizerBossComponent boss;
   late final LegacyGlitchTerminal terminal;
+  late final OptimizerArenaStageComponent arenaStage;
   final PhaseLeakController _phaseLeak = PhaseLeakController();
   final List<PlatformSurfaceComponent> _surfaces = <PlatformSurfaceComponent>[];
   final List<PhaseWallComponent> _phaseWalls = <PhaseWallComponent>[];
+  final List<OptimizerPhasePlatformComponent> _phasePlatforms =
+      <OptimizerPhasePlatformComponent>[];
+  final List<OptimizerPhaseBreakablePlatformComponent> _breakablePlatforms =
+      <OptimizerPhaseBreakablePlatformComponent>[];
+  final List<OptimizerPhaseLaserComponent> _phaseLasers =
+      <OptimizerPhaseLaserComponent>[];
   double _legacyRemaining = 0;
   double _legacyCooldown = 0;
   bool _legacyActive = false;
   bool _bossIntroStarted = false;
   double _bossIntroRemaining = 0;
   BossNameCardComponent? _bossNameCard;
+  bool _playedBossIntroAudio = false;
+  bool _playedBossVictoryAudio = false;
+  final Set<int> _playedBossAudioPhases = <int>{};
 
   bool get isBossIntroActive => _bossIntroRemaining > 0;
+  List<OptimizerPhasePlatformComponent> get phasePlatforms =>
+      List<OptimizerPhasePlatformComponent>.unmodifiable(_phasePlatforms);
+  List<OptimizerPhaseBreakablePlatformComponent> get breakablePlatforms =>
+      List<OptimizerPhaseBreakablePlatformComponent>.unmodifiable(
+        _breakablePlatforms,
+      );
+  List<OptimizerPhaseLaserComponent> get phaseLasers =>
+      List<OptimizerPhaseLaserComponent>.unmodifiable(_phaseLasers);
 
   @override
   CampaignNodeId get campaignNodeId => CampaignNodeId.optimizerCore;
@@ -77,11 +97,25 @@ final class BossRoomController extends Component
   }
 
   @override
-  Vector2 cameraTargetFor(Vector2 playerPosition) =>
-      isBossIntroActive ? boss.position.clone() : playerPosition.clone();
+  Vector2 cameraTargetFor(Vector2 playerPosition) {
+    if (isBossIntroActive) return boss.position.clone();
+    if (!boss.isEncounterActive && !boss.isOutroActive) {
+      return playerPosition.clone();
+    }
+    return (playerPosition + boss.position) / 2;
+  }
 
   @override
-  double cameraZoomFor(Vector2 playerPosition) => isBossIntroActive ? 1.24 : 1;
+  double cameraZoomFor(Vector2 playerPosition) {
+    if (isBossIntroActive) return 1.18;
+    if (!boss.isEncounterActive && !boss.isOutroActive) return 1;
+    final horizontalSpan = (playerPosition.x - boss.position.x).abs() + 250;
+    final verticalSpan = (playerPosition.y - boss.position.y).abs() + 150;
+    return math
+        .min(960 / horizontalSpan, 540 / verticalSpan)
+        .clamp(.9, 1.06)
+        .toDouble();
+  }
 
   @override
   Future<void> onLoad() async {
@@ -94,51 +128,74 @@ final class BossRoomController extends Component
         worldSize: worldSize,
       ),
     );
+    arenaStage = OptimizerArenaStageComponent(worldSize: worldSize);
+    await add(arenaStage);
+    _phasePlatforms.addAll(<OptimizerPhasePlatformComponent>[
+      OptimizerPhasePlatformComponent(
+        start: Vector2(620, 900),
+        end: Vector2(620, 660),
+        size: Vector2(120, 22),
+        periodSeconds: 3.4,
+      ),
+      OptimizerPhasePlatformComponent(
+        start: Vector2(1180, 660),
+        end: Vector2(1180, 900),
+        size: Vector2(120, 22),
+        periodSeconds: 3.4,
+      ),
+    ]);
+    _breakablePlatforms.addAll(<OptimizerPhaseBreakablePlatformComponent>[
+      OptimizerPhaseBreakablePlatformComponent(
+        position: Vector2(280, 650),
+        size: Vector2(150, 22),
+      ),
+      OptimizerPhaseBreakablePlatformComponent(
+        position: Vector2(1490, 650),
+        size: Vector2(150, 22),
+      ),
+    ]);
     _surfaces.addAll(<PlatformSurfaceComponent>[
       _surface(0, 0, 24, 1080, boundary: true),
       _surface(1896, 0, 24, 1080, boundary: true),
       _surface(0, 1024, 500, 56),
       _surface(610, 1024, 700, 56),
       _surface(1420, 1024, 500, 56),
-      _surface(100, 880, 280, 24),
-      _surface(400, 760, 220, 24),
-      _surface(690, 640, 200, 24),
-      _surface(850, 500, 220, 28),
-      _surface(1130, 640, 200, 24),
-      _surface(1380, 760, 220, 24),
-      _surface(1580, 880, 280, 24),
-      _surface(560, 820, 42, 204, boundary: true),
-      _surface(1318, 820, 42, 204, boundary: true),
-      MovingPlatformComponent(
-        start: Vector2(620, 900),
-        end: Vector2(620, 660),
-        size: Vector2(120, 22),
-        periodSeconds: 3.4,
-        style: PlatformSurfaceStyle.optimizer,
-      ),
-      MovingPlatformComponent(
-        start: Vector2(1180, 660),
-        end: Vector2(1180, 900),
-        size: Vector2(120, 22),
-        periodSeconds: 3.4,
-        style: PlatformSurfaceStyle.optimizer,
-      ),
-      BreakablePlatformComponent(
-        position: Vector2(280, 650),
-        size: Vector2(150, 22),
-        breakDelay: .65,
-        restoreDelay: 2.8,
-        style: PlatformSurfaceStyle.optimizer,
-      ),
-      BreakablePlatformComponent(
-        position: Vector2(1490, 650),
-        size: Vector2(150, 22),
-        breakDelay: .65,
-        restoreDelay: 2.8,
-        style: PlatformSurfaceStyle.optimizer,
-      ),
+      // The permanent route is a mirrored 80 px staircase. 80 px is the
+      // campaign's conservative single-jump rise, so the sword never needs
+      // its dash (or a phase platform) to cross the Core or reach melee
+      // height. The animated platforms remain tactical shortcuts only.
+      _surface(100, 944, 280, 24),
+      _surface(400, 864, 220, 24),
+      _surface(690, 784, 200, 24),
+      _surface(760, 704, 160, 24),
+      _surface(800, 624, 160, 24),
+      _surface(850, 544, 220, 28),
+      _surface(960, 624, 160, 24),
+      _surface(1000, 704, 160, 24),
+      _surface(1130, 784, 200, 24),
+      _surface(1380, 864, 220, 24),
+      _surface(1580, 944, 280, 24),
+      // These visible firewall blocks replace the old invisible walls. They
+      // still frame each data pit, but a normal jump clears them.
+      _surface(560, 944, 42, 80),
+      _surface(1318, 944, 42, 80),
+      ..._phasePlatforms,
+      ..._breakablePlatforms,
     ]);
     await addAll(_surfaces);
+    _phaseLasers.addAll(<OptimizerPhaseLaserComponent>[
+      OptimizerPhaseLaserComponent(
+        position: Vector2(520, 600),
+        size: Vector2(14, 220),
+        sourceId: 'boss.optimizer.arenaLaser.left',
+      ),
+      OptimizerPhaseLaserComponent(
+        position: Vector2(1386, 600),
+        size: Vector2(14, 220),
+        sourceId: 'boss.optimizer.arenaLaser.right',
+        phaseOffset: .55,
+      ),
+    ]);
     await addAll(<Component>[
       DamagePitComponent(
         position: Vector2(500, 1024),
@@ -164,19 +221,7 @@ final class BossRoomController extends Component
         surfaceStyle: PlatformSurfaceStyle.optimizer,
         sourceId: 'hazard.optimizer.perfect-teeth-right',
       ),
-      PulsingLaserComponent(
-        position: Vector2(520, 600),
-        size: Vector2(14, 220),
-        sourceId: 'hazard.optimizer.analysis-column-left',
-        style: PlatformSurfaceStyle.optimizer,
-      ),
-      PulsingLaserComponent(
-        position: Vector2(1386, 600),
-        size: Vector2(14, 220),
-        sourceId: 'hazard.optimizer.analysis-column-right',
-        style: PlatformSurfaceStyle.optimizer,
-        phaseOffset: 1.2,
-      ),
+      ..._phaseLasers,
       JumpPadComponent(
         position: Vector2(430, 1012),
         style: PlatformSurfaceStyle.optimizer,
@@ -194,10 +239,13 @@ final class BossRoomController extends Component
     boss = OptimizerBossComponent(
       position: Vector2(960, 330),
       onPerfectStateEntered: terminal.enable,
-      onDefeated: game.showEnding,
+      onPhaseChanged: _handleBossPhaseChanged,
+      onCoreExposed: _handleCoreExposed,
+      onDefeated: _handleBossDefeated,
       startsActive: false,
     );
     await addAll(<Component>[terminal, boss]);
+    _applyArenaPhase(OptimizerPhase.analyze);
 
     if (game.runState.hasPatch(RuleIds.phaseLeak)) {
       _phaseWalls.addAll(<PhaseWallComponent>[
@@ -237,6 +285,7 @@ final class BossRoomController extends Component
         _bossNameCard?.removeFromParent();
         _bossNameCard = null;
         boss.activateEncounter();
+        _playBossPhaseAudioOnce(1);
         game.setCinematicInputLocked(false);
       }
     }
@@ -273,6 +322,64 @@ final class BossRoomController extends Component
     _bossNameCard = card;
     add(card);
     game.triggerImpactFeedback();
+    if (!_playedBossIntroAudio) {
+      _playedBossIntroAudio = true;
+      unawaited(
+        game.audio.playStoryBossIntro(StoryBossAudioIdentity.optimizer),
+      );
+    }
+  }
+
+  void _handleBossPhaseChanged(OptimizerPhase phase) {
+    _applyArenaPhase(phase);
+    switch (phase) {
+      case OptimizerPhase.analyze:
+        _playBossPhaseAudioOnce(1);
+      case OptimizerPhase.predict:
+        _playBossPhaseAudioOnce(2);
+      case OptimizerPhase.perfect:
+        _playBossPhaseAudioOnce(3);
+      case OptimizerPhase.overflow || OptimizerPhase.defeated:
+        break;
+    }
+  }
+
+  void _applyArenaPhase(OptimizerPhase phase) {
+    arenaStage.setPhase(phase);
+    for (final platform in _phasePlatforms) {
+      platform.setPhase(phase);
+    }
+    for (final platform in _breakablePlatforms) {
+      platform.setPhase(phase);
+    }
+    for (final laser in _phaseLasers) {
+      laser.setPhase(phase);
+    }
+  }
+
+  void _playBossPhaseAudioOnce(int phase) {
+    if (!_playedBossAudioPhases.add(phase)) return;
+    unawaited(
+      game.audio.playStoryBossPhase(
+        StoryBossAudioIdentity.optimizer,
+        phase: phase,
+      ),
+    );
+  }
+
+  void _handleCoreExposed() {
+    arenaStage.revealCore();
+    game.triggerImpactFeedback(intensity: 1.6);
+  }
+
+  void _handleBossDefeated() {
+    if (!_playedBossVictoryAudio) {
+      _playedBossVictoryAudio = true;
+      unawaited(
+        game.audio.playStoryBossVictory(StoryBossAudioIdentity.optimizer),
+      );
+    }
+    game.showEnding();
   }
 
   bool tryInteract(PlayerComponent player) =>

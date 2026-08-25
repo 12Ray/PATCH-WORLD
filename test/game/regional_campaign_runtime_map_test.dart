@@ -189,6 +189,72 @@ void main() {
     }
   });
 
+  test('boss arenas are wide, distinct, and phase-authored', () {
+    final catalog = loadCatalog();
+    final chrono = catalog.room(CampaignNodeId.chronoJailer);
+    final chimera = catalog.room(CampaignNodeId.kernelChimera);
+
+    for (final layout in <RegionalCampaignRoomLayout>[chrono, chimera]) {
+      expect(layout.width, greaterThanOrEqualTo(1440));
+      expect(layout.height, greaterThanOrEqualTo(832));
+      expect(layout.bossArenaBounds.width, greaterThanOrEqualTo(960));
+      expect(layout.bossMechanics, isNotEmpty);
+      for (var phase = 1; phase <= 3; phase += 1) {
+        final active = layout.bossMechanics
+            .where((mechanic) => mechanic.isActiveInPhase(phase))
+            .toList(growable: false);
+        expect(
+          active.length,
+          greaterThanOrEqualTo(2),
+          reason: '${layout.nodeId.name}/phase$phase',
+        );
+        expect(
+          active.any(
+            (mechanic) =>
+                mechanic.kind == RegionalCampaignFeatureKind.bossSafePlatform,
+          ),
+          isTrue,
+          reason: '${layout.nodeId.name}/phase$phase needs a safe island',
+        );
+      }
+    }
+
+    final chronoSilhouette = chrono.surfaces
+        .where((surface) => !surface.isBoundary)
+        .map((surface) => surface.bounds)
+        .toList(growable: false);
+    final chimeraSilhouette = chimera.surfaces
+        .where((surface) => !surface.isBoundary)
+        .map((surface) => surface.bounds)
+        .toList(growable: false);
+    expect(
+      chronoSilhouette,
+      isNot(chimeraSilhouette),
+      reason: 'Chrono stairs and Chimera split rails must not share a layout.',
+    );
+    expect(
+      chrono.bossMechanics.any(
+        (mechanic) =>
+            mechanic.kind == RegionalCampaignFeatureKind.rewindPlatform,
+      ),
+      isTrue,
+    );
+    expect(
+      chimera.bossMechanics.any(
+        (mechanic) =>
+            mechanic.kind == RegionalCampaignFeatureKind.mergingPlatform,
+      ),
+      isTrue,
+    );
+    expect(
+      chimera.bossMechanics.any(
+        (mechanic) =>
+            mechanic.kind == RegionalCampaignFeatureKind.conveyorPlatform,
+      ),
+      isTrue,
+    );
+  });
+
   test('corrected service sockets sit on authored surfaces', () {
     final catalog = loadCatalog();
     expect(
@@ -349,6 +415,27 @@ void main() {
           (error) => error.message,
           'message',
           contains('boss room may only author boss seals'),
+        ),
+      ),
+    );
+
+    final invalidMechanic = jsonDecode(temporalSource) as Map<String, dynamic>;
+    final invalidBoss = _room(invalidMechanic, CampaignNodeId.chronoJailer);
+    final mechanics = invalidBoss['bossMechanics'] as List<dynamic>;
+    mechanics.add(<String, dynamic>{
+      'id': 'chrono.unsupported-jump-pad',
+      'phases': <int>[1],
+      'kind': 'jumpPad',
+      'position': <num>[400, 680],
+      'size': <num>[54, 12],
+    });
+    expect(
+      () => loadCatalog(temporal: jsonEncode(invalidMechanic)),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          allOf(contains('boss mechanic'), contains('does not permit jumpPad')),
         ),
       ),
     );

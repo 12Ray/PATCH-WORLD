@@ -10,14 +10,15 @@ enum CampaignBossAttackCycleEvent { execute, activeEnded, recovered }
 /// chapter bosses.
 ///
 /// Damage is clamped at the current phase's floor. Crossing that floor can
-/// only advance one phase, and only after an attack has completed in the
-/// current phase. The final floor deliberately leaves one health point so the
-/// boss cannot enter a defeated health condition before phase three has
-/// demonstrated its attack pattern.
+/// only advance one phase, and only after two different attacks have completed
+/// in the current phase. The final floor deliberately leaves one health point
+/// so the boss cannot enter a defeated health condition before phase three has
+/// demonstrated a representative pattern pair.
 abstract final class CampaignBossPhaseGateSpec {
   static const int maxHealth = 20;
   static const List<int> healthFloors = <int>[13, 6, 1];
   static const double transitionQuietSeconds = .75;
+  static const int requiredDistinctPatternsPerPhase = 2;
 
   static int healthFloorForPhaseIndex(int phaseIndex) {
     if (phaseIndex < 0 || phaseIndex >= healthFloors.length) {
@@ -85,13 +86,27 @@ final class CampaignChapterBossPatternSet {
   const CampaignChapterBossPatternSet({
     required this.bossId,
     required this.patterns,
+    required this.phasePatternIds,
   });
 
   final String bossId;
   final List<CampaignChapterBossAttackSpec> patterns;
+  final List<List<String>> phasePatternIds;
 
   CampaignChapterBossAttackSpec byId(String id) =>
       patterns.firstWhere((pattern) => pattern.id == id);
+
+  List<String> patternIdsForPhaseIndex(int phaseIndex) {
+    if (phaseIndex < 0 || phaseIndex >= phasePatternIds.length) {
+      throw RangeError.range(
+        phaseIndex,
+        0,
+        phasePatternIds.length - 1,
+        'phaseIndex',
+      );
+    }
+    return phasePatternIds[phaseIndex];
+  }
 
   String get fingerprint =>
       '$bossId:${patterns.map((pattern) => pattern.fingerprint).join('|')}';
@@ -101,6 +116,17 @@ abstract final class CampaignChapterBossPatternCatalog {
   static const CampaignChapterBossPatternSet chronoJailer =
       CampaignChapterBossPatternSet(
         bossId: 'chronoJailer',
+        phasePatternIds: <List<String>>[
+          <String>['rewindCharge', 'clockFan', 'clockSweep'],
+          <String>['timeCage', 'clockSweep', 'rewindCharge', 'clockFan'],
+          <String>[
+            'hourglassMine',
+            'rewindCharge',
+            'timeCage',
+            'clockFan',
+            'clockSweep',
+          ],
+        ],
         patterns: <CampaignChapterBossAttackSpec>[
           CampaignChapterBossAttackSpec(
             id: 'rewindCharge',
@@ -153,6 +179,17 @@ abstract final class CampaignChapterBossPatternCatalog {
   static const CampaignChapterBossPatternSet kernelChimera =
       CampaignChapterBossPatternSet(
         bossId: 'kernelChimera',
+        phasePatternIds: <List<String>>[
+          <String>['mergeSlam', 'splitKernel', 'gravityShard'],
+          <String>['polarityCross', 'splitKernel', 'mergeSlam', 'gravityShard'],
+          <String>[
+            'vectorCage',
+            'gravityShard',
+            'polarityCross',
+            'splitKernel',
+            'mergeSlam',
+          ],
+        ],
         patterns: <CampaignChapterBossAttackSpec>[
           CampaignChapterBossAttackSpec(
             id: 'mergeSlam',

@@ -54,7 +54,7 @@ final class PlayerComponent extends RectangleComponent
     with CollisionCallbacks, HasGameReference<PatchWorldGame> {
   PlayerComponent({required super.position, required this.spawnPosition})
     : super(
-        size: Vector2.all(32),
+        size: Vector2.all(PlatformerMotion.playerCollisionBodySize),
         anchor: Anchor.center,
         paint: Paint()..color = const Color(0x00000000),
         priority: 20,
@@ -62,6 +62,7 @@ final class PlayerComponent extends RectangleComponent
 
   static const double moveSpeed = 160;
   static const double presentationSize = 46;
+  static const double damageHitboxScale = 0.66;
   static const double attackCooldownSeconds = 0.45;
   static const double hitInvulnerabilitySeconds = 0.70;
   static const double parryWindowSeconds = 0.20;
@@ -174,6 +175,11 @@ final class PlayerComponent extends RectangleComponent
   bool get isTouchingWall => _wallContactDirection != 0;
   bool get isDashing => _dashRemaining > 0;
   bool get isGrounded => _platformerMotion.grounded;
+  Rect get damageHitboxBounds => Rect.fromCenter(
+    center: Offset(position.x, position.y),
+    width: size.x * damageHitboxScale,
+    height: size.y * damageHitboxScale,
+  );
   bool get hasCompleteArtV3Visuals =>
       _visualLoadError == null &&
       _registrationMetadataLoaded &&
@@ -218,7 +224,7 @@ final class PlayerComponent extends RectangleComponent
     unawaited(_loadVisual());
     await add(
       RectangleHitbox.relative(
-        Vector2.all(0.66),
+        Vector2.all(damageHitboxScale),
         parentSize: size,
         position: size / 2,
         anchor: Anchor.center,
@@ -1488,9 +1494,20 @@ final class PlayerComponent extends RectangleComponent
             _dashDirection * (dashDistance / dashDurationSeconds);
       }
 
+      final surfaceVelocity =
+          _platformerMotion.grounded && room is PlatformerRoomSurfaceMotion
+          ? (room as PlatformerRoomSurfaceMotion).horizontalSurfaceVelocityFor(
+              _boundsAt(position.x, position.y),
+            )
+          : 0.0;
+      final horizontalVelocity = _platformerMotion.velocity.x + surfaceVelocity;
       final oldX = position.x;
-      position.x += _platformerMotion.velocity.x * step;
-      _resolvePlatformerHorizontal(room.solidBounds, oldX);
+      position.x += horizontalVelocity * step;
+      _resolvePlatformerHorizontal(
+        room.solidBounds,
+        oldX,
+        horizontalVelocity: horizontalVelocity,
+      );
 
       final oldY = position.y;
       _platformerMotion.beginVerticalResolution();
@@ -1516,19 +1533,22 @@ final class PlayerComponent extends RectangleComponent
     }
   }
 
-  void _resolvePlatformerHorizontal(Iterable<Rect> solids, double oldX) {
+  void _resolvePlatformerHorizontal(
+    Iterable<Rect> solids,
+    double oldX, {
+    required double horizontalVelocity,
+  }) {
     final halfWidth = size.x / 2;
     final oldLeft = oldX - halfWidth;
     final oldRight = oldX + halfWidth;
     for (final solid in solids) {
       final bounds = _boundsAt(position.x, position.y);
       if (!bounds.overlaps(solid)) continue;
-      if (_platformerMotion.velocity.x > 0 && oldRight <= solid.left + 1) {
+      if (horizontalVelocity > 0 && oldRight <= solid.left + 1) {
         position.x = solid.left - halfWidth;
         _wallContactDirection = 1;
         _platformerMotion.hitWall();
-      } else if (_platformerMotion.velocity.x < 0 &&
-          oldLeft >= solid.right - 1) {
+      } else if (horizontalVelocity < 0 && oldLeft >= solid.right - 1) {
         position.x = solid.right + halfWidth;
         _wallContactDirection = -1;
         _platformerMotion.hitWall();

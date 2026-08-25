@@ -105,6 +105,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     required super.position,
     required this.onDefeated,
     this.startsDormant = false,
+    this.onRepairAlly,
   }) : healthState = HealthState(
          max: archetype.isMidBoss ? 8 : 3,
          current: archetype.index < 5
@@ -121,6 +122,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   final bool startsDormant;
   final HealthState healthState;
   final void Function(PlatformerEnemyComponent enemy) onDefeated;
+  final bool Function(int amount)? onRepairAlly;
   final Vector2 _velocity = Vector2.zero();
   late final Vector2 _homePosition;
 
@@ -183,6 +185,9 @@ final class PlatformerEnemyComponent extends PositionComponent
 
   @visibleForTesting
   double? get debugPatternHorizontalVelocity => _patternHorizontalVelocity;
+
+  @visibleForTesting
+  bool debugRepairNearestAlly([int amount = 1]) => _repairNearestAlly(amount);
 
   double get _activeWorldWidth {
     final room = game.world.activeRoom;
@@ -1216,7 +1221,8 @@ final class PlatformerEnemyComponent extends PositionComponent
     }
   }
 
-  void _repairNearestAlly([int amount = 1]) {
+  bool _repairNearestAlly([int amount = 1]) {
+    if (onRepairAlly?.call(amount) ?? false) return true;
     PlatformerEnemyComponent? nearest;
     var nearestDistance = double.infinity;
     for (final target in game.world.activeCombatTargets) {
@@ -1231,7 +1237,9 @@ final class PlatformerEnemyComponent extends PositionComponent
         nearest = target;
       }
     }
-    if (nearestDistance <= 230 * 230) nearest?._receiveSupportHealing(amount);
+    if (nearestDistance > 230 * 230 || nearest == null) return false;
+    nearest._receiveSupportHealing(amount);
+    return true;
   }
 
   void _updateFlying(double dt) {

@@ -12,6 +12,7 @@ import 'package:patch_world/game/components/enemies/platformer/enemy_action_time
 import 'package:patch_world/game/components/projectiles/enemy_projectile_component.dart';
 import 'package:patch_world/game/core/health_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/systems/combat_system.dart';
 
 enum OverflowWardenPhase {
@@ -35,16 +36,21 @@ final class OverflowWardenBossComponent extends PositionComponent
     required this.onDefeated,
     this.onPhaseChanged,
     this.arenaFloorY = 1024,
+    this.arenaBounds,
   }) : healthState = HealthState(max: 18, current: 12, overflowMargin: 6),
        super(size: Vector2(76, 88), anchor: Anchor.center, priority: 17);
 
   static const List<int> _phaseHealthCeilings = <int>[18, 21, 24];
   static const double _phaseTransitionSeconds = .75;
+  static const int requiredDistinctAttacksPerPhase = 2;
+  static const double _shieldChargeDistance = 320;
+  static const double _shieldChargeSeconds = .28;
 
   final HealthState healthState;
   final VoidCallback onDefeated;
   final void Function(OverflowWardenPhase phase)? onPhaseChanged;
   final double arenaFloorY;
+  final Rect? arenaBounds;
   OverflowWardenPhase phase = OverflowWardenPhase.dormant;
 
   SpriteComponent? _visual;
@@ -61,7 +67,13 @@ final class OverflowWardenBossComponent extends PositionComponent
   int _decisionCursor = 0;
   int _hazardEpoch = 0;
   final Set<Component> _spawnedHazards = <Component>{};
-  bool _completedAttackInCurrentPhase = false;
+  final OverflowWardenPhaseAttackGate _phaseAttackGate =
+      OverflowWardenPhaseAttackGate(
+        requiredDistinctAttacks: requiredDistinctAttacksPerPhase,
+      );
+  Vector2? _chargeStart;
+  Vector2? _chargeEnd;
+  double _chargeElapsed = 0;
   bool _phaseThresholdReached = false;
   bool _resolved = false;
 
@@ -72,7 +84,10 @@ final class OverflowWardenBossComponent extends PositionComponent
   bool get hasArtV3Visual => _frames?.length == 8;
   String? get activeAttackId => _attackAction?.id;
   EnemyActionPhase? get attackPhase => _attackAction?.phase;
-  bool get hasCompletedAttackInCurrentPhase => _completedAttackInCurrentPhase;
+  bool get hasCompletedAttackInCurrentPhase => _phaseAttackGate.isReady;
+  int get completedDistinctAttackCountInCurrentPhase =>
+      _phaseAttackGate.completedDistinctAttackCount;
+  bool get isShieldCharging => _chargeEnd != null;
   bool get isPhaseTransitioning => _phaseTransitionRemaining > 0;
   double get phaseTransitionSecondsRemaining => _phaseTransitionRemaining;
   int get spawnedHazardCount => _spawnedHazards.length;
@@ -163,7 +178,7 @@ final class OverflowWardenBossComponent extends PositionComponent
     if (phase != OverflowWardenPhase.intro) return;
     phase = OverflowWardenPhase.shielded;
     _attackCooldown = .7;
-    _completedAttackInCurrentPhase = false;
+    _phaseAttackGate.reset();
     _phaseThresholdReached = false;
     _phaseTransitionRemaining = 0;
     onPhaseChanged?.call(phase);
@@ -191,6 +206,19 @@ final class OverflowWardenBossComponent extends PositionComponent
     _tryAdvancePhaseGate();
   }
 
+  /// Repair Leech support can restore the Warden up to one point below the
+  /// anomaly threshold, but only a player-authored healing hit may cross it.
+  /// This keeps the adds relevant without allowing them to auto-clear phases.
+  void receiveSupportHealing(int amount) {
+    if (!isActive || amount <= 0 || isPhaseTransitioning) return;
+    final supportCeiling = _currentPhaseHealthCeiling - 1;
+    final acceptedHealing = math.min(
+      amount,
+      math.max(0, supportCeiling - health),
+    );
+    if (acceptedHealing > 0) healthState.applyHealing(acceptedHealing);
+  }
+
   int get _activePhaseIndex => switch (phase) {
     OverflowWardenPhase.shielded => 0,
     OverflowWardenPhase.breached => 1,
@@ -201,7 +229,7 @@ final class OverflowWardenBossComponent extends PositionComponent
   int get _currentPhaseHealthCeiling => _phaseHealthCeilings[_activePhaseIndex];
 
   void _tryAdvancePhaseGate() {
-    if (!_phaseThresholdReached || !_completedAttackInCurrentPhase) return;
+    if (!_phaseThresholdReached || !hasCompletedAttackInCurrentPhase) return;
     switch (phase) {
       case OverflowWardenPhase.shielded:
         _beginPhaseTransition(OverflowWardenPhase.breached);
@@ -220,10 +248,11 @@ final class OverflowWardenBossComponent extends PositionComponent
   void _beginPhaseTransition(OverflowWardenPhase nextPhase) {
     phase = nextPhase;
     _phaseTransitionRemaining = _phaseTransitionSeconds;
-    _completedAttackInCurrentPhase = false;
+    _phaseAttackGate.reset();
     _phaseThresholdReached = false;
     _attackCooldown = 0;
     _attackAction = null;
+    _clearChargeMotion();
     _removeSpawnedHazards();
     scale.setAll(1.12);
     onPhaseChanged?.call(phase);
@@ -237,8 +266,8 @@ final class OverflowWardenBossComponent extends PositionComponent
     _attackCooldown = 0;
   }
 
-  void _recordCompletedAttack() {
-    _completedAttackInCurrentPhase = true;
+  void _recordCompletedAttack(String attackId) {
+    _phaseAttackGate.record(attackId);
     _tryAdvancePhaseGate();
     if (!isPhaseTransitioning && phase != OverflowWardenPhase.overflowing) {
       _attackCooldown = switch (phase) {
@@ -251,8 +280,9 @@ final class OverflowWardenBossComponent extends PositionComponent
 
   void _clearPhaseGate() {
     _phaseTransitionRemaining = 0;
-    _completedAttackInCurrentPhase = false;
+    _phaseAttackGate.reset();
     _phaseThresholdReached = false;
+    _clearChargeMotion();
   }
 
   void _beginOverflowDefeat() {
@@ -323,6 +353,7 @@ final class OverflowWardenBossComponent extends PositionComponent
       return;
     }
 
+    _advanceShieldCharge(simulationDt);
     _attackCooldown = math.max(0, _attackCooldown - simulationDt);
     final attackAction = _attackAction;
     if (attackAction != null) {
@@ -330,7 +361,7 @@ final class OverflowWardenBossComponent extends PositionComponent
       if (tick.enteredActive) _executeAttack(attackAction.id);
       if (tick.completed) {
         _attackAction = null;
-        _recordCompletedAttack();
+        _recordCompletedAttack(attackAction.id);
       }
     } else if (_attackCooldown <= 0) {
       _telegraph(_chooseAttack());
@@ -341,13 +372,20 @@ final class OverflowWardenBossComponent extends PositionComponent
 
   String _chooseAttack() {
     final distance = game.world.player.position.distanceTo(position);
-    final candidates = <String>[
-      if (distance < 190) 'shieldSlam',
-      if (distance >= 130) 'overflowGrenade',
-      if (phase != OverflowWardenPhase.shielded) 'checksumFan',
-      if (phase == OverflowWardenPhase.critical) 'memoryQuake',
-      'shieldCharge',
-    ].where((id) => !_recentAttacks.take(2).contains(id)).toList();
+    final phaseDeck = OverflowWardenAttackCatalog.deckForPhase(
+      _activePhaseIndex + 1,
+    );
+    final candidates =
+        <String>[
+              if (distance < 190) 'shieldSlam',
+              if (distance >= 130) 'overflowGrenade',
+              if (phase != OverflowWardenPhase.shielded) 'checksumFan',
+              if (phase == OverflowWardenPhase.critical) 'memoryQuake',
+              'shieldCharge',
+            ]
+            .where(phaseDeck.contains)
+            .where((id) => !_recentAttacks.take(2).contains(id))
+            .toList();
     final pool = candidates.isEmpty
         ? <String>['shieldSlam', 'overflowGrenade']
         : candidates;
@@ -444,20 +482,71 @@ final class OverflowWardenBossComponent extends PositionComponent
           );
         }
       case 'shieldCharge':
-        final facing = _lockedAttackFacing;
-        unawaited(
-          _addToOwner(
-            owner,
-            EnemyDamageVolumeComponent(
-              position: position + Vector2(facing * 105, 8),
-              size: Vector2(190, 74),
-              sourceId: 'enemy.overflowWarden.shieldCharge',
-              activeSeconds: .26,
-              volumeColor: const Color(0x889D8CFF),
-            ),
-          ),
-        );
+        _startShieldCharge(owner);
     }
+  }
+
+  void _startShieldCharge(Component owner) {
+    final start = position.clone();
+    final targetX = _resolveShieldChargeEndX(start.x);
+    final end = Vector2(targetX, start.y);
+    _chargeStart = start;
+    _chargeEnd = end;
+    _chargeElapsed = 0;
+
+    final distance = (end.x - start.x).abs();
+    if (distance <= 0) {
+      _clearChargeMotion();
+      return;
+    }
+    unawaited(
+      _addToOwner(
+        owner,
+        EnemyDamageVolumeComponent(
+          position: Vector2((start.x + end.x) / 2, start.y + 8),
+          size: Vector2(distance + size.x * .72, 74),
+          sourceId: 'enemy.overflowWarden.shieldCharge',
+          activeSeconds: _shieldChargeSeconds,
+          volumeColor: const Color(0x889D8CFF),
+        ),
+      ),
+    );
+  }
+
+  double _resolveShieldChargeEndX(double startX) {
+    final authoredArena = arenaBounds;
+    final room = isMounted ? game.world.activeRoom : null;
+    final arenaWidth =
+        authoredArena?.right ??
+        (room is PlatformerRoomGeometry
+            ? (room as PlatformerRoomGeometry).worldSize.x
+            : startX + _shieldChargeDistance + size.x);
+    return resolveOverflowWardenChargeEndX(
+      startX: startX,
+      facing: _lockedAttackFacing,
+      arenaWidth: arenaWidth,
+      bodyWidth: size.x,
+      arenaLeft: authoredArena?.left ?? 0,
+      arenaRight: authoredArena?.right,
+      distance: _shieldChargeDistance,
+    );
+  }
+
+  void _advanceShieldCharge(double dt) {
+    final start = _chargeStart;
+    final end = _chargeEnd;
+    if (start == null || end == null || dt <= 0) return;
+    _chargeElapsed = math.min(_shieldChargeSeconds, _chargeElapsed + dt);
+    final linear = (_chargeElapsed / _shieldChargeSeconds).clamp(0.0, 1.0);
+    final eased = 1 - math.pow(1 - linear, 3).toDouble();
+    position.setFrom(start + (end - start) * eased);
+    if (linear >= 1) _clearChargeMotion();
+  }
+
+  void _clearChargeMotion() {
+    _chargeStart = null;
+    _chargeEnd = null;
+    _chargeElapsed = 0;
   }
 
   Future<void> _addToOwner(Component owner, Component child) async {
@@ -579,10 +668,12 @@ final class OverflowWardenBossComponent extends PositionComponent
           );
         }
       case 'shieldCharge':
+        final resolvedEndX = _resolveShieldChargeEndX(position.x);
+        final signedTravel = resolvedEndX - position.x;
         canvas.drawRect(
           Rect.fromCenter(
-            center: center + Offset(_lockedAttackFacing * 105, 8),
-            width: 190,
+            center: center + Offset(signedTravel / 2, 8),
+            width: signedTravel.abs() + size.x * .72,
             height: 74,
           ),
           tell..strokeWidth = 5,

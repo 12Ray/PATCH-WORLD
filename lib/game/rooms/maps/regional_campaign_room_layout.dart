@@ -34,11 +34,33 @@ enum RegionalCampaignFeatureKind {
   mergingPlatform,
   conveyorPlatform,
   breakablePlatform,
+  bossSafePlatform,
   jumpPad,
   pulsingLaser,
   crusherHazard,
   spikeHazard,
   bossSeal,
+}
+
+/// A phase-scoped mechanic that is only legal inside a regional boss arena.
+///
+/// Boss mechanics deliberately reuse the typed feature payload so moving and
+/// collidable visuals keep using the same runtime components as exploration
+/// rooms. [phases] is the explicit whitelist of combat phases (1-3) during
+/// which the mechanic exists.
+final class RegionalCampaignBossMechanicSpec {
+  const RegionalCampaignBossMechanicSpec({
+    required this.phases,
+    required this.feature,
+  });
+
+  final Set<int> phases;
+  final RegionalCampaignFeatureSpec feature;
+
+  String get id => feature.id;
+  RegionalCampaignFeatureKind get kind => feature.kind;
+
+  bool isActiveInPhase(int phase) => phases.contains(phase);
 }
 
 final class RegionalCampaignPointSpec {
@@ -187,6 +209,7 @@ final class RegionalCampaignRoomLayout {
     required this.enemies,
     required this.encounter,
     required this.features,
+    required this.bossMechanics,
     required this.objectiveNodes,
     required this.terrainPulse,
   });
@@ -207,6 +230,7 @@ final class RegionalCampaignRoomLayout {
   final List<RegionalCampaignEnemySpawnSpec> enemies;
   final CampaignEncounterSpec? encounter;
   final List<RegionalCampaignFeatureSpec> features;
+  final List<RegionalCampaignBossMechanicSpec> bossMechanics;
   final List<RegionalCampaignPointSpec> objectiveNodes;
   final RegionalCampaignTerrainPulseSpec? terrainPulse;
 
@@ -227,6 +251,29 @@ final class RegionalCampaignRoomLayout {
 
   List<TraversalSegment> get requiredTraversalSegments =>
       traversalLinks.map((link) => link.segment).toList(growable: false);
+
+  /// Horizontal combat space enclosed by the two authored boss seals.
+  ///
+  /// Regional bosses use this instead of the outer world bounds, preventing
+  /// split/teleport attacks from placing a melee target behind a locked seal.
+  Rect get bossArenaBounds {
+    final seals =
+        features
+            .where(
+              (feature) => feature.kind == RegionalCampaignFeatureKind.bossSeal,
+            )
+            .toList(growable: false)
+          ..sort((left, right) => left.position.x.compareTo(right.position.x));
+    if (seals.length != 2) {
+      throw StateError('${nodeId.name} requires two seals for arena bounds.');
+    }
+    return Rect.fromLTRB(
+      seals.first.bounds.right,
+      0,
+      seals.last.bounds.left,
+      height,
+    );
+  }
 }
 
 final class RegionalCampaignRoomLayoutCatalog {
@@ -349,6 +396,7 @@ final class RegionalCampaignRoomLayoutCatalog {
       'enemies',
       'encounter',
       'features',
+      'bossMechanics',
       'objectiveNodes',
       'terrainPulse',
     }, path);
@@ -588,6 +636,116 @@ final class RegionalCampaignRoomLayoutCatalog {
         })
         .toList(growable: false);
 
+    final bossMechanics = map.containsKey('bossMechanics')
+        ? _requireList(map, 'bossMechanics', path).indexed
+              .map((entry) {
+                final mechanicPath = '$path.bossMechanics[${entry.$1}]';
+                final mechanic = _requireMap(entry.$2, mechanicPath);
+                _rejectUnknownKeys(mechanic, const <String>{
+                  'id',
+                  'phases',
+                  'kind',
+                  'position',
+                  'size',
+                  'end',
+                  'timeline',
+                  'sourceId',
+                  'periodSeconds',
+                  'activeSeconds',
+                  'inactiveSeconds',
+                  'phaseOffset',
+                  'direction',
+                }, mechanicPath);
+                final phaseValues = _requireList(
+                  mechanic,
+                  'phases',
+                  mechanicPath,
+                );
+                final phases = <int>{};
+                for (
+                  var phaseIndex = 0;
+                  phaseIndex < phaseValues.length;
+                  phaseIndex += 1
+                ) {
+                  final value = phaseValues[phaseIndex];
+                  if (value is! int) {
+                    throw FormatException(
+                      '$mechanicPath.phases[$phaseIndex] must be an int.',
+                    );
+                  }
+                  phases.add(value);
+                }
+                final sourceId = mechanic['sourceId'];
+                if (sourceId != null && sourceId is! String) {
+                  throw FormatException(
+                    '$mechanicPath.sourceId must be a String.',
+                  );
+                }
+                final timeline = mechanic.containsKey('timeline')
+                    ? _requireList(mechanic, 'timeline', mechanicPath).indexed
+                          .map(
+                            (point) => _parsePoint(
+                              point.$2,
+                              '$mechanicPath.timeline[${point.$1}]',
+                            ),
+                          )
+                          .toList(growable: false)
+                    : const <RegionalCampaignPointSpec>[];
+                return RegionalCampaignBossMechanicSpec(
+                  phases: Set<int>.unmodifiable(phases),
+                  feature: RegionalCampaignFeatureSpec(
+                    id: _requireString(mechanic, 'id', mechanicPath),
+                    kind: _enumByName(
+                      RegionalCampaignFeatureKind.values,
+                      _requireString(mechanic, 'kind', mechanicPath),
+                      '$mechanicPath.kind',
+                    ),
+                    position: _parsePoint(
+                      _requireValue(mechanic, 'position', mechanicPath),
+                      '$mechanicPath.position',
+                    ),
+                    size: _parsePoint(
+                      _requireValue(mechanic, 'size', mechanicPath),
+                      '$mechanicPath.size',
+                    ),
+                    end: mechanic.containsKey('end')
+                        ? _parsePoint(mechanic['end'], '$mechanicPath.end')
+                        : null,
+                    timeline: timeline,
+                    sourceId: sourceId as String?,
+                    periodSeconds: _optionalDouble(
+                      mechanic,
+                      'periodSeconds',
+                      mechanicPath,
+                    ),
+                    activeSeconds: _optionalDouble(
+                      mechanic,
+                      'activeSeconds',
+                      mechanicPath,
+                    ),
+                    inactiveSeconds: _optionalDouble(
+                      mechanic,
+                      'inactiveSeconds',
+                      mechanicPath,
+                    ),
+                    phaseOffset:
+                        _optionalDouble(
+                          mechanic,
+                          'phaseOffset',
+                          mechanicPath,
+                        ) ??
+                        0,
+                    direction: _optionalDouble(
+                      mechanic,
+                      'direction',
+                      mechanicPath,
+                    ),
+                  ),
+                );
+              })
+              .toList(growable: false)
+        : const <RegionalCampaignBossMechanicSpec>[];
+
     final objectiveNodes = _requireList(map, 'objectiveNodes', path).indexed
         .map(
           (entry) => _parsePoint(entry.$2, '$path.objectiveNodes[${entry.$1}]'),
@@ -667,6 +825,9 @@ final class RegionalCampaignRoomLayoutCatalog {
       enemies: List<RegionalCampaignEnemySpawnSpec>.unmodifiable(enemies),
       encounter: encounter,
       features: List<RegionalCampaignFeatureSpec>.unmodifiable(features),
+      bossMechanics: List<RegionalCampaignBossMechanicSpec>.unmodifiable(
+        bossMechanics,
+      ),
       objectiveNodes: List<RegionalCampaignPointSpec>.unmodifiable(
         objectiveNodes,
       ),
@@ -934,6 +1095,20 @@ abstract final class RegionalCampaignRoomLayoutValidator {
         errors.add('$prefix duplicates hazard sourceId "$sourceId"');
       }
     }
+    for (final mechanic in room.bossMechanics) {
+      addId(mechanic.id, 'boss mechanic');
+      _validateFeature(room, mechanic.feature, errors);
+      if (mechanic.phases.isEmpty ||
+          mechanic.phases.any((phase) => phase < 1 || phase > 3)) {
+        errors.add(
+          '$prefix boss mechanic ${mechanic.id} requires phases within 1-3',
+        );
+      }
+      final sourceId = mechanic.feature.sourceId;
+      if (sourceId != null && !sourceIds.add(sourceId)) {
+        errors.add('$prefix duplicates hazard sourceId "$sourceId"');
+      }
+    }
     for (final point in <RegionalCampaignPointSpec>[
       room.westSpawn,
       room.eastSpawn,
@@ -1036,13 +1211,12 @@ abstract final class RegionalCampaignRoomLayoutValidator {
           '$prefix boss room must not author normal enemies/objectives',
         );
       }
-      if (room.features
-              .where(
-                (feature) =>
-                    feature.kind == RegionalCampaignFeatureKind.bossSeal,
-              )
-              .length !=
-          2) {
+      final bossSeals = room.features
+          .where(
+            (feature) => feature.kind == RegionalCampaignFeatureKind.bossSeal,
+          )
+          .toList(growable: false);
+      if (bossSeals.length != 2) {
         errors.add('$prefix requires exactly two boss seals');
       }
       if (room.features.any(
@@ -1050,7 +1224,79 @@ abstract final class RegionalCampaignRoomLayoutValidator {
       )) {
         errors.add('$prefix boss room may only author boss seals');
       }
+      final allowedMechanics = room.nodeId == CampaignNodeId.chronoJailer
+          ? const <RegionalCampaignFeatureKind>{
+              RegionalCampaignFeatureKind.bossSafePlatform,
+              RegionalCampaignFeatureKind.movingPlatform,
+              RegionalCampaignFeatureKind.rewindPlatform,
+              RegionalCampaignFeatureKind.pulsingLaser,
+            }
+          : const <RegionalCampaignFeatureKind>{
+              RegionalCampaignFeatureKind.bossSafePlatform,
+              RegionalCampaignFeatureKind.movingPlatform,
+              RegionalCampaignFeatureKind.mergingPlatform,
+              RegionalCampaignFeatureKind.conveyorPlatform,
+              RegionalCampaignFeatureKind.pulsingLaser,
+            };
+      if (room.bossMechanics.isEmpty) {
+        errors.add('$prefix boss room requires authored bossMechanics');
+      }
+      for (final mechanic in room.bossMechanics) {
+        if (!allowedMechanics.contains(mechanic.kind)) {
+          errors.add(
+            '$prefix boss mechanic ${mechanic.id} does not permit '
+            '${mechanic.kind.name}',
+          );
+        }
+      }
+      for (var phase = 1; phase <= 3; phase += 1) {
+        final active = room.bossMechanics
+            .where((mechanic) => mechanic.isActiveInPhase(phase))
+            .toList(growable: false);
+        if (active.length < 2) {
+          errors.add('$prefix boss phase $phase requires 2+ mechanics');
+        }
+        if (!active.any(
+          (mechanic) =>
+              mechanic.kind == RegionalCampaignFeatureKind.bossSafePlatform,
+        )) {
+          errors.add('$prefix boss phase $phase requires a safe platform');
+        }
+        final ownsSignatureMotion = room.nodeId == CampaignNodeId.chronoJailer
+            ? active.any(
+                (mechanic) =>
+                    mechanic.kind ==
+                        RegionalCampaignFeatureKind.movingPlatform ||
+                    mechanic.kind == RegionalCampaignFeatureKind.rewindPlatform,
+              )
+            : active.any(
+                (mechanic) =>
+                    mechanic.kind ==
+                        RegionalCampaignFeatureKind.movingPlatform ||
+                    mechanic.kind ==
+                        RegionalCampaignFeatureKind.mergingPlatform ||
+                    mechanic.kind ==
+                        RegionalCampaignFeatureKind.conveyorPlatform,
+              );
+        if (!ownsSignatureMotion) {
+          errors.add(
+            '$prefix boss phase $phase lacks its signature moving mechanic',
+          );
+        }
+      }
+      if (room.width < 1440 || room.height < 832) {
+        errors.add('$prefix boss arena must be at least 1440x832');
+      }
+      if (bossSeals.length == 2) {
+        final arena = room.bossArenaBounds;
+        if (arena.width < 960 || arena.left <= 0 || arena.right >= room.width) {
+          errors.add('$prefix boss seals do not enclose a valid wide arena');
+        }
+      }
     } else {
+      if (room.bossMechanics.isNotEmpty) {
+        errors.add('$prefix non-boss room must not declare bossMechanics');
+      }
       final encounter = room.encounter;
       if (encounter == null) {
         errors.add('$prefix requires an encounter contract');
@@ -1228,6 +1474,8 @@ abstract final class RegionalCampaignRoomLayoutValidator {
         if (!positive(feature.breakDelay) || !positive(feature.restoreDelay)) {
           errors.add('$prefix requires positive break/restore delay');
         }
+      case RegionalCampaignFeatureKind.bossSafePlatform:
+        break;
       case RegionalCampaignFeatureKind.jumpPad:
         break;
       case RegionalCampaignFeatureKind.pulsingLaser:

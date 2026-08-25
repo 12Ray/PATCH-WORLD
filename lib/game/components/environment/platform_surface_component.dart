@@ -306,9 +306,9 @@ final class MovingPlatformComponent extends PlatformSurfaceComponent {
 
   @override
   void update(double dt) {
-    _elapsed += dt;
+    _elapsed += isMounted ? game.clock.simulationDt : dt;
     final phase = (_elapsed / periodSeconds) * math.pi * 2;
-    final t = (math.sin(phase) + 1) / 2;
+    final t = (1 - math.cos(phase)) / 2;
     position.setFrom(_start + (end - _start) * t);
     super.update(dt);
   }
@@ -361,7 +361,7 @@ final class RewindPlatformComponent extends PlatformSurfaceComponent {
 
   @override
   void update(double dt) {
-    _elapsed += dt;
+    _elapsed += isMounted ? game.clock.simulationDt : dt;
     final cycle = (_elapsed / periodSeconds) % 1;
     final rewindProgress = cycle <= .5 ? cycle * 2 : (1 - cycle) * 2;
     final segmentProgress = rewindProgress * (_timeline.length - 1);
@@ -427,7 +427,9 @@ final class MergingPlatformComponent extends PlatformSurfaceComponent {
 
   @override
   void update(double dt) {
-    if (!_lockedMerged) _elapsed += dt;
+    if (!_lockedMerged) {
+      _elapsed += isMounted ? game.clock.simulationDt : dt;
+    }
     super.update(dt);
   }
 
@@ -476,14 +478,26 @@ final class ConveyorPlatformComponent extends PlatformSurfaceComponent {
   });
 
   final double direction;
+  static const double carrySpeed = 78;
   double _phase = 0;
+
+  double horizontalVelocityFor(Rect playerBounds) {
+    if (!isSolid || direction == 0) return 0;
+    final horizontalOverlap =
+        math.min(playerBounds.right, bounds.right) -
+        math.max(playerBounds.left, bounds.left);
+    final isStanding =
+        horizontalOverlap > 0 && (playerBounds.bottom - bounds.top).abs() <= 2;
+    return isStanding ? direction.sign * carrySpeed : 0;
+  }
 
   @override
   ArtV3EnvironmentRole get foregroundRole => ArtV3EnvironmentRole.statePlatform;
 
   @override
   void update(double dt) {
-    _phase = (_phase + dt * direction * 42) % 24;
+    final simulationDt = isMounted ? game.clock.simulationDt : dt;
+    _phase = (_phase + simulationDt * direction * 42) % 24;
     super.update(dt);
   }
 
@@ -529,8 +543,9 @@ final class BreakablePlatformComponent extends PlatformSurfaceComponent {
 
   @override
   void update(double dt) {
+    final simulationDt = isMounted ? game.clock.simulationDt : dt;
     if (_broken) {
-      _brokenTime += dt;
+      _brokenTime += simulationDt;
       if (_brokenTime >= restoreDelay) {
         _broken = false;
         _brokenTime = 0;
@@ -545,7 +560,7 @@ final class BreakablePlatformComponent extends PlatformSurfaceComponent {
           player.position.x >= position.x &&
           player.position.x <= position.x + size.x &&
           (feet - position.y).abs() <= 5;
-      _standingTime = standing ? _standingTime + dt : 0;
+      _standingTime = standing ? _standingTime + simulationDt : 0;
       if (_standingTime >= breakDelay) {
         _broken = true;
         _standingTime = 0;

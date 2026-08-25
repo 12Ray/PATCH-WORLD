@@ -8,6 +8,7 @@ void main() {
       () {
         expect(CampaignBossPhaseGateSpec.maxHealth, 20);
         expect(CampaignBossPhaseGateSpec.healthFloors, <int>[13, 6, 1]);
+        expect(CampaignBossPhaseGateSpec.requiredDistinctPatternsPerPhase, 2);
         expect(
           CampaignBossPhaseGateSpec.transitionQuietSeconds,
           inInclusiveRange(.6, .9),
@@ -35,6 +36,56 @@ void main() {
           expect(pattern.counterplay, isNotEmpty);
         }
       }
+    });
+
+    test('each combat phase exposes at least two authored patterns', () {
+      for (final set in <CampaignChapterBossPatternSet>[
+        CampaignChapterBossPatternCatalog.chronoJailer,
+        CampaignChapterBossPatternCatalog.kernelChimera,
+      ]) {
+        final catalogIds = set.patterns.map((pattern) => pattern.id).toSet();
+        expect(set.phasePatternIds, hasLength(3), reason: set.bossId);
+        for (var phaseIndex = 0; phaseIndex < 3; phaseIndex += 1) {
+          final phaseIds = set.patternIdsForPhaseIndex(phaseIndex);
+          expect(
+            phaseIds.toSet().length,
+            greaterThanOrEqualTo(2),
+            reason: '${set.bossId}/phase${phaseIndex + 1}',
+          );
+          expect(
+            catalogIds.containsAll(phaseIds),
+            isTrue,
+            reason: '${set.bossId}/phase${phaseIndex + 1}',
+          );
+        }
+        expect(
+          () => set.patternIdsForPhaseIndex(3),
+          throwsRangeError,
+          reason: set.bossId,
+        );
+      }
+    });
+
+    test('later phases lead with their new signature pair', () {
+      final chrono = CampaignChapterBossPatternCatalog.chronoJailer;
+      final chimera = CampaignChapterBossPatternCatalog.kernelChimera;
+
+      expect(chrono.patternIdsForPhaseIndex(1).take(2), <String>[
+        'timeCage',
+        'clockSweep',
+      ]);
+      expect(chrono.patternIdsForPhaseIndex(2).take(2), <String>[
+        'hourglassMine',
+        'rewindCharge',
+      ]);
+      expect(chimera.patternIdsForPhaseIndex(1).take(2), <String>[
+        'polarityCross',
+        'splitKernel',
+      ]);
+      expect(chimera.patternIdsForPhaseIndex(2).take(2), <String>[
+        'vectorCage',
+        'gravityShard',
+      ]);
     });
 
     test(

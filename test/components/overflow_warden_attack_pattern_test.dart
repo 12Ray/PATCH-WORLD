@@ -22,6 +22,23 @@ void main() {
     );
   });
 
+  test('every phase deck exposes at least two representative patterns', () {
+    final knownIds = OverflowWardenAttackCatalog.all
+        .map((pattern) => pattern.id)
+        .toSet();
+
+    for (final phase in <int>[1, 2, 3]) {
+      final deck = OverflowWardenAttackCatalog.deckForPhase(phase);
+      expect(deck.toSet(), hasLength(deck.length));
+      expect(deck.length, greaterThanOrEqualTo(2));
+      expect(deck.every(knownIds.contains), isTrue);
+    }
+    expect(
+      OverflowWardenAttackCatalog.deckForPhase(3).length,
+      greaterThan(OverflowWardenAttackCatalog.deckForPhase(1).length),
+    );
+  });
+
   test('Warden attack timing drives telegraph active and recovery frames', () {
     final action = OverflowWardenAttackCatalog.byId(
       'shieldCharge',
@@ -73,6 +90,75 @@ void main() {
         idleFrame: 1,
       ),
       1,
+    );
+  });
+
+  test('phase gate requires two different completed patterns', () {
+    final gate = OverflowWardenPhaseAttackGate();
+
+    gate.record('shieldSlam');
+    gate.record('shieldSlam');
+    expect(gate.completedDistinctAttackCount, 1);
+    expect(gate.isReady, isFalse);
+
+    gate.record('shieldCharge');
+    expect(gate.completedAttackIds, <String>{'shieldSlam', 'shieldCharge'});
+    expect(gate.isReady, isTrue);
+
+    gate.reset();
+    expect(gate.completedAttackIds, isEmpty);
+    expect(gate.isReady, isFalse);
+  });
+
+  test('shield charge travels 320 units and respects arena walls', () {
+    expect(
+      resolveOverflowWardenChargeEndX(
+        startX: 1040,
+        facing: -1,
+        arenaWidth: 1440,
+        bodyWidth: 76,
+      ),
+      720,
+    );
+    expect(
+      resolveOverflowWardenChargeEndX(
+        startX: 1280,
+        facing: 1,
+        arenaWidth: 1440,
+        bodyWidth: 76,
+      ),
+      1383,
+    );
+    expect(
+      resolveOverflowWardenChargeEndX(
+        startX: 80,
+        facing: -1,
+        arenaWidth: 1440,
+        bodyWidth: 76,
+      ),
+      57,
+    );
+    expect(
+      resolveOverflowWardenChargeEndX(
+        startX: 1040,
+        facing: 1,
+        arenaWidth: 1440,
+        arenaLeft: 152,
+        arenaRight: 1288,
+        bodyWidth: 76,
+      ),
+      1231,
+    );
+    expect(
+      resolveOverflowWardenChargeEndX(
+        startX: 300,
+        facing: -1,
+        arenaWidth: 1440,
+        arenaLeft: 152,
+        arenaRight: 1288,
+        bodyWidth: 76,
+      ),
+      209,
     );
   });
 }

@@ -15,6 +15,31 @@ void main() {
 
   tearDown(() => SharedPreferencesAsyncPlatform.instance = null);
 
+  test('authored seals clamp every boss-sized movement destination', () {
+    const arena = Rect.fromLTWH(148, 0, 1144, 832);
+    final low = CampaignChapterBossComponent.clampPositionToArena(
+      Vector2(-500, -500),
+      arenaBounds: arena,
+      bossSize: Vector2(78, 90),
+      killPlaneY: 912,
+    );
+    final high = CampaignChapterBossComponent.clampPositionToArena(
+      Vector2(5000, 5000),
+      arenaBounds: arena,
+      bossSize: Vector2(78, 90),
+      killPlaneY: 912,
+    );
+
+    expect(low, Vector2(187, 45));
+    expect(high, Vector2(1253, 787));
+    for (final position in <Vector2>[low, high]) {
+      expect(position.x - 39, greaterThanOrEqualTo(arena.left));
+      expect(position.x + 39, lessThanOrEqualTo(arena.right));
+      expect(position.y - 45, greaterThanOrEqualTo(arena.top));
+      expect(position.y + 45, lessThanOrEqualTo(arena.bottom));
+    }
+  });
+
   testWidgets(
     'lethal hits obey attack-completion gates and strict phase order',
     (tester) async {
@@ -50,6 +75,14 @@ void main() {
       expect(boss.health, 13);
       expect(boss.hasCompletedAttackInCurrentPhase, isFalse);
 
+      _advanceUntilCompletedAttackCount(game, boss, 1);
+      expect(boss.phase, CampaignChapterBossPhase.phaseOne);
+      expect(boss.hasCompletedAttackInCurrentPhase, isTrue);
+      expect(
+        boss.hasCompletedRepresentativePatternsInCurrentPhase,
+        isFalse,
+        reason: 'one attack cannot satisfy the representative pattern gate',
+      );
       _advanceUntilPhase(game, boss, CampaignChapterBossPhase.phaseTwo);
       expect(boss.health, 13);
       expect(boss.isPhaseTransitioning, isTrue);
@@ -110,6 +143,24 @@ void main() {
 
       await tester.pumpWidget(const SizedBox.shrink());
     },
+  );
+}
+
+void _advanceUntilCompletedAttackCount(
+  PatchWorldGame game,
+  CampaignChapterBossComponent boss,
+  int count,
+) {
+  for (
+    var tick = 0;
+    tick < 180 && boss.completedAttackIdsInCurrentPhase.length < count;
+    tick += 1
+  ) {
+    _advanceSeconds(game, boss, 1 / 30);
+  }
+  expect(
+    boss.completedAttackIdsInCurrentPhase.length,
+    greaterThanOrEqualTo(count),
   );
 }
 

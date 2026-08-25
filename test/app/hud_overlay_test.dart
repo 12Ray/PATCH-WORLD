@@ -4,6 +4,7 @@ import 'package:patch_world/app/overlays/hud_overlay.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/core/ui_snapshot.dart';
 import 'package:patch_world/game/patch_world_game.dart';
+import 'package:patch_world/game/survival/survival_run_state.dart';
 import 'package:patch_world/game/systems/frame_burst_controller.dart';
 
 void main() {
@@ -75,6 +76,14 @@ void main() {
 
     expect(find.textContaining('OPTIMIZATION CORE'), findsOneWidget);
     expect(find.textContaining('75/150'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey<String>('campaign-boss-bar')),
+      findsOneWidget,
+    );
+    expect(
+      find.text(game.localization.text('boss.optimizer.name')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
 
     for (final localized in localizedObjectives) {
@@ -90,5 +99,26 @@ void main() {
       await tester.pump();
       expect(tester.takeException(), isNull, reason: localized.languageCode);
     }
+
+    game.mode = PatchWorldMode.survival;
+    game.uiSnapshot.value = const UiSnapshot(
+      integrity: 4,
+      maxIntegrity: 5,
+      roomLabel: 'PATCH//SURVIVE',
+      anomalyLabel: 'NEXUS CORE',
+      objectiveLabel: 'SURVIVE',
+      selectedPatchIds: <String>[],
+      bossHealth: 120,
+      bossMaxHealth: 200,
+      bossPhase: 'crisis',
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('campaign-boss-bar')),
+      findsNothing,
+    );
+    expect(find.textContaining('120/200'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

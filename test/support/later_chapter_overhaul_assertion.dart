@@ -43,7 +43,7 @@ Future<void> expectLaterChapterOverhaul(
   expect(room.campaignNodeId, expectedBossNode);
   expect(room.layout, same(game.regionalRoomLayouts.room(expectedBossNode)));
   expect(room.isBossRoom, isTrue);
-  expect(room.worldSize, Vector2(960, 540));
+  expect(room.worldSize, Vector2(1440, 832));
   expect(room.questRewardItem, questItem);
   expect(room.bossRewardItem, bossItem);
   expect(progress.allRoomsComplete, isTrue);

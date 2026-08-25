@@ -303,20 +303,29 @@ final class PulsingLaserComponent extends PositionComponent
     this.activeSeconds = 1.4,
     this.inactiveSeconds = 1.0,
     this.phaseOffset = 0,
+    this.startupGraceSeconds = 0,
     this.style = PlatformSurfaceStyle.damage,
-  }) : super(priority: 8);
+  }) : assert(startupGraceSeconds >= 0),
+       _startupRemaining = startupGraceSeconds,
+       super(priority: 8);
 
   final String sourceId;
   final double activeSeconds;
   final double inactiveSeconds;
   final double phaseOffset;
+  final double startupGraceSeconds;
   final PlatformSurfaceStyle style;
   double _elapsed = 0;
+  double _startupRemaining;
   bool _wasActive = false;
+  bool _damagedThisPulse = false;
 
+  bool get isInStartupGrace => _startupRemaining > 0;
+  double get startupGraceRemaining => _startupRemaining;
   bool get isActive =>
+      !isInStartupGrace &&
       ((_elapsed + phaseOffset) % (activeSeconds + inactiveSeconds)) <
-      activeSeconds;
+          activeSeconds;
 
   @override
   Future<void> onLoad() async {
@@ -327,11 +336,34 @@ final class PulsingLaserComponent extends PositionComponent
 
   @override
   void update(double dt) {
-    _elapsed += dt;
+    final simulationDt = isMounted ? game.clock.enemyDt : dt;
+    var activeDt = simulationDt;
+    if (_startupRemaining > 0) {
+      activeDt = math.max(0, simulationDt - _startupRemaining);
+      _startupRemaining = math.max(0, _startupRemaining - simulationDt);
+    }
+    _elapsed += activeDt;
     final active = isActive;
-    if (active && !_wasActive) unawaited(game.audio.playLaserFire());
+    if (active && !_wasActive) {
+      unawaited(game.audio.playLaserFire());
+      _damageOverlappingPlayer();
+    } else if (!active) {
+      _damagedThisPulse = false;
+    }
     _wasActive = active;
     super.update(dt);
+  }
+
+  void _damageOverlappingPlayer() {
+    final player = game.world.player;
+    final laserBounds = Rect.fromLTWH(position.x, position.y, size.x, size.y);
+    if (laserBounds.overlaps(player.damageHitboxBounds)) _damagePlayer(player);
+  }
+
+  void _damagePlayer(PlayerComponent player) {
+    if (_damagedThisPulse) return;
+    _damagedThisPulse = true;
+    player.takeDamage(1, causeId: sourceId);
   }
 
   @override
@@ -340,7 +372,7 @@ final class PulsingLaserComponent extends PositionComponent
     PositionComponent other,
   ) {
     if (isActive && other is PlayerComponent) {
-      other.takeDamage(1, causeId: sourceId);
+      _damagePlayer(other);
     }
     super.onCollisionStart(intersectionPoints, other);
   }
@@ -393,9 +425,9 @@ final class CrusherHazardComponent extends PositionComponent
 
   @override
   void update(double dt) {
-    _elapsed += dt;
+    _elapsed += isMounted ? game.clock.simulationDt : dt;
     final phase = (_elapsed / periodSeconds) * math.pi * 2;
-    final t = (math.sin(phase) + 1) / 2;
+    final t = (1 - math.cos(phase)) / 2;
     position.setFrom(_start + (end - _start) * t);
     if (t < .78) _impactArmed = true;
     if (_impactArmed && t > .97) {

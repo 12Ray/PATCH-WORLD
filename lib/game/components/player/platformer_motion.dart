@@ -5,18 +5,27 @@ import 'package:flame/components.dart';
 /// Deterministic side-view movement state kept separate from Flame collision
 /// components so the feel can be tuned and tested without mounting a game.
 final class PlatformerMotion {
+  static const double playerCollisionBodySize = 32;
   static const double runSpeed = 190;
+  static const double defaultRunAcceleration = 1200;
+  static const double defaultRunDeceleration = 1600;
+  static const double defaultGravity = 1100;
+  static const double defaultMaximumFallSpeed = 650;
+  static const double defaultJumpSpeed = 470;
+  static const double defaultCoyoteSeconds = 0.10;
+  static const double defaultJumpBufferSeconds = 0.12;
+  static const double defaultJumpCutMultiplier = 0.45;
 
   PlatformerMotion({
     this.maxRunSpeed = runSpeed,
-    this.runAcceleration = 1200,
-    this.runDeceleration = 1600,
-    this.gravity = 1100,
-    this.maxFallSpeed = 650,
-    this.jumpSpeed = 470,
-    this.coyoteSeconds = 0.10,
-    this.jumpBufferSeconds = 0.12,
-    this.jumpCutMultiplier = 0.45,
+    this.runAcceleration = defaultRunAcceleration,
+    this.runDeceleration = defaultRunDeceleration,
+    this.gravity = defaultGravity,
+    this.maxFallSpeed = defaultMaximumFallSpeed,
+    this.jumpSpeed = defaultJumpSpeed,
+    this.coyoteSeconds = defaultCoyoteSeconds,
+    this.jumpBufferSeconds = defaultJumpBufferSeconds,
+    this.jumpCutMultiplier = defaultJumpCutMultiplier,
   });
 
   final double maxRunSpeed;

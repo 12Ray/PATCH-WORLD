@@ -37,7 +37,7 @@
         {"id": "ascent.route.step-6", "rect": [1290, 450, 230, 24], "renderArtwork": true},
         {"id": "ascent.route.step-7", "rect": [1470, 375, 230, 24], "renderArtwork": true},
         {"id": "ascent.route.step-8", "rect": [1620, 300, 260, 24], "renderArtwork": true},
-        {"id": "ascent.route.east", "rect": [1600, 230, 280, 28], "renderArtwork": true},
+        {"id": "ascent.route.east", "rect": [1740, 230, 140, 28], "renderArtwork": true},
         {"id": "ascent.gallery.west", "rect": [40, 230, 500, 28], "renderArtwork": true},
         {"id": "ascent.gallery.step-1", "rect": [520, 300, 150, 24], "renderArtwork": true},
         {"id": "ascent.gallery.step-2", "rect": [680, 375, 150, 24], "renderArtwork": true},
@@ -258,7 +258,7 @@
         {"id": "pendulum.route.east", "rect": [1440, 325, 440, 28], "renderArtwork": true},
         {"id": "pendulum.gallery.west", "rect": [350, 225, 540, 28], "renderArtwork": true},
         {"id": "pendulum.gallery.center", "rect": [1030, 225, 500, 28], "renderArtwork": true},
-        {"id": "pendulum.gallery.east", "rect": [1530, 290, 350, 28], "renderArtwork": true},
+        {"id": "pendulum.gallery.east", "rect": [1530, 160, 350, 28], "renderArtwork": true},
         {"id": "pendulum.lower.west", "rect": [40, 900, 480, 40], "renderArtwork": true},
         {"id": "pendulum.lower.floor-west", "rect": [500, 980, 360, 60], "renderArtwork": true},
         {"id": "pendulum.lower.center", "rect": [910, 900, 320, 28], "renderArtwork": true},
@@ -332,34 +332,39 @@
     },
     {
       "node": "chronoJailer",
-      "size": [960, 540],
-      "killPlaneY": 620,
+      "size": [1440, 832],
+      "killPlaneY": 912,
       "backdropAligned": false,
       "camera": {
-        "zoom": 1,
+        "zoom": 0.92,
         "horizontalLead": 0,
-        "horizontalDeadZone": 0,
-        "verticalDeadZone": 0,
-        "followResponsiveness": 1000
+        "horizontalDeadZone": 60,
+        "verticalDeadZone": 44,
+        "followResponsiveness": 10
       },
       "spawns": {
-        "west": [166, 448],
-        "east": [794, 448]
+        "west": [196, 700],
+        "east": [1244, 700]
       },
       "anchors": {
-        "backDoor": [70, 484],
-        "bossSpawn": [620, 428],
-        "bossReward": [700, 478],
-        "exitTerminal": [850, 478],
-        "hubLift": [245, 484],
-        "regionBranchDoor": [700, 484]
+        "backDoor": [92, 736],
+        "bossSpawn": [720, 680],
+        "bossReward": [960, 730],
+        "exitTerminal": [1180, 730],
+        "hubLift": [320, 736],
+        "regionBranchDoor": [1040, 736]
       },
       "surfaces": [
-        {"id": "jailer.boundary.west", "rect": [0, 0, 24, 540], "boundary": true, "renderArtwork": false},
-        {"id": "jailer.floor", "rect": [0, 484, 960, 56], "renderArtwork": true},
-        {"id": "jailer.ledge.west", "rect": [150, 396, 170, 20], "renderArtwork": true},
-        {"id": "jailer.ledge.east", "rect": [640, 396, 170, 20], "renderArtwork": true},
-        {"id": "jailer.boundary.east", "rect": [936, 0, 24, 540], "boundary": true, "renderArtwork": false}
+        {"id": "jailer.boundary.west", "rect": [0, 0, 24, 832], "boundary": true, "renderArtwork": false},
+        {"id": "jailer.floor", "rect": [0, 736, 1440, 96], "renderArtwork": true},
+        {"id": "jailer.clock-step.west-low", "rect": [180, 624, 224, 24], "renderArtwork": true},
+        {"id": "jailer.clock-step.west-high", "rect": [384, 512, 192, 24], "renderArtwork": true},
+        {"id": "jailer.clock-dial.center", "rect": [608, 576, 224, 24], "renderArtwork": true},
+        {"id": "jailer.clock-step.east-high", "rect": [864, 448, 192, 24], "renderArtwork": true},
+        {"id": "jailer.clock-step.east-low", "rect": [1056, 608, 224, 24], "renderArtwork": true},
+        {"id": "jailer.prison-perch.west", "rect": [256, 352, 160, 24], "renderArtwork": true},
+        {"id": "jailer.prison-perch.east", "rect": [1024, 320, 160, 24], "renderArtwork": true},
+        {"id": "jailer.boundary.east", "rect": [1416, 0, 24, 832], "boundary": true, "renderArtwork": false}
       ],
       "traversal": [
         {"id": "temporal.jailer.floor", "fromSurfaceId": "jailer.floor", "toSurfaceId": "jailer.floor", "requiredForCompletion": true, "requirement": "universal"}
@@ -367,8 +372,21 @@
       "enemies": [],
       "encounter": null,
       "features": [
-        {"id": "jailer.seal.west", "kind": "bossSeal", "position": [96, 172], "size": [18, 312]},
-        {"id": "jailer.seal.east", "kind": "bossSeal", "position": [846, 172], "size": [18, 312]}
+        {"id": "jailer.seal.west", "kind": "bossSeal", "position": [128, 0], "size": [20, 736]},
+        {"id": "jailer.seal.east", "kind": "bossSeal", "position": [1292, 0], "size": [20, 736]}
+      ],
+      "bossMechanics": [
+        {"id": "jailer.safe.center", "phases": [1, 2, 3], "kind": "bossSafePlatform", "position": [640, 656], "size": [160, 24]},
+        {"id": "jailer.p1.locked-lift.west", "phases": [1], "kind": "movingPlatform", "position": [360, 672], "size": [144, 22], "end": [360, 520], "periodSeconds": 4.8},
+        {"id": "jailer.p1.locked-lift.east", "phases": [1], "kind": "movingPlatform", "position": [936, 520], "size": [144, 22], "end": [936, 672], "periodSeconds": 4.8},
+        {"id": "jailer.p2.rewind-arc.west", "phases": [2], "kind": "rewindPlatform", "position": [300, 608], "size": [144, 22], "timeline": [[300, 608], [480, 480], [620, 608]], "periodSeconds": 5.2},
+        {"id": "jailer.p2.rewind-arc.east", "phases": [2], "kind": "rewindPlatform", "position": [996, 608], "size": [144, 22], "timeline": [[996, 608], [816, 448], [676, 608]], "periodSeconds": 5.2},
+        {"id": "jailer.p2.time-seam", "phases": [2], "kind": "pulsingLaser", "position": [716, 400], "size": [8, 336], "sourceId": "hazard.chrono-jailer.phase2.time-seam", "activeSeconds": 0.8, "inactiveSeconds": 1.8, "phaseOffset": 0.4},
+        {"id": "jailer.p3.safe.west", "phases": [3], "kind": "bossSafePlatform", "position": [272, 656], "size": [160, 24]},
+        {"id": "jailer.p3.safe.east", "phases": [3], "kind": "bossSafePlatform", "position": [1008, 656], "size": [160, 24]},
+        {"id": "jailer.p3.clock-hand", "phases": [3], "kind": "rewindPlatform", "position": [440, 560], "size": [144, 22], "timeline": [[440, 560], [648, 400], [856, 560]], "periodSeconds": 4.4},
+        {"id": "jailer.p3.time-seam.west", "phases": [3], "kind": "pulsingLaser", "position": [480, 384], "size": [8, 352], "sourceId": "hazard.chrono-jailer.phase3.time-seam-west", "activeSeconds": 0.7, "inactiveSeconds": 1.7, "phaseOffset": 0},
+        {"id": "jailer.p3.time-seam.east", "phases": [3], "kind": "pulsingLaser", "position": [952, 384], "size": [8, 352], "sourceId": "hazard.chrono-jailer.phase3.time-seam-east", "activeSeconds": 0.7, "inactiveSeconds": 1.7, "phaseOffset": 1.2}
       ],
       "objectiveNodes": [],
       "terrainPulse": null

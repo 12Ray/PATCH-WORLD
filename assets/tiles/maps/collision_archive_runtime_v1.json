@@ -158,14 +158,14 @@
         {"id": "fracture.route.step-g", "rect": [1260, 455, 210, 24], "renderArtwork": true},
         {"id": "fracture.route.step-h", "rect": [1420, 380, 210, 24], "renderArtwork": true},
         {"id": "fracture.route.step-i", "rect": [1580, 305, 300, 24], "renderArtwork": true},
-        {"id": "fracture.route.east", "rect": [1680, 250, 200, 28], "renderArtwork": true},
+        {"id": "fracture.route.east", "rect": [1740, 250, 140, 28], "renderArtwork": true},
         {"id": "fracture.gallery.west", "rect": [40, 405, 300, 28], "renderArtwork": true},
         {"id": "fracture.gallery.step-a", "rect": [280, 320, 200, 24], "renderArtwork": true},
         {"id": "fracture.gallery.step-b", "rect": [480, 285, 220, 24], "renderArtwork": true},
         {"id": "fracture.gallery.fragment-a", "rect": [760, 210, 150, 24], "renderArtwork": true},
         {"id": "fracture.gallery.fragment-b", "rect": [1010, 280, 150, 24], "renderArtwork": true},
         {"id": "fracture.gallery.fragment-c", "rect": [1260, 210, 180, 24], "renderArtwork": true},
-        {"id": "fracture.gallery.east", "rect": [1450, 160, 430, 28], "renderArtwork": true},
+        {"id": "fracture.gallery.east", "rect": [1450, 160, 200, 28], "renderArtwork": true},
         {"id": "fracture.rollback.west", "rect": [40, 1040, 520, 40], "renderArtwork": true},
         {"id": "fracture.rollback.mid-west", "rect": [590, 970, 240, 28], "renderArtwork": true},
         {"id": "fracture.rollback.center", "rect": [900, 900, 280, 28], "renderArtwork": true},
@@ -283,13 +283,13 @@
         {"id": "merge.route.step-g", "rect": [1410, 455, 220, 24], "renderArtwork": true},
         {"id": "merge.route.step-h", "rect": [1570, 380, 310, 24], "renderArtwork": true},
         {"id": "merge.route.step-i", "rect": [1650, 305, 230, 24], "renderArtwork": true},
-        {"id": "merge.route.east", "rect": [1600, 230, 280, 28], "renderArtwork": true},
+        {"id": "merge.route.east", "rect": [1740, 230, 140, 28], "renderArtwork": true},
         {"id": "merge.gallery.west", "rect": [40, 230, 320, 28], "renderArtwork": true},
         {"id": "merge.gallery.step-a", "rect": [360, 345, 250, 24], "renderArtwork": true},
         {"id": "merge.gallery.step-b", "rect": [520, 255, 250, 24], "renderArtwork": true},
         {"id": "merge.gallery.center", "rect": [760, 195, 390, 28], "renderArtwork": true},
         {"id": "merge.gallery.step-c", "rect": [1120, 255, 260, 24], "renderArtwork": true},
-        {"id": "merge.gallery.east", "rect": [1380, 220, 500, 28], "renderArtwork": true},
+        {"id": "merge.gallery.east", "rect": [1380, 220, 240, 28], "renderArtwork": true},
         {"id": "merge.rollback.west", "rect": [40, 1040, 540, 40], "renderArtwork": true},
         {"id": "merge.rollback.mid-west", "rect": [650, 990, 300, 28], "renderArtwork": true},
         {"id": "merge.rollback.mid-east", "rect": [1000, 920, 300, 28], "renderArtwork": true},
@@ -376,36 +376,41 @@
     },
     {
       "node": "kernelChimera",
-      "size": [960, 540],
-      "killPlaneY": 620,
+      "size": [1440, 832],
+      "killPlaneY": 912,
       "backdropAligned": false,
       "camera": {
-        "zoom": 1,
+        "zoom": 0.92,
         "horizontalLead": 0,
-        "horizontalDeadZone": 0,
-        "verticalDeadZone": 0,
-        "followResponsiveness": 1000
+        "horizontalDeadZone": 60,
+        "verticalDeadZone": 44,
+        "followResponsiveness": 10
       },
       "spawns": {
-        "west": [166, 448],
-        "east": [794, 448]
+        "west": [196, 700],
+        "east": [1244, 700]
       },
       "anchors": {
-        "backDoor": [70, 484],
-        "bossSpawn": [620, 428],
-        "bossReward": [700, 478],
-        "exitTerminal": [850, 478],
-        "hubLift": [245, 484]
+        "backDoor": [92, 736],
+        "bossSpawn": [720, 680],
+        "bossReward": [960, 730],
+        "exitTerminal": [1180, 730],
+        "hubLift": [320, 736]
       },
       "surfaces": [
-        {"id": "chimera.boundary.west", "rect": [0, 0, 24, 540], "boundary": true, "renderArtwork": false},
-        {"id": "chimera.boundary.east", "rect": [936, 0, 24, 540], "boundary": true, "renderArtwork": false},
-        {"id": "chimera.arena.floor", "rect": [0, 484, 960, 56]},
-        {"id": "chimera.arena.ledge-west", "rect": [150, 396, 170, 20]},
-        {"id": "chimera.arena.ledge-east", "rect": [640, 396, 170, 20]}
+        {"id": "chimera.boundary.west", "rect": [0, 0, 24, 832], "boundary": true, "renderArtwork": false},
+        {"id": "chimera.arena.floor", "rect": [0, 736, 1440, 96], "renderArtwork": true},
+        {"id": "chimera.polarity-rail.west", "rect": [160, 640, 320, 24], "renderArtwork": true},
+        {"id": "chimera.polarity-rail.east", "rect": [960, 640, 320, 24], "renderArtwork": true},
+        {"id": "chimera.split-core.west", "rect": [520, 592, 160, 24], "renderArtwork": true},
+        {"id": "chimera.split-core.east", "rect": [760, 592, 160, 24], "renderArtwork": true},
+        {"id": "chimera.horn.west", "rect": [360, 448, 192, 24], "renderArtwork": true},
+        {"id": "chimera.horn.east", "rect": [888, 448, 192, 24], "renderArtwork": true},
+        {"id": "chimera.fusion-crown", "rect": [608, 352, 224, 24], "renderArtwork": true},
+        {"id": "chimera.boundary.east", "rect": [1416, 0, 24, 832], "boundary": true, "renderArtwork": false}
       ],
       "traversal": [
-        {"id": "collisionArchive.boss.arena-floor", "fromSurfaceId": "chimera.arena.floor", "toSurfaceId": "chimera.arena.floor"}
+        {"id": "collisionArchive.boss.arena-floor", "fromSurfaceId": "chimera.arena.floor", "toSurfaceId": "chimera.arena.floor", "requiredForCompletion": true, "requirement": "universal"}
       ],
       "enemies": [],
       "encounter": null,
@@ -413,15 +418,29 @@
         {
           "id": "chimera.seal.west",
           "kind": "bossSeal",
-          "position": [96, 172],
-          "size": [18, 312]
+          "position": [128, 0],
+          "size": [20, 736]
         },
         {
           "id": "chimera.seal.east",
           "kind": "bossSeal",
-          "position": [846, 172],
-          "size": [18, 312]
+          "position": [1292, 0],
+          "size": [20, 736]
         }
+      ],
+      "bossMechanics": [
+        {"id": "chimera.safe.west", "phases": [1, 2, 3], "kind": "bossSafePlatform", "position": [432, 664], "size": [160, 24]},
+        {"id": "chimera.safe.east", "phases": [1, 2, 3], "kind": "bossSafePlatform", "position": [848, 664], "size": [160, 24]},
+        {"id": "chimera.p1.polarity-rail.west", "phases": [1], "kind": "movingPlatform", "position": [260, 560], "size": [144, 22], "end": [500, 560], "periodSeconds": 4.6},
+        {"id": "chimera.p1.polarity-rail.east", "phases": [1], "kind": "movingPlatform", "position": [1036, 560], "size": [144, 22], "end": [796, 560], "periodSeconds": 4.6},
+        {"id": "chimera.p2.split-rail.west", "phases": [2], "kind": "movingPlatform", "position": [328, 584], "size": [144, 22], "end": [328, 432], "periodSeconds": 4.2},
+        {"id": "chimera.p2.split-rail.east", "phases": [2], "kind": "movingPlatform", "position": [968, 432], "size": [144, 22], "end": [968, 584], "periodSeconds": 4.2},
+        {"id": "chimera.p2.fusion-bridge", "phases": [2, 3], "kind": "mergingPlatform", "position": [600, 640], "size": [240, 24], "periodSeconds": 5},
+        {"id": "chimera.p2.polarity-seam", "phases": [2], "kind": "pulsingLaser", "position": [716, 400], "size": [8, 336], "sourceId": "hazard.kernel-chimera.phase2.polarity-seam", "activeSeconds": 0.8, "inactiveSeconds": 1.8, "phaseOffset": 0.5},
+        {"id": "chimera.p3.polarity-belt.west", "phases": [3], "kind": "conveyorPlatform", "position": [360, 600], "size": [192, 22], "direction": 1},
+        {"id": "chimera.p3.polarity-belt.east", "phases": [3], "kind": "conveyorPlatform", "position": [888, 600], "size": [192, 22], "direction": -1},
+        {"id": "chimera.p3.vector-seam.west", "phases": [3], "kind": "pulsingLaser", "position": [552, 384], "size": [8, 352], "sourceId": "hazard.kernel-chimera.phase3.vector-seam-west", "activeSeconds": 0.7, "inactiveSeconds": 1.7, "phaseOffset": 0},
+        {"id": "chimera.p3.vector-seam.east", "phases": [3], "kind": "pulsingLaser", "position": [880, 384], "size": [8, 352], "sourceId": "hazard.kernel-chimera.phase3.vector-seam-east", "activeSeconds": 0.7, "inactiveSeconds": 1.7, "phaseOffset": 1.2}
       ],
       "objectiveNodes": [],
       "terrainPulse": null

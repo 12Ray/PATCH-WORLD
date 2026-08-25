@@ -74,8 +74,69 @@ abstract final class OverflowWardenAttackCatalog {
     ),
   ];
 
+  /// Phase-local decks keep the encounter readable while expanding its
+  /// counterplay vocabulary as containment fails.
+  static const Map<int, List<String>> phaseDecks = <int, List<String>>{
+    1: <String>['shieldSlam', 'overflowGrenade', 'shieldCharge'],
+    2: <String>['shieldSlam', 'overflowGrenade', 'checksumFan', 'shieldCharge'],
+    3: <String>[
+      'shieldSlam',
+      'overflowGrenade',
+      'checksumFan',
+      'memoryQuake',
+      'shieldCharge',
+    ],
+  };
+
   static OverflowWardenAttackSpec byId(String id) =>
       all.singleWhere((spec) => spec.id == id);
+
+  static List<String> deckForPhase(int phase) {
+    final deck = phaseDecks[phase];
+    if (deck == null) throw ArgumentError.value(phase, 'phase');
+    return deck;
+  }
+}
+
+/// Tracks the representative patterns completed during one health phase.
+///
+/// The Warden cannot skip a phase just because the player reaches its healing
+/// threshold quickly: two different counterplay checks must resolve first.
+final class OverflowWardenPhaseAttackGate {
+  OverflowWardenPhaseAttackGate({this.requiredDistinctAttacks = 2})
+    : assert(requiredDistinctAttacks > 0);
+
+  final int requiredDistinctAttacks;
+  final Set<String> _completedAttackIds = <String>{};
+
+  int get completedDistinctAttackCount => _completedAttackIds.length;
+  bool get isReady => completedDistinctAttackCount >= requiredDistinctAttacks;
+  Set<String> get completedAttackIds =>
+      Set<String>.unmodifiable(_completedAttackIds);
+
+  void record(String attackId) {
+    if (attackId.isNotEmpty) _completedAttackIds.add(attackId);
+  }
+
+  void reset() => _completedAttackIds.clear();
+}
+
+/// Clamps a horizontal shield charge to the authored arena while keeping the
+/// Warden's body clear of both boundary walls.
+double resolveOverflowWardenChargeEndX({
+  required double startX,
+  required double facing,
+  required double arenaWidth,
+  required double bodyWidth,
+  double arenaLeft = 0,
+  double? arenaRight,
+  double distance = 320,
+}) {
+  final minimumX = arenaLeft + bodyWidth * .75;
+  final authoredMaximumX = (arenaRight ?? arenaWidth) - bodyWidth * .75;
+  final maximumX = authoredMaximumX < minimumX ? minimumX : authoredMaximumX;
+  final direction = facing < 0 ? -1.0 : 1.0;
+  return (startX + direction * distance).clamp(minimumX, maximumX).toDouble();
 }
 
 /// Resolves the eight-frame Art v3 contract while preserving the Warden's

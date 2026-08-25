@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
 import 'package:patch_world/game/campaign/campaign_encounter_contract.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
+import 'package:patch_world/game/campaign/ordinary_jump_reachability.dart';
 import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
@@ -112,6 +113,64 @@ final class DamageLabTerrainPulseSpec {
   final DamageLabPointSpec nodePosition;
 }
 
+/// Authored pressure hazard used only by the Overflow Warden arena.
+final class DamageLabPressureVentSpec {
+  const DamageLabPressureVentSpec({
+    required this.id,
+    required this.bounds,
+    required this.activeFromPhase,
+    required this.phaseOffset,
+  });
+
+  final String id;
+  final Rect bounds;
+  final int activeFromPhase;
+  final double phaseOffset;
+}
+
+/// A boss-controlled platform. Its collision and solid artwork are enabled
+/// together so the authored rectangle remains the sole gameplay coordinate.
+final class DamageLabPhasePlatformSpec {
+  const DamageLabPhasePlatformSpec({
+    required this.id,
+    required this.bounds,
+    required this.activeFromPhase,
+  });
+
+  final String id;
+  final Rect bounds;
+  final int activeFromPhase;
+}
+
+final class DamageLabSafeZoneSpec {
+  const DamageLabSafeZoneSpec({required this.id, required this.bounds});
+
+  final String id;
+  final Rect bounds;
+}
+
+final class DamageLabSummonGateSpec {
+  const DamageLabSummonGateSpec({required this.id, required this.position});
+
+  final String id;
+  final DamageLabPointSpec position;
+}
+
+/// Data contract for the Warden's phase-reactive pressure hangar.
+final class DamageLabBossMechanicSpec {
+  const DamageLabBossMechanicSpec({
+    required this.pressureVents,
+    required this.phasePlatforms,
+    required this.safeZones,
+    required this.summonGates,
+  });
+
+  final List<DamageLabPressureVentSpec> pressureVents;
+  final List<DamageLabPhasePlatformSpec> phasePlatforms;
+  final List<DamageLabSafeZoneSpec> safeZones;
+  final List<DamageLabSummonGateSpec> summonGates;
+}
+
 final class DamageLabCameraSpec {
   const DamageLabCameraSpec({
     required this.zoom,
@@ -151,6 +210,7 @@ final class DamageLabRoomLayout {
     required this.features,
     required this.secretDoors,
     required this.terrainPulse,
+    required this.bossMechanic,
   });
 
   final CampaignNodeId nodeId;
@@ -170,6 +230,7 @@ final class DamageLabRoomLayout {
   final List<DamageLabFeatureSpec> features;
   final List<DamageLabSecretDoorSpec> secretDoors;
   final DamageLabTerrainPulseSpec? terrainPulse;
+  final DamageLabBossMechanicSpec? bossMechanic;
 
   Vector2 get size => Vector2(width, height);
 
@@ -260,6 +321,7 @@ final class DamageLabRoomLayoutCatalog {
       'features',
       'secretDoors',
       'terrainPulse',
+      'bossMechanic',
     }, path);
     final nodeId = _enumByName(
       CampaignNodeId.values,
@@ -517,6 +579,10 @@ final class DamageLabRoomLayoutCatalog {
       );
     }
 
+    final bossMechanic = map['bossMechanic'] == null
+        ? null
+        : _parseBossMechanic(map['bossMechanic'], '$path.bossMechanic');
+
     final backdrop = map['environmentAsset'];
     if (backdrop != null && backdrop is! String) {
       throw FormatException('$path.environmentAsset must be a String.');
@@ -567,6 +633,102 @@ final class DamageLabRoomLayoutCatalog {
       features: List.unmodifiable(features),
       secretDoors: List.unmodifiable(secretDoors),
       terrainPulse: terrainPulse,
+      bossMechanic: bossMechanic,
+    );
+  }
+
+  static DamageLabBossMechanicSpec _parseBossMechanic(
+    Object? value,
+    String path,
+  ) {
+    final mechanic = _requireMap(value, path);
+    _rejectUnknownKeys(mechanic, const <String>{
+      'pressureVents',
+      'phasePlatforms',
+      'safeZones',
+      'summonGates',
+    }, path);
+
+    final pressureVents = _requireList(mechanic, 'pressureVents', path).indexed
+        .map((entry) {
+          final itemPath = '$path.pressureVents[${entry.$1}]';
+          final item = _requireMap(entry.$2, itemPath);
+          _rejectUnknownKeys(item, const <String>{
+            'id',
+            'rect',
+            'activeFromPhase',
+            'phaseOffset',
+          }, itemPath);
+          return DamageLabPressureVentSpec(
+            id: _requireString(item, 'id', itemPath),
+            bounds: _parseRect(
+              _requireValue(item, 'rect', itemPath),
+              '$itemPath.rect',
+            ),
+            activeFromPhase: _requireInt(item, 'activeFromPhase', itemPath),
+            phaseOffset: item.containsKey('phaseOffset')
+                ? _requireDouble(item, 'phaseOffset', itemPath)
+                : 0,
+          );
+        })
+        .toList(growable: false);
+
+    final phasePlatforms = _requireList(mechanic, 'phasePlatforms', path)
+        .indexed
+        .map((entry) {
+          final itemPath = '$path.phasePlatforms[${entry.$1}]';
+          final item = _requireMap(entry.$2, itemPath);
+          _rejectUnknownKeys(item, const <String>{
+            'id',
+            'rect',
+            'activeFromPhase',
+          }, itemPath);
+          return DamageLabPhasePlatformSpec(
+            id: _requireString(item, 'id', itemPath),
+            bounds: _parseRect(
+              _requireValue(item, 'rect', itemPath),
+              '$itemPath.rect',
+            ),
+            activeFromPhase: _requireInt(item, 'activeFromPhase', itemPath),
+          );
+        })
+        .toList(growable: false);
+
+    final safeZones = _requireList(mechanic, 'safeZones', path).indexed
+        .map((entry) {
+          final itemPath = '$path.safeZones[${entry.$1}]';
+          final item = _requireMap(entry.$2, itemPath);
+          _rejectUnknownKeys(item, const <String>{'id', 'rect'}, itemPath);
+          return DamageLabSafeZoneSpec(
+            id: _requireString(item, 'id', itemPath),
+            bounds: _parseRect(
+              _requireValue(item, 'rect', itemPath),
+              '$itemPath.rect',
+            ),
+          );
+        })
+        .toList(growable: false);
+
+    final summonGates = _requireList(mechanic, 'summonGates', path).indexed
+        .map((entry) {
+          final itemPath = '$path.summonGates[${entry.$1}]';
+          final item = _requireMap(entry.$2, itemPath);
+          _rejectUnknownKeys(item, const <String>{'id', 'position'}, itemPath);
+          return DamageLabSummonGateSpec(
+            id: _requireString(item, 'id', itemPath),
+            position: _parsePoint(
+              _requireValue(item, 'position', itemPath),
+              '$itemPath.position',
+            ),
+          );
+        })
+        .toList(growable: false);
+
+    return DamageLabBossMechanicSpec(
+      pressureVents: List.unmodifiable(pressureVents),
+      phasePlatforms: List.unmodifiable(phasePlatforms),
+      safeZones: List.unmodifiable(safeZones),
+      summonGates: List.unmodifiable(summonGates),
     );
   }
 
@@ -889,6 +1051,8 @@ abstract final class DamageLabRoomLayoutValidator {
       errors.add('$prefix east spawn cannot reach the back door');
     }
 
+    _validateRequiredOrdinaryJumpTransitions(room, errors);
+
     if (room.nodeId == CampaignNodeId.damageAssembly) {
       if (room.secretDoors.length != PlayerWeapon.values.length ||
           PlayerWeapon.values.any(
@@ -938,6 +1102,9 @@ abstract final class DamageLabRoomLayoutValidator {
       if (room.encounter != null) {
         errors.add('$prefix boss room encounter must be null');
       }
+      if (room.width < 1440 || room.height < 832) {
+        errors.add('$prefix boss hangar must be at least 1440x832');
+      }
       for (final id in <String>[
         DamageLabAnchorId.bossSpawn,
         DamageLabAnchorId.bossReward,
@@ -970,7 +1137,16 @@ abstract final class DamageLabRoomLayoutValidator {
           2) {
         errors.add('$prefix requires exactly two boss seals');
       }
+      final mechanic = room.bossMechanic;
+      if (mechanic == null) {
+        errors.add('$prefix requires a bossMechanic contract');
+      } else {
+        _validateBossMechanic(room, mechanic, errors, addId);
+      }
     } else {
+      if (room.bossMechanic != null) {
+        errors.add('$prefix must not declare bossMechanic');
+      }
       final encounter = room.encounter;
       if (encounter == null) {
         errors.add('$prefix requires an encounter contract');
@@ -1011,6 +1187,77 @@ abstract final class DamageLabRoomLayoutValidator {
       if (questReward != null &&
           !_hasSupport(room, questReward, verticalOffset: 6)) {
         errors.add('$prefix questReward has no authored landing');
+      }
+    }
+  }
+
+  static void _validateBossMechanic(
+    DamageLabRoomLayout room,
+    DamageLabBossMechanicSpec mechanic,
+    List<String> errors,
+    void Function(String id, String kind) addId,
+  ) {
+    final prefix = room.nodeId.name;
+    if (mechanic.pressureVents.length < 3) {
+      errors.add('$prefix requires at least three pressure vents');
+    }
+    if (mechanic.phasePlatforms.length < 2) {
+      errors.add('$prefix requires at least two phase platforms');
+    }
+    if (mechanic.safeZones.length < 2) {
+      errors.add('$prefix requires at least two authored safe zones');
+    }
+    if (mechanic.summonGates.length < 2) {
+      errors.add('$prefix requires at least two summon gates');
+    }
+
+    for (final vent in mechanic.pressureVents) {
+      addId(vent.id, 'pressure vent');
+      if (vent.bounds.isEmpty || !_containsRect(room, vent.bounds)) {
+        errors.add('$prefix pressure vent ${vent.id} has invalid bounds');
+      }
+      if (vent.activeFromPhase < 2 || vent.activeFromPhase > 3) {
+        errors.add(
+          '$prefix pressure vent ${vent.id} activeFromPhase must be 2 or 3',
+        );
+      }
+    }
+    for (final platform in mechanic.phasePlatforms) {
+      addId(platform.id, 'phase platform');
+      if (platform.bounds.isEmpty || !_containsRect(room, platform.bounds)) {
+        errors.add('$prefix phase platform ${platform.id} has invalid bounds');
+      }
+      if (platform.activeFromPhase < 2 || platform.activeFromPhase > 3) {
+        errors.add(
+          '$prefix phase platform ${platform.id} activeFromPhase must be 2 or 3',
+        );
+      }
+      if (room.surfaces.any(
+        (surface) =>
+            !surface.isBoundary && surface.bounds.overlaps(platform.bounds),
+      )) {
+        errors.add(
+          '$prefix phase platform ${platform.id} overlaps static collision',
+        );
+      }
+    }
+    for (final zone in mechanic.safeZones) {
+      addId(zone.id, 'safe zone');
+      if (zone.bounds.isEmpty || !_containsRect(room, zone.bounds)) {
+        errors.add('$prefix safe zone ${zone.id} has invalid bounds');
+      }
+      if (mechanic.pressureVents.any(
+        (vent) => vent.bounds.overlaps(zone.bounds),
+      )) {
+        errors.add('$prefix safe zone ${zone.id} overlaps a pressure vent');
+      }
+    }
+    for (final gate in mechanic.summonGates) {
+      addId(gate.id, 'summon gate');
+      if (!_containsPoint(room, gate.position)) {
+        errors.add('$prefix summon gate ${gate.id} is outside the room');
+      } else if (!_hasSupport(room, gate.position, verticalOffset: 36)) {
+        errors.add('$prefix summon gate ${gate.id} has no authored landing');
       }
     }
   }
@@ -1076,6 +1323,50 @@ abstract final class DamageLabRoomLayoutValidator {
       }
     }
     return false;
+  }
+
+  /// Keeps production map parsing inexpensive while still checking every
+  /// authored mandatory edge against the real sword jump arc and intervening
+  /// collision. Full spawn-to-anchor graph searches live in deterministic QA
+  /// tests because they intentionally sample all static surface pairs.
+  static void _validateRequiredOrdinaryJumpTransitions(
+    DamageLabRoomLayout room,
+    List<String> errors,
+  ) {
+    final surfaces = room.surfaces
+        .where((surface) => !surface.isBoundary)
+        .map(
+          (surface) =>
+              OrdinaryJumpSurface(id: surface.id, bounds: surface.bounds),
+        )
+        .toList(growable: false);
+    final byId = <String, OrdinaryJumpSurface>{
+      for (final surface in surfaces) surface.id: surface,
+    };
+    for (final link in room.traversalLinks.where(
+      (link) => link.segment.requiredForCompletion,
+    )) {
+      final from = byId[link.fromSurfaceId];
+      final to = byId[link.toSurfaceId];
+      if (from == null || to == null) continue;
+      for (final direction
+          in <(String, OrdinaryJumpSurface, OrdinaryJumpSurface)>[
+            ('forward', from, to),
+            ('reverse', to, from),
+          ]) {
+        if (OrdinaryJumpReachability.transition(
+              direction.$2,
+              direction.$3,
+              collisionSurfaces: surfaces,
+            ) ==
+            null) {
+          errors.add(
+            '${room.nodeId.name}/${link.segment.id} ${direction.$1} is '
+            'blocked for ordinary sword movement',
+          );
+        }
+      }
+    }
   }
 
   static Set<String> _supportSurfaceIds(

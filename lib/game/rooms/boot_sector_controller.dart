@@ -20,6 +20,20 @@ final class BootSectorController extends Component
         CampaignNodeRoom {
   BootSectorController({this.entry = CampaignNodeEntry.west});
 
+  static const Offset westSpawnCenter = Offset(180, 448);
+  static const Offset eastSpawnCenter = Offset(710, 448);
+  static const List<Rect> ordinaryStaticSurfaces = <Rect>[
+    Rect.fromLTWH(0, 484, 960, 56),
+    Rect.fromLTWH(300, 400, 150, 20),
+    Rect.fromLTWH(520, 328, 150, 20),
+  ];
+  static const Map<String, Offset> mandatoryDoorFeet = <String, Offset>{
+    'interaction.enterDamageLab': Offset(828, 484),
+    'interaction.enterTemporalHall': Offset(150, 484),
+    'interaction.enterCollisionArchive': Offset(300, 484),
+    'interaction.enterOptimizerCore': Offset(690, 484),
+  };
+
   final CampaignNodeEntry entry;
   final List<PlatformSurfaceComponent> _surfaces = <PlatformSurfaceComponent>[];
   CampaignDoorComponent? _damageLabDoor;
@@ -31,8 +45,9 @@ final class BootSectorController extends Component
   CoreSignatureGateComponent? get optimizerGate => _optimizerGate;
 
   @override
-  Vector2 get playerSpawn =>
-      entry == CampaignNodeEntry.west ? Vector2(180, 448) : Vector2(710, 448);
+  Vector2 get playerSpawn => _vector(
+    entry == CampaignNodeEntry.west ? westSpawnCenter : eastSpawnCenter,
+  );
 
   @override
   CampaignNodeId get campaignNodeId => CampaignNodeId.bootSector;
@@ -66,12 +81,13 @@ final class BootSectorController extends Component
       ),
     );
     _surfaces.addAll(<PlatformSurfaceComponent>[
-      PlatformSurfaceComponent(
-        position: Vector2(0, 484),
-        size: Vector2(960, 56),
-        style: PlatformSurfaceStyle.damage,
-        renderArtwork: true,
-      ),
+      for (final bounds in ordinaryStaticSurfaces)
+        PlatformSurfaceComponent(
+          position: Vector2(bounds.left, bounds.top),
+          size: Vector2(bounds.width, bounds.height),
+          style: PlatformSurfaceStyle.damage,
+          renderArtwork: true,
+        ),
       PlatformSurfaceComponent(
         position: Vector2(0, 0),
         size: Vector2(24, 540),
@@ -86,22 +102,10 @@ final class BootSectorController extends Component
         style: PlatformSurfaceStyle.damage,
         renderArtwork: false,
       ),
-      PlatformSurfaceComponent(
-        position: Vector2(300, 400),
-        size: Vector2(150, 20),
-        style: PlatformSurfaceStyle.damage,
-        renderArtwork: true,
-      ),
-      PlatformSurfaceComponent(
-        position: Vector2(520, 328),
-        size: Vector2(150, 20),
-        style: PlatformSurfaceStyle.damage,
-        renderArtwork: true,
-      ),
     ]);
     await addAll(_surfaces);
     final door = CampaignDoorComponent(
-      position: Vector2(828, 484),
+      position: _vector(mandatoryDoorFeet['interaction.enterDamageLab']!),
       labelLocalizationKey: 'interaction.enterDamageLab',
       onInteract: () => game.travelToCampaignNode(
         CampaignNodeId.damageWorkshop,
@@ -112,7 +116,7 @@ final class BootSectorController extends Component
     await add(door);
     if (game.damageLabProgress.patchApplied) {
       final temporalDoor = CampaignDoorComponent(
-        position: Vector2(150, 484),
+        position: _vector(mandatoryDoorFeet['interaction.enterTemporalHall']!),
         labelLocalizationKey: 'interaction.enterTemporalHall',
         accentColor: const Color(0xFF9D8CFF),
         onInteract: () => game.travelToCampaignNode(
@@ -125,7 +129,9 @@ final class BootSectorController extends Component
     }
     if (game.temporalHallProgress.patchApplied) {
       final collisionDoor = CampaignDoorComponent(
-        position: Vector2(300, 484),
+        position: _vector(
+          mandatoryDoorFeet['interaction.enterCollisionArchive']!,
+        ),
         labelLocalizationKey: 'interaction.enterCollisionArchive',
         onInteract: () => game.travelToCampaignNode(
           CampaignNodeId.collisionCompression,
@@ -145,7 +151,7 @@ final class BootSectorController extends Component
     await add(optimizerGate);
     if (optimizerGate.isUnlocked) {
       final optimizerDoor = CampaignDoorComponent(
-        position: Vector2(690, 484),
+        position: _vector(mandatoryDoorFeet['interaction.enterOptimizerCore']!),
         labelLocalizationKey: 'interaction.enterOptimizerCore',
         accentColor: const Color(0xFFFFD35A),
         onInteract: () => game.travelToCampaignNode(
@@ -190,4 +196,6 @@ final class BootSectorController extends Component
     }
     return _optimizerDoor?.tryEnter(player) ?? false;
   }
+
+  static Vector2 _vector(Offset point) => Vector2(point.dx, point.dy);
 }

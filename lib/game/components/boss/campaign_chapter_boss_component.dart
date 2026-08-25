@@ -56,6 +56,7 @@ final class CampaignChapterBossComponent extends PositionComponent
     required this.kind,
     required this.onDefeated,
     this.onPhaseChanged,
+    this.arenaBounds,
   }) : healthState = HealthState(
          max: CampaignBossPhaseGateSpec.maxHealth,
          current: CampaignBossPhaseGateSpec.maxHealth,
@@ -67,6 +68,7 @@ final class CampaignChapterBossComponent extends PositionComponent
   final HealthState healthState;
   final VoidCallback onDefeated;
   final void Function(CampaignChapterBossPhase phase)? onPhaseChanged;
+  final Rect? arenaBounds;
   CampaignChapterBossPhase phase = CampaignChapterBossPhase.dormant;
 
   SpriteComponent? _visual;
@@ -86,7 +88,7 @@ final class CampaignChapterBossComponent extends PositionComponent
   double? _activeDamageWindowCap;
   int _hazardEpoch = 0;
   int _decisionCursor = 0;
-  bool _completedAttackInCurrentPhase = false;
+  final Set<String> _completedAttackIdsInCurrentPhase = <String>{};
   bool _phaseThresholdReached = false;
   bool _resolved = false;
   bool _defeatDispatched = false;
@@ -99,11 +101,21 @@ final class CampaignChapterBossComponent extends PositionComponent
   CampaignBossAttackVisualPhase get attackVisualPhase => _attackCycle.phase;
   String? get visualAttackId => _attackCycle.attack?.id;
   double get attackVisualSecondsRemaining => _attackCycle.remaining;
-  bool get hasCompletedAttackInCurrentPhase => _completedAttackInCurrentPhase;
+  bool get hasCompletedAttackInCurrentPhase =>
+      _completedAttackIdsInCurrentPhase.isNotEmpty;
+  Set<String> get completedAttackIdsInCurrentPhase =>
+      Set<String>.unmodifiable(_completedAttackIdsInCurrentPhase);
+  bool get hasCompletedRepresentativePatternsInCurrentPhase =>
+      _completedAttackIdsInCurrentPhase.length >=
+      CampaignBossPhaseGateSpec.requiredDistinctPatternsPerPhase;
   bool get isPhaseTransitioning => _phaseTransitionRemaining > 0;
   double get phaseTransitionSecondsRemaining => _phaseTransitionRemaining;
   int get spawnedHazardCount => _spawnedHazards.length;
   String get patternFingerprint => _patternSet.fingerprint;
+  List<String> get activePhasePatternIds => isActive
+      ? _patternSet.patternIdsForPhaseIndex(_activePhaseIndex)
+      : const <String>[];
+  Vector2? get attackEchoPosition => _splitEchoWorld?.clone();
   int get diagnosticVisualFrameIndex => _resolveVisualFrameIndex();
   bool get isActive => switch (phase) {
     CampaignChapterBossPhase.phaseOne ||
@@ -190,7 +202,7 @@ final class CampaignChapterBossComponent extends PositionComponent
     if (phase != CampaignChapterBossPhase.intro) return;
     phase = CampaignChapterBossPhase.phaseOne;
     _attackCooldown = .6;
-    _completedAttackInCurrentPhase = false;
+    _completedAttackIdsInCurrentPhase.clear();
     _phaseThresholdReached = false;
     _phaseTransitionRemaining = 0;
     onPhaseChanged?.call(phase);
@@ -231,7 +243,7 @@ final class CampaignChapterBossComponent extends PositionComponent
     }
     phase = CampaignChapterBossPhase.defeated;
     _phaseTransitionRemaining = 0;
-    _completedAttackInCurrentPhase = false;
+    _completedAttackIdsInCurrentPhase.clear();
     _phaseThresholdReached = false;
     onPhaseChanged?.call(phase);
     _attackCycle.reset();
@@ -252,7 +264,10 @@ final class CampaignChapterBossComponent extends PositionComponent
   };
 
   void _tryAdvancePhaseGate() {
-    if (!_phaseThresholdReached || !_completedAttackInCurrentPhase) return;
+    if (!_phaseThresholdReached ||
+        !hasCompletedRepresentativePatternsInCurrentPhase) {
+      return;
+    }
     switch (phase) {
       case CampaignChapterBossPhase.phaseOne:
         _beginPhaseTransition(CampaignChapterBossPhase.phaseTwo);
@@ -271,7 +286,7 @@ final class CampaignChapterBossComponent extends PositionComponent
     phase = nextPhase;
     _phaseTransitionRemaining =
         CampaignBossPhaseGateSpec.transitionQuietSeconds;
-    _completedAttackInCurrentPhase = false;
+    _completedAttackIdsInCurrentPhase.clear();
     _phaseThresholdReached = false;
     _attackCooldown = 0;
     _attackCycle.reset();
@@ -358,12 +373,13 @@ final class CampaignChapterBossComponent extends PositionComponent
               _finishAttackMotion(advancingAttack.id);
             case CampaignBossAttackCycleEvent.recovered:
               _clearAttackDiagnostics();
-              _completedAttackInCurrentPhase = true;
+              _completedAttackIdsInCurrentPhase.add(advancingAttack.id);
               _tryAdvancePhaseGate();
           }
         }
       }
-      if (!isPhaseTransitioning &&
+      if (isActive &&
+          !isPhaseTransitioning &&
           _attackCycle.isIdle &&
           _attackCooldown <= 0) {
         _telegraph(_chooseAttack());
@@ -375,7 +391,17 @@ final class CampaignChapterBossComponent extends PositionComponent
 
   CampaignChapterBossAttackSpec _chooseAttack() {
     final distance = game.world.player.position.distanceTo(position);
-    final candidates = switch (kind) {
+    final phasePatterns = _patternSet.patternIdsForPhaseIndex(
+      _activePhaseIndex,
+    );
+    if (!hasCompletedRepresentativePatternsInCurrentPhase) {
+      for (final patternId in phasePatterns) {
+        if (_completedAttackIdsInCurrentPhase.contains(patternId)) continue;
+        _rememberAttackChoice(patternId);
+        return _patternSet.byId(patternId);
+      }
+    }
+    final spatialCandidates = switch (kind) {
       CampaignChapterBossKind.chronoJailer => <String>[
         if (distance < 210) 'rewindCharge',
         if (distance >= 130) 'clockFan',
@@ -390,16 +416,32 @@ final class CampaignChapterBossComponent extends PositionComponent
         if (phase == CampaignChapterBossPhase.phaseThree) 'vectorCage',
         'gravityShard',
       ],
-    };
-    final filtered = candidates
+    }.where(phasePatterns.contains).toList(growable: true);
+    for (final patternId in phasePatterns) {
+      if (spatialCandidates.length >= 2) break;
+      if (!spatialCandidates.contains(patternId)) {
+        spatialCandidates.add(patternId);
+      }
+    }
+    final unseenCandidates = spatialCandidates
+        .where((id) => !_completedAttackIdsInCurrentPhase.contains(id))
+        .toList(growable: false);
+    final selectionCandidates = unseenCandidates.isEmpty
+        ? spatialCandidates
+        : unseenCandidates;
+    final filtered = selectionCandidates
         .where((id) => !_recentAttacks.take(2).contains(id))
         .toList(growable: false);
-    final pool = filtered.isEmpty ? candidates : filtered;
+    final pool = filtered.isEmpty ? selectionCandidates : filtered;
     final chosen = pool[_decisionCursor % pool.length];
-    _decisionCursor += 1;
-    _recentAttacks.insert(0, chosen);
-    if (_recentAttacks.length > 3) _recentAttacks.removeLast();
+    _rememberAttackChoice(chosen);
     return _patternSet.byId(chosen);
+  }
+
+  void _rememberAttackChoice(String attackId) {
+    _decisionCursor += 1;
+    _recentAttacks.insert(0, attackId);
+    if (_recentAttacks.length > 3) _recentAttacks.removeLast();
   }
 
   void _telegraph(CampaignChapterBossAttackSpec attack) {
@@ -457,6 +499,7 @@ final class CampaignChapterBossComponent extends PositionComponent
       activeSeconds: .28,
     );
     position.setFrom(destination);
+    _splitEchoWorld = origin;
   }
 
   void _executeMergeSlam(Component owner) {
@@ -663,12 +706,41 @@ final class CampaignChapterBossComponent extends PositionComponent
     final room = game.world.activeRoom;
     if (room == null || room is! PlatformerRoomGeometry) return desired;
     final geometry = room as PlatformerRoomGeometry;
+    final authoredArena = arenaBounds;
+    if (authoredArena != null) {
+      return clampPositionToArena(
+        desired,
+        arenaBounds: authoredArena,
+        bossSize: size,
+        killPlaneY: geometry.killPlaneY,
+      );
+    }
     const minimumX = 64.0;
     const minimumY = 64.0;
     final maximumX = math.max(minimumX, geometry.worldSize.x - minimumX);
     final maximumY = math.max(
       minimumY,
       math.min(geometry.worldSize.y - 70, geometry.killPlaneY - 70),
+    );
+    return Vector2(
+      desired.x.clamp(minimumX, maximumX).toDouble(),
+      desired.y.clamp(minimumY, maximumY).toDouble(),
+    );
+  }
+
+  /// Keeps teleport, split, and charge destinations inside the authored seals.
+  static Vector2 clampPositionToArena(
+    Vector2 desired, {
+    required Rect arenaBounds,
+    required Vector2 bossSize,
+    required double killPlaneY,
+  }) {
+    final minimumX = arenaBounds.left + bossSize.x / 2;
+    final minimumY = arenaBounds.top + bossSize.y / 2;
+    final maximumX = math.max(minimumX, arenaBounds.right - bossSize.x / 2);
+    final maximumY = math.max(
+      minimumY,
+      math.min(arenaBounds.bottom - bossSize.y / 2, killPlaneY - 70),
     );
     return Vector2(
       desired.x.clamp(minimumX, maximumX).toDouble(),
@@ -908,16 +980,64 @@ final class CampaignChapterBossComponent extends PositionComponent
     }
     final echo = _splitEchoWorld;
     if (echo != null) {
-      canvas.drawCircle(
-        _localOffset(echo),
-        34,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 5
-          ..color = kind.accentColor.withAlpha(145),
-      );
+      _renderAttackEcho(canvas, echo);
     }
     super.render(canvas);
+  }
+
+  void _renderAttackEcho(Canvas canvas, Vector2 echo) {
+    final center = _localOffset(echo);
+    final attack = _attackCycle.attack?.id;
+    final echoColor = kind.accentColor.withAlpha(145);
+    canvas.drawLine(
+      Offset(size.x / 2, size.y / 2),
+      center,
+      Paint()
+        ..strokeWidth = attack == 'rewindCharge' ? 3 : 2
+        ..color = echoColor.withAlpha(90),
+    );
+    if (attack == 'rewindCharge') {
+      for (var ring = 0; ring < 3; ring += 1) {
+        canvas.drawCircle(
+          center,
+          24 + ring * 9,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3 - ring * .6
+            ..color = echoColor.withAlpha(145 - ring * 32),
+        );
+      }
+      return;
+    }
+    final body = Rect.fromCenter(center: center, width: 58, height: 72);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(body, const Radius.circular(12)),
+      Paint()..color = echoColor.withAlpha(38),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(body, const Radius.circular(12)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4
+        ..color = echoColor,
+    );
+    canvas.drawCircle(center, 10, Paint()..color = echoColor.withAlpha(120));
+    if (attack == 'polarityCross' || attack == 'gravityShard') {
+      canvas.drawLine(
+        center - const Offset(25, 0),
+        center + const Offset(25, 0),
+        Paint()
+          ..strokeWidth = 3
+          ..color = const Color(0xFFFF4FD8).withAlpha(155),
+      );
+      canvas.drawLine(
+        center - const Offset(0, 25),
+        center + const Offset(0, 25),
+        Paint()
+          ..strokeWidth = 3
+          ..color = const Color(0xFF36E1FF).withAlpha(155),
+      );
+    }
   }
 
   void _renderPatternTelegraph(Canvas canvas) {

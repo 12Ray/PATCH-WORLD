@@ -3,6 +3,13 @@ import 'dart:async';
 import 'package:flame_audio/flame_audio.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 
+enum StoryBossAudioIdentity {
+  overflowWarden,
+  chronoJailer,
+  kernelChimera,
+  optimizer,
+}
+
 final class AudioService {
   bool _preloaded = false;
   bool _unlocked = false;
@@ -202,6 +209,49 @@ final class AudioService {
       _ => 'enemyProjectile',
     };
     return _playPooled(poolKey, volume: 0.58);
+  }
+
+  /// Short layered stingers give each campaign boss an audible identity while
+  /// reusing the compact shipped sound bank. Survival mode never calls these.
+  Future<void> playStoryBossIntro(StoryBossAudioIdentity identity) async {
+    await Future.wait(<Future<void>>[
+      _playPooled('enemyBoss', volume: .78),
+      _playOneShot(switch (identity) {
+        StoryBossAudioIdentity.overflowWarden => 'sfx/overflow_warning.wav',
+        StoryBossAudioIdentity.chronoJailer => 'sfx/time_freeze.wav',
+        StoryBossAudioIdentity.kernelChimera => 'sfx/frame_burst.wav',
+        StoryBossAudioIdentity.optimizer => 'sfx/terminal.wav',
+      }, volume: .62),
+    ]);
+  }
+
+  Future<void> playStoryBossPhase(
+    StoryBossAudioIdentity identity, {
+    required int phase,
+  }) async {
+    final normalizedPhase = phase.clamp(1, 3);
+    await Future.wait(<Future<void>>[
+      _playPooled(switch (identity) {
+        StoryBossAudioIdentity.overflowWarden => 'enemyMelee',
+        StoryBossAudioIdentity.chronoJailer => 'enemyField',
+        StoryBossAudioIdentity.kernelChimera ||
+        StoryBossAudioIdentity.optimizer => 'enemyBoss',
+      }, volume: .48 + normalizedPhase * .08),
+      if (normalizedPhase == 3)
+        _playOneShot('sfx/overflow_blast.wav', volume: .52),
+    ]);
+  }
+
+  Future<void> playStoryBossVictory(StoryBossAudioIdentity identity) async {
+    await Future.wait(<Future<void>>[
+      _playOneShot('sfx/checkpoint.wav', volume: .82),
+      _playOneShot(
+        identity == StoryBossAudioIdentity.optimizer
+            ? 'sfx/heal.wav'
+            : 'sfx/patch_pulse.wav',
+        volume: .54,
+      ),
+    ]);
   }
 
   Future<void> _playPooled(String key, {required double volume}) async {

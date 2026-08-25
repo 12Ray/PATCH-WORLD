@@ -12,6 +12,7 @@ import 'package:patch_world/game/components/enemies/platformer_enemy_component.d
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
 import 'package:patch_world/game/components/environment/campaign_service_components.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
+import 'package:patch_world/game/components/environment/platformer_room_feature_component.dart';
 import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
 import 'package:patch_world/game/components/presentation/boss_arena_presentation_component.dart';
 import 'package:patch_world/game/core/run_state.dart';
@@ -79,9 +80,10 @@ void main() {
           progress: CampaignFloorState(),
           layout: layouts.room(nodeId),
         );
+        final arena = room.bossArenaBounds!;
         expect(
           room.playerSpawn.x,
-          inInclusiveRange(130, 830),
+          inInclusiveRange(arena.left, arena.right),
           reason:
               '${nodeId.name}/${entry.name} must start between the locked seals.',
         );
@@ -355,6 +357,11 @@ void main() {
       room.bossArenaPresentation!.state,
       BossArenaPresentationState.phaseOne,
     );
+    expect(
+      room.bossArenaPresentation!.identity,
+      BossArenaIdentity.chronoJailer,
+    );
+    await _waitForBossMechanicPhase(tester, room, 1);
     await _waitForRegionalBossAttackGate(tester, game, boss);
     boss.receiveDamage(999);
     expect(boss.phase, CampaignChapterBossPhase.phaseTwo);
@@ -362,6 +369,8 @@ void main() {
       room.bossArenaPresentation!.state,
       BossArenaPresentationState.phaseTwo,
     );
+    await _waitForBossMechanicPhase(tester, room, 2);
+    _expectBossLasersStartWithWarning(room);
     await _waitForRegionalBossAttackGate(tester, game, boss);
     boss.receiveDamage(999);
     expect(boss.phase, CampaignChapterBossPhase.phaseThree);
@@ -369,6 +378,8 @@ void main() {
       room.bossArenaPresentation!.state,
       BossArenaPresentationState.phaseThree,
     );
+    await _waitForBossMechanicPhase(tester, room, 3);
+    _expectBossLasersStartWithWarning(room);
     await _waitForRegionalBossAttackGate(tester, game, boss);
     boss.receiveDamage(999);
     expect(boss.phase, CampaignChapterBossPhase.defeated);
@@ -387,15 +398,22 @@ void main() {
     );
     expect(room.bossSeals.every((seal) => seal.isUnlocked), isTrue);
     expect(room.bossArenaPresentation!.isCleared, isTrue);
+    expect(room.activeBossMechanicIds, isEmpty);
 
-    game.world.player.position.setValues(700, 478);
+    final temporalReward = room.layout.requireAnchor(
+      RegionalCampaignAnchorId.bossReward,
+    );
+    game.world.player.position.setValues(temporalReward.x, temporalReward.y);
     expect(game.world.tryInteract(game.world.player), isTrue);
     expect(room.isBossRewardDiscoveryActive, isTrue);
     expect(room.hasExitTerminal, isFalse);
     await _pumpRealSeconds(tester, 2.7);
     expect(room.isBossRewardDiscoveryActive, isFalse);
     expect(room.hasExitTerminal, isTrue);
-    game.world.player.position.setValues(850, 478);
+    final temporalExit = room.layout.requireAnchor(
+      RegionalCampaignAnchorId.exitTerminal,
+    );
+    game.world.player.position.setValues(temporalExit.x, temporalExit.y);
     expect(game.world.tryInteract(game.world.player), isTrue);
     expect(game.overlays.isActive(OverlayIds.patchSelection), isTrue);
     game.selectPatch(PatchCatalog.roomTwoChoices.first.id);
@@ -492,6 +510,11 @@ void main() {
     );
     final collisionBoss = collisionRoom.boss!;
     expect(collisionBoss.phase, CampaignChapterBossPhase.phaseOne);
+    expect(
+      collisionRoom.bossArenaPresentation!.identity,
+      BossArenaIdentity.kernelChimera,
+    );
+    await _waitForBossMechanicPhase(tester, collisionRoom, 1);
     await _waitForRegionalBossAttackGate(tester, game, collisionBoss);
     collisionBoss.receiveDamage(999);
     expect(collisionBoss.phase, CampaignChapterBossPhase.phaseTwo);
@@ -499,6 +522,8 @@ void main() {
       collisionRoom.bossArenaPresentation!.state,
       BossArenaPresentationState.phaseTwo,
     );
+    await _waitForBossMechanicPhase(tester, collisionRoom, 2);
+    _expectBossLasersStartWithWarning(collisionRoom);
     await _waitForRegionalBossAttackGate(tester, game, collisionBoss);
     collisionBoss.receiveDamage(999);
     expect(collisionBoss.phase, CampaignChapterBossPhase.phaseThree);
@@ -506,6 +531,8 @@ void main() {
       collisionRoom.bossArenaPresentation!.state,
       BossArenaPresentationState.phaseThree,
     );
+    await _waitForBossMechanicPhase(tester, collisionRoom, 3);
+    _expectBossLasersStartWithWarning(collisionRoom);
     await _waitForRegionalBossAttackGate(tester, game, collisionBoss);
     collisionBoss.receiveDamage(999);
     expect(collisionBoss.phase, CampaignChapterBossPhase.defeated);
@@ -519,14 +546,21 @@ void main() {
     );
     expect(collisionRoom.bossSeals.every((seal) => seal.isUnlocked), isTrue);
     expect(collisionRoom.bossArenaPresentation!.isCleared, isTrue);
-    game.world.player.position.setValues(700, 478);
+    expect(collisionRoom.activeBossMechanicIds, isEmpty);
+    final collisionReward = collisionRoom.layout.requireAnchor(
+      RegionalCampaignAnchorId.bossReward,
+    );
+    game.world.player.position.setValues(collisionReward.x, collisionReward.y);
     expect(game.world.tryInteract(game.world.player), isTrue);
     expect(collisionRoom.isBossRewardDiscoveryActive, isTrue);
     expect(collisionRoom.hasExitTerminal, isFalse);
     await _pumpRealSeconds(tester, 2.7);
     expect(collisionRoom.isBossRewardDiscoveryActive, isFalse);
     expect(collisionRoom.hasExitTerminal, isTrue);
-    game.world.player.position.setValues(850, 478);
+    final collisionExit = collisionRoom.layout.requireAnchor(
+      RegionalCampaignAnchorId.exitTerminal,
+    );
+    game.world.player.position.setValues(collisionExit.x, collisionExit.y);
     expect(game.world.tryInteract(game.world.player), isTrue);
     game.selectPatch(PatchCatalog.roomThreeChoices.first.id);
     await _waitForNode(tester, game, CampaignNodeId.kernelChimera);
@@ -978,7 +1012,8 @@ Future<void> _waitForRegionalBossAttackGate(
   game.input.setVirtualMovement(.01, 0);
   try {
     for (var frame = 0; frame < 80; frame += 1) {
-      if (!boss.isPhaseTransitioning && boss.hasCompletedAttackInCurrentPhase) {
+      if (!boss.isPhaseTransitioning &&
+          boss.hasCompletedRepresentativePatternsInCurrentPhase) {
         return;
       }
       await tester.pump(const Duration(milliseconds: 100));
@@ -988,6 +1023,47 @@ Future<void> _waitForRegionalBossAttackGate(
   }
   throw StateError(
     'Timed out waiting for ${boss.phase.name} to complete an attack.',
+  );
+}
+
+Future<void> _waitForBossMechanicPhase(
+  WidgetTester tester,
+  RegionalCampaignNodeController room,
+  int phase,
+) async {
+  final expectedIds = room.layout.bossMechanics
+      .where((mechanic) => mechanic.isActiveInPhase(phase))
+      .map((mechanic) => mechanic.id)
+      .toSet();
+  for (var frame = 0; frame < 60; frame += 1) {
+    final actualIds = room.activeBossMechanicIds;
+    if (room.activeBossMechanicPhase == phase &&
+        actualIds.length == expectedIds.length &&
+        actualIds.containsAll(expectedIds)) {
+      return;
+    }
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  throw StateError(
+    'Timed out mounting phase $phase mechanics for ${room.nodeId.name}; '
+    'active=${room.activeBossMechanicIds}.',
+  );
+}
+
+void _expectBossLasersStartWithWarning(RegionalCampaignNodeController room) {
+  final lasers = room.children
+      .whereType<PulsingLaserComponent>()
+      .where(
+        (laser) =>
+            laser.sourceId.contains('jailer') ||
+            laser.sourceId.contains('chimera'),
+      )
+      .toList(growable: false);
+  expect(lasers, isNotEmpty);
+  expect(
+    lasers.every((laser) => laser.isInStartupGrace && !laser.isActive),
+    isTrue,
+    reason: 'A newly mounted boss seam must telegraph before it can damage.',
   );
 }
 

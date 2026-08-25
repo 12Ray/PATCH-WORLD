@@ -11,6 +11,13 @@ abstract interface class PlatformerRoomGeometry {
   Vector2 respawnPointFor(Vector2 playerPosition);
 }
 
+/// Optional horizontal surface motion used by authored platforms such as
+/// conveyors. The player asks for this velocity while grounded and resolves
+/// the combined movement through the same wall collision path as normal input.
+abstract interface class PlatformerRoomSurfaceMotion {
+  double horizontalSurfaceVelocityFor(Rect playerBounds);
+}
+
 /// Optional camera policy used by room-based maps. The returned point is
 /// clamped to the room bounds by [PatchWorldGame].
 abstract interface class PlatformerRoomCameraTarget {

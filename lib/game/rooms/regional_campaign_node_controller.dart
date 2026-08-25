@@ -31,11 +31,12 @@ import 'package:patch_world/game/items/run_item_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/maps/regional_campaign_room_layout.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
+import 'package:patch_world/services/audio_service.dart';
 
 /// Connected campaign scene used by Temporal Hall and Collision Archive.
 ///
 /// Both regions' three exploration rooms use authored 1920x1080 geometry.
-/// Their boss arenas retain the tighter 960x540 cinematic contract.
+/// Their boss arenas use a wide 1440x832 combat contract.
 final class RegionalCampaignNodeController extends Component
     with HasGameReference<PatchWorldGame>
     implements
@@ -44,6 +45,7 @@ final class RegionalCampaignNodeController extends Component
         PlatformerRoomCameraZoom,
         PlatformerRoomCameraLead,
         PlatformerRoomCameraFollow,
+        PlatformerRoomSurfaceMotion,
         CampaignNodeRoom,
         CampaignNodeTravelGuard {
   RegionalCampaignNodeController({
@@ -105,6 +107,9 @@ final class RegionalCampaignNodeController extends Component
   PulsingLaserComponent? _objectiveLaser;
   MergingPlatformComponent? _objectiveMergePlatform;
   final List<BossSealGateComponent> _bossSeals = <BossSealGateComponent>[];
+  final Map<String, Component> _bossMechanicComponents = <String, Component>{};
+  final Map<String, PlatformSurfaceComponent> _bossMechanicSurfaces =
+      <String, PlatformSurfaceComponent>{};
   final Set<int> _activatedObjectiveNodeIds = <int>{};
   bool _bossEncounterStarted = false;
   bool _patchSelectionOpened = false;
@@ -113,6 +118,12 @@ final class RegionalCampaignNodeController extends Component
   double _bossRewardDiscoveryRemaining = 0;
   double _objectiveTimeRemaining = 0;
   int _defeatedCount = 0;
+  int _bossMechanicEpoch = 0;
+  int? _activeBossMechanicPhase;
+  bool _bossMechanicsDisposed = false;
+  final Set<int> _playedBossAudioPhases = <int>{};
+  bool _playedBossIntroAudio = false;
+  bool _playedBossVictoryAudio = false;
 
   bool get isTemporal => switch (nodeId) {
     CampaignNodeId.temporalAscent ||
@@ -133,6 +144,14 @@ final class RegionalCampaignNodeController extends Component
   CampaignChapterBossKind get bossKind => isTemporal
       ? CampaignChapterBossKind.chronoJailer
       : CampaignChapterBossKind.kernelChimera;
+
+  BossArenaIdentity get bossArenaIdentity => isTemporal
+      ? BossArenaIdentity.chronoJailer
+      : BossArenaIdentity.kernelChimera;
+
+  StoryBossAudioIdentity get bossAudioIdentity => isTemporal
+      ? StoryBossAudioIdentity.chronoJailer
+      : StoryBossAudioIdentity.kernelChimera;
 
   Color get accentColor =>
       isTemporal ? const Color(0xFF9D8CFF) : const Color(0xFF36E1FF);
@@ -217,6 +236,10 @@ final class RegionalCampaignNodeController extends Component
       _bossArenaPresentation;
   List<BossSealGateComponent> get bossSeals =>
       List<BossSealGateComponent>.unmodifiable(_bossSeals);
+  int? get activeBossMechanicPhase => _activeBossMechanicPhase;
+  Set<String> get activeBossMechanicIds =>
+      Set<String>.unmodifiable(_bossMechanicComponents.keys);
+  Rect? get bossArenaBounds => isBossRoom ? layout.bossArenaBounds : null;
 
   CampaignNodeId get firstNode => isTemporal
       ? CampaignNodeId.temporalAscent
@@ -298,6 +321,15 @@ final class RegionalCampaignNodeController extends Component
       .map((surface) => surface.bounds);
 
   @override
+  double horizontalSurfaceVelocityFor(Rect playerBounds) {
+    for (final conveyor in _surfaces.whereType<ConveyorPlatformComponent>()) {
+      final velocity = conveyor.horizontalVelocityFor(playerBounds);
+      if (velocity != 0) return velocity;
+    }
+    return 0;
+  }
+
+  @override
   Vector2 respawnPointFor(Vector2 playerPosition) {
     final checkpoint = _checkpoint;
     if (checkpoint != null && checkpoint.isActive) {
@@ -308,10 +340,17 @@ final class RegionalCampaignNodeController extends Component
 
   @override
   Vector2 cameraTargetFor(Vector2 playerPosition) {
-    if (isBossIntroActive) return worldSize / 2;
+    if (isBossIntroActive) {
+      final bossPosition =
+          _boss?.position ?? _anchorVector(RegionalCampaignAnchorId.bossSpawn);
+      return Vector2(bossPosition.x, math.max(270, bossPosition.y - 170));
+    }
     final boss = _boss;
     if (_bossEncounterStarted && boss != null && boss.isActive) {
-      return Vector2(playerPosition.x * .58 + boss.position.x * .42, 270);
+      return Vector2(
+        playerPosition.x * .58 + boss.position.x * .42,
+        math.max(270, playerPosition.y * .55 + boss.position.y * .45 - 145),
+      );
     }
     final director = _encounterDirector;
     final encounter = layout.encounter;
@@ -347,8 +386,8 @@ final class RegionalCampaignNodeController extends Component
 
   @override
   double cameraZoomFor(Vector2 playerPosition) {
-    if (isBossIntroActive) return .94;
-    if (_bossEncounterStarted && (_boss?.isActive ?? false)) return 1;
+    if (isBossIntroActive) return .88;
+    if (_bossEncounterStarted && (_boss?.isActive ?? false)) return .96;
     if (_encounterDirector?.usesCombatCamera ?? false) {
       return layout.encounter!.combatCamera.zoom;
     }
@@ -538,6 +577,10 @@ final class RegionalCampaignNodeController extends Component
             breakDelay: feature.breakDelay!,
             restoreDelay: feature.restoreDelay!,
             style: surfaceStyle,
+          );
+        case RegionalCampaignFeatureKind.bossSafePlatform:
+          throw StateError(
+            '$nodeId bossSafePlatform must be authored in bossMechanics.',
           );
         case RegionalCampaignFeatureKind.jumpPad:
           component = JumpPadComponent(
@@ -805,6 +848,7 @@ final class RegionalCampaignNodeController extends Component
     final arenaPresentation = BossArenaPresentationComponent(
       size: worldSize.clone(),
       accentColor: accentColor,
+      identity: bossArenaIdentity,
       initiallyCleared: progress.bossDefeated,
     );
     _bossArenaPresentation = arenaPresentation;
@@ -825,9 +869,11 @@ final class RegionalCampaignNodeController extends Component
       _bossSeals.addAll(seals);
       _surfaces.addAll(seals);
       await addAll(seals);
+      await _syncBossMechanics(1);
       final boss = CampaignChapterBossComponent(
         position: _anchorVector(RegionalCampaignAnchorId.bossSpawn),
         kind: bossKind,
+        arenaBounds: layout.bossArenaBounds,
         onDefeated: _onBossDefeated,
         onPhaseChanged: _onBossPhaseChanged,
       );
@@ -839,6 +885,118 @@ final class RegionalCampaignNodeController extends Component
       await _spawnBossReward();
     } else {
       await _spawnExitTerminal();
+    }
+  }
+
+  Future<void> _syncBossMechanics(int? phase) async {
+    if (!isBossRoom || _bossMechanicsDisposed) return;
+    final epoch = ++_bossMechanicEpoch;
+    _activeBossMechanicPhase = phase;
+    final desired = phase == null
+        ? const <String, RegionalCampaignBossMechanicSpec>{}
+        : <String, RegionalCampaignBossMechanicSpec>{
+            for (final mechanic in layout.bossMechanics)
+              if (mechanic.isActiveInPhase(phase)) mechanic.id: mechanic,
+          };
+
+    for (final id
+        in _bossMechanicComponents.keys
+            .where((id) => !desired.containsKey(id))
+            .toList(growable: false)) {
+      final component = _bossMechanicComponents.remove(id);
+      final surface = _bossMechanicSurfaces.remove(id);
+      if (surface != null) _surfaces.remove(surface);
+      if (component != null && !component.isRemoving) {
+        component.removeFromParent();
+      }
+    }
+
+    for (final entry in desired.entries) {
+      if (_bossMechanicComponents.containsKey(entry.key)) continue;
+      final component = _buildBossMechanic(entry.value.feature);
+      _bossMechanicComponents[entry.key] = component;
+      if (component is PlatformSurfaceComponent) {
+        _bossMechanicSurfaces[entry.key] = component;
+        _surfaces.add(component);
+      }
+      await add(component);
+      if (epoch != _bossMechanicEpoch) {
+        if (identical(_bossMechanicComponents[entry.key], component)) {
+          _bossMechanicComponents.remove(entry.key);
+        }
+        if (identical(_bossMechanicSurfaces[entry.key], component)) {
+          final surface = _bossMechanicSurfaces.remove(entry.key);
+          if (surface != null) _surfaces.remove(surface);
+        }
+        if (!component.isRemoving) component.removeFromParent();
+        if (!_bossMechanicsDisposed) {
+          unawaited(_syncBossMechanics(_activeBossMechanicPhase));
+        }
+        return;
+      }
+    }
+    game.publishUiSnapshot(force: true);
+  }
+
+  Component _buildBossMechanic(RegionalCampaignFeatureSpec feature) {
+    switch (feature.kind) {
+      case RegionalCampaignFeatureKind.bossSafePlatform:
+        return PlatformSurfaceComponent(
+          position: feature.position.toVector2(),
+          size: feature.size.toVector2(),
+          style: surfaceStyle,
+          renderArtwork: true,
+        );
+      case RegionalCampaignFeatureKind.movingPlatform:
+        return MovingPlatformComponent(
+          start: feature.position.toVector2(),
+          end: feature.end!.toVector2(),
+          size: feature.size.toVector2(),
+          periodSeconds: feature.periodSeconds!,
+          style: surfaceStyle,
+        );
+      case RegionalCampaignFeatureKind.rewindPlatform:
+        return RewindPlatformComponent(
+          timeline: feature.timeline
+              .map((point) => point.toVector2())
+              .toList(growable: false),
+          size: feature.size.toVector2(),
+          periodSeconds: feature.periodSeconds!,
+          style: surfaceStyle,
+        );
+      case RegionalCampaignFeatureKind.mergingPlatform:
+        return MergingPlatformComponent(
+          position: feature.position.toVector2(),
+          size: feature.size.toVector2(),
+          periodSeconds: feature.periodSeconds!,
+          style: surfaceStyle,
+        );
+      case RegionalCampaignFeatureKind.conveyorPlatform:
+        return ConveyorPlatformComponent(
+          position: feature.position.toVector2(),
+          size: feature.size.toVector2(),
+          direction: feature.direction!,
+          style: surfaceStyle,
+        );
+      case RegionalCampaignFeatureKind.pulsingLaser:
+        return PulsingLaserComponent(
+          position: feature.position.toVector2(),
+          size: feature.size.toVector2(),
+          sourceId: feature.sourceId!,
+          activeSeconds: feature.activeSeconds!,
+          inactiveSeconds: feature.inactiveSeconds!,
+          phaseOffset: feature.phaseOffset,
+          startupGraceSeconds: 1.1,
+          style: surfaceStyle,
+        );
+      case RegionalCampaignFeatureKind.breakablePlatform ||
+          RegionalCampaignFeatureKind.jumpPad ||
+          RegionalCampaignFeatureKind.crusherHazard ||
+          RegionalCampaignFeatureKind.spikeHazard ||
+          RegionalCampaignFeatureKind.bossSeal:
+        throw StateError(
+          '$nodeId cannot mount ${feature.kind.name} as a boss mechanic.',
+        );
     }
   }
 
@@ -1077,7 +1235,7 @@ final class RegionalCampaignNodeController extends Component
     _bossArenaPresentation?.beginIntro();
     game.setCinematicInputLocked(true);
     final banner = BossNameCardComponent(
-      center: Vector2(480, 145),
+      center: Vector2(worldSize.x / 2, math.max(145, worldSize.y * .2)),
       title: game.localization.text(bossKind.enemyLocalizationKey),
       subtitle: game.localization.text(bossIntroLocalizationKey),
       accentColor: accentColor,
@@ -1096,9 +1254,14 @@ final class RegionalCampaignNodeController extends Component
       ..collectCoreSignature(region)
       ..unlockShortcut(hubLiftId);
     _bossArenaPresentation?.markCleared();
+    if (!_playedBossVictoryAudio) {
+      _playedBossVictoryAudio = true;
+      unawaited(game.audio.playStoryBossVictory(bossAudioIdentity));
+    }
     for (final seal in _bossSeals) {
       seal.unlock();
     }
+    unawaited(_syncBossMechanics(null));
     unawaited(_showCoreSignatureCard());
     unawaited(_spawnBackDoors());
     unawaited(_spawnBossReward());
@@ -1130,7 +1293,7 @@ final class RegionalCampaignNodeController extends Component
         : 'ability.terrainPulse.name';
     await add(
       BossNameCardComponent(
-        center: Vector2(480, 145),
+        center: Vector2(worldSize.x / 2, math.max(145, worldSize.y * .2)),
         title: game.localization.text('boss.coreSignatureAcquired'),
         subtitle:
             '${game.localization.text(regionKey)} // '
@@ -1144,20 +1307,40 @@ final class RegionalCampaignNodeController extends Component
   }
 
   void _onBossPhaseChanged(CampaignChapterBossPhase phase) {
+    final mechanicPhase = switch (phase) {
+      CampaignChapterBossPhase.intro || CampaignChapterBossPhase.phaseOne => 1,
+      CampaignChapterBossPhase.phaseTwo => 2,
+      CampaignChapterBossPhase.phaseThree => 3,
+      CampaignChapterBossPhase.dormant ||
+      CampaignChapterBossPhase.defeated => null,
+    };
+    unawaited(_syncBossMechanics(mechanicPhase));
     switch (phase) {
       case CampaignChapterBossPhase.dormant:
         break;
       case CampaignChapterBossPhase.intro:
         _bossArenaPresentation?.beginIntro();
+        if (!_playedBossIntroAudio) {
+          _playedBossIntroAudio = true;
+          unawaited(game.audio.playStoryBossIntro(bossAudioIdentity));
+        }
       case CampaignChapterBossPhase.phaseOne:
         _bossArenaPresentation?.beginPhaseOne();
+        _playBossPhaseAudioOnce(1);
       case CampaignChapterBossPhase.phaseTwo:
         _bossArenaPresentation?.beginPhaseTwo();
+        _playBossPhaseAudioOnce(2);
       case CampaignChapterBossPhase.phaseThree:
         _bossArenaPresentation?.beginPhaseThree();
+        _playBossPhaseAudioOnce(3);
       case CampaignChapterBossPhase.defeated:
         _bossArenaPresentation?.markCleared();
     }
+  }
+
+  void _playBossPhaseAudioOnce(int phase) {
+    if (!_playedBossAudioPhases.add(phase)) return;
+    unawaited(game.audio.playStoryBossPhase(bossAudioIdentity, phase: phase));
   }
 
   Future<void> _spawnExitTerminal() async {
@@ -1252,6 +1435,8 @@ final class RegionalCampaignNodeController extends Component
 
   @override
   void onRemove() {
+    _bossMechanicsDisposed = true;
+    _bossMechanicEpoch += 1;
     game.setCinematicInputLocked(false);
     super.onRemove();
   }

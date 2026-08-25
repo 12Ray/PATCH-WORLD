@@ -3,6 +3,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
+import 'package:patch_world/game/campaign/ordinary_jump_reachability.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
 import 'package:patch_world/game/components/environment/story_room_layers_component.dart';
@@ -96,6 +97,38 @@ void main() {
         CampaignNodeId.damageWorkshop,
       ]),
     );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  test('every story door in the Boot hub needs only ordinary movement', () {
+    final anchors = <OrdinaryJumpAnchor>[
+      for (final entry in BootSectorController.mandatoryDoorFeet.entries)
+        OrdinaryJumpAnchor(id: entry.key, feet: entry.value),
+    ];
+    final result = OrdinaryJumpReachability.analyze(
+      surfaces: <OrdinaryJumpSurface>[
+        for (final (index, bounds)
+            in BootSectorController.ordinaryStaticSurfaces.indexed)
+          OrdinaryJumpSurface(id: 'boot.surface.$index', bounds: bounds),
+      ],
+      start: OrdinaryJumpAnchor(
+        id: 'boot.westSpawn',
+        feet: Offset(
+          BootSectorController.westSpawnCenter.dx,
+          BootSectorController.westSpawnCenter.dy + 16,
+        ),
+        settleDistance: 64,
+      ),
+      requiredAnchors: anchors,
+    );
+    expect(anchors, hasLength(4));
+    for (final anchor in anchors) {
+      expect(
+        result.isAnchorReachable(anchor.id),
+        isTrue,
+        reason: '${anchor.id} must stay on the ordinary Boot hub route.',
+      );
+    }
   });
 }
 

@@ -30,6 +30,7 @@ import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/damage_lab_room_status.dart';
 import 'package:patch_world/game/rooms/maps/damage_lab_room_layout.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
+import 'package:patch_world/services/audio_service.dart';
 
 /// One independently loaded room in the connected Damage Lab region.
 ///
@@ -90,7 +91,20 @@ final class DamageLabNodeController extends Component
   BossNameCardComponent? _bossBanner;
   BossArenaPresentationComponent? _bossArenaPresentation;
   final List<BossSealGateComponent> _bossSeals = <BossSealGateComponent>[];
+  final List<WardenPressureVentComponent> _wardenPressureVents =
+      <WardenPressureVentComponent>[];
+  final List<WardenPhasePlatformComponent> _wardenPhasePlatforms =
+      <WardenPhasePlatformComponent>[];
+  final List<WardenSafeZoneComponent> _wardenSafeZones =
+      <WardenSafeZoneComponent>[];
+  final List<WardenSummonGateComponent> _wardenSummonGates =
+      <WardenSummonGateComponent>[];
+  final Set<PlatformerEnemyComponent> _wardenSummons =
+      <PlatformerEnemyComponent>{};
+  final Set<int> _wardenSummonedPhases = <int>{};
   bool _bossEncounterStarted = false;
+  OverflowWardenPhase? _lastBossAudioPhase;
+  bool _bossVictoryCuePlayed = false;
   bool _patchSelectionOpened = false;
   CampaignEncounterDirector? _encounterDirector;
   double _bossIntroRemaining = 0;
@@ -116,11 +130,12 @@ final class DamageLabNodeController extends Component
         : const <Rect>[],
   );
 
-  List<Rect> get authoredPlatformBounds => List<Rect>.unmodifiable(
-    layout.surfaces
+  List<Rect> get authoredPlatformBounds => List<Rect>.unmodifiable(<Rect>[
+    ...layout.surfaces
         .where((surface) => !surface.isBoundary)
         .map((surface) => surface.bounds),
-  );
+    ...?layout.bossMechanic?.phasePlatforms.map((platform) => platform.bounds),
+  ]);
 
   String? get environmentAsset => layout.environmentAsset;
 
@@ -175,6 +190,17 @@ final class DamageLabNodeController extends Component
       _bossArenaPresentation;
   List<BossSealGateComponent> get bossSeals =>
       List<BossSealGateComponent>.unmodifiable(_bossSeals);
+  List<WardenPressureVentComponent> get wardenPressureVents =>
+      List<WardenPressureVentComponent>.unmodifiable(_wardenPressureVents);
+  List<WardenPhasePlatformComponent> get wardenPhasePlatforms =>
+      List<WardenPhasePlatformComponent>.unmodifiable(_wardenPhasePlatforms);
+  List<WardenSafeZoneComponent> get wardenSafeZones =>
+      List<WardenSafeZoneComponent>.unmodifiable(_wardenSafeZones);
+  List<WardenSummonGateComponent> get wardenSummonGates =>
+      List<WardenSummonGateComponent>.unmodifiable(_wardenSummonGates);
+  List<PlatformerEnemyComponent> get activeWardenSummons => _wardenSummons
+      .where((enemy) => enemy.isMounted && !enemy.isRemoving)
+      .toList(growable: false);
 
   List<(PlatformerEnemyArchetype, double, double)> get combatEncounterSpecs =>
       layout.enemies
@@ -206,7 +232,14 @@ final class DamageLabNodeController extends Component
     if (isBossIntroActive) return worldSize / 2;
     final boss = _boss;
     if (_bossEncounterStarted && boss != null && boss.isActive) {
-      return Vector2(playerPosition.x * .58 + boss.position.x * .42, 270);
+      return Vector2(
+        (playerPosition.x * .58 + boss.position.x * .42)
+            .clamp(320, worldSize.x - 320)
+            .toDouble(),
+        (playerPosition.y * .58 + boss.position.y * .42 - 96)
+            .clamp(240, worldSize.y - 240)
+            .toDouble(),
+      );
     }
     final director = _encounterDirector;
     final encounter = layout.encounter;
@@ -238,13 +271,15 @@ final class DamageLabNodeController extends Component
     }
     return nodeId != CampaignNodeId.overflowWarden
         ? Vector2(playerPosition.x, playerPosition.y - 68)
-        : Vector2(480, 270);
+        : worldSize / 2;
   }
 
   @override
   double cameraZoomFor(Vector2 playerPosition) {
     if (isBossIntroActive) return .94;
-    if (_bossEncounterStarted && (_boss?.isActive ?? false)) return 1;
+    if (_bossEncounterStarted && (_boss?.isActive ?? false)) {
+      return layout.camera.zoom;
+    }
     if (_encounterDirector?.usesCombatCamera ?? false) {
       return layout.encounter!.combatCamera.zoom;
     }
@@ -280,6 +315,9 @@ final class DamageLabNodeController extends Component
     );
     _buildGeometry();
     await addAll(_surfaces);
+    if (nodeId == CampaignNodeId.overflowWarden) {
+      await _addWardenMechanics();
+    }
     await _addRoomFeatures();
     await _addTerrainPulseRoute();
     await _addServiceRoomFeatures();
@@ -370,6 +408,101 @@ final class DamageLabNodeController extends Component
       }
     }
     await addAll(features);
+  }
+
+  Future<void> _addWardenMechanics() async {
+    final mechanic = layout.bossMechanic;
+    if (mechanic == null) {
+      throw StateError('Overflow Warden room is missing bossMechanic.');
+    }
+
+    _wardenPressureVents.addAll(
+      mechanic.pressureVents.map(WardenPressureVentComponent.new),
+    );
+    _wardenPhasePlatforms.addAll(
+      mechanic.phasePlatforms.map(WardenPhasePlatformComponent.new),
+    );
+    _wardenSafeZones.addAll(
+      mechanic.safeZones.map(WardenSafeZoneComponent.new),
+    );
+    _wardenSummonGates.addAll(
+      mechanic.summonGates.indexed.map(
+        (entry) => WardenSummonGateComponent(
+          spec: entry.$2,
+          opensInPhase: entry.$1 + 2,
+        ),
+      ),
+    );
+    _surfaces.addAll(_wardenPhasePlatforms);
+    await addAll(<Component>[
+      ..._wardenSafeZones,
+      ..._wardenPressureVents,
+      ..._wardenPhasePlatforms,
+      ..._wardenSummonGates,
+    ]);
+    if (progress.bossDefeated) {
+      _clearWardenMechanics();
+    } else {
+      _setWardenMechanicPhase(0);
+    }
+  }
+
+  void _setWardenMechanicPhase(int phase) {
+    for (final vent in _wardenPressureVents) {
+      vent.setBossPhase(phase);
+    }
+    for (final platform in _wardenPhasePlatforms) {
+      platform.setBossPhase(phase);
+    }
+    for (final gate in _wardenSummonGates) {
+      gate.setBossPhase(phase);
+    }
+    if (phase == 2 || phase == 3) unawaited(_spawnWardenSummon(phase));
+  }
+
+  Future<void> _spawnWardenSummon(int phase) async {
+    if (progress.bossDefeated || !_wardenSummonedPhases.add(phase)) return;
+    final gateIndex = phase - 2;
+    if (gateIndex < 0 || gateIndex >= _wardenSummonGates.length) return;
+    late final PlatformerEnemyComponent summon;
+    summon = PlatformerEnemyComponent(
+      archetype: PlatformerEnemyArchetype.repairLeech,
+      position: _wardenSummonGates[gateIndex].spec.position.toVector2(),
+      onDefeated: (enemy) => _wardenSummons.remove(enemy),
+      onRepairAlly: (amount) {
+        final boss = _boss;
+        if (boss == null || !boss.isActive || boss.isPhaseTransitioning) {
+          return false;
+        }
+        if (summon.position.distanceToSquared(boss.position) > 230 * 230) {
+          return false;
+        }
+        boss.receiveSupportHealing(amount);
+        return true;
+      },
+    );
+    _wardenSummons.add(summon);
+    await add(summon);
+    if (progress.bossDefeated || _boss == null) {
+      _wardenSummons.remove(summon);
+      if (!summon.isRemoving) summon.removeFromParent();
+    }
+  }
+
+  void _clearWardenMechanics() {
+    for (final vent in _wardenPressureVents) {
+      vent.markCleared();
+    }
+    for (final platform in _wardenPhasePlatforms) {
+      platform.markCleared();
+    }
+    for (final gate in _wardenSummonGates) {
+      gate.markCleared();
+    }
+    for (final summon in _wardenSummons.toList(growable: false)) {
+      if (!summon.isRemoving) summon.removeFromParent();
+    }
+    _wardenSummons.clear();
   }
 
   Future<void> _addCombatEncounter() async {
@@ -480,6 +613,7 @@ final class DamageLabNodeController extends Component
     final arenaPresentation = BossArenaPresentationComponent(
       size: worldSize.clone(),
       accentColor: const Color(0xFFFFD35A),
+      identity: BossArenaIdentity.overflowWarden,
       initiallyCleared: progress.bossDefeated,
     );
     _bossArenaPresentation = arenaPresentation;
@@ -498,10 +632,21 @@ final class DamageLabNodeController extends Component
       _bossSeals.addAll(seals);
       _surfaces.addAll(seals);
       await addAll(seals);
+      final orderedSeals = seals.toList()
+        ..sort(
+          (first, second) => first.position.x.compareTo(second.position.x),
+        );
+      final bossArenaBounds = Rect.fromLTRB(
+        orderedSeals.first.position.x + orderedSeals.first.size.x,
+        0,
+        orderedSeals.last.position.x,
+        worldSize.y,
+      );
       final bossSpawn = layout.requireAnchor(DamageLabAnchorId.bossSpawn);
       final boss = OverflowWardenBossComponent(
         position: bossSpawn.toVector2(),
         arenaFloorY: bossSpawn.y + 56,
+        arenaBounds: bossArenaBounds,
         onDefeated: _onBossDefeated,
         onPhaseChanged: _onBossPhaseChanged,
       );
@@ -758,10 +903,9 @@ final class DamageLabNodeController extends Component
     _bossEncounterStarted = true;
     _bossIntroRemaining = 2.8;
     boss.beginIntro();
-    _bossArenaPresentation?.beginIntro();
     game.setCinematicInputLocked(true);
     final banner = BossNameCardComponent(
-      center: Vector2(480, 145),
+      center: Vector2(worldSize.x / 2, 145),
       title: game.localization.text('enemy.overflowWarden.name'),
       subtitle: game.localization.text('boss.overflowWarden.intro'),
       accentColor: const Color(0xFFFFD35A),
@@ -773,11 +917,13 @@ final class DamageLabNodeController extends Component
   }
 
   void _onBossDefeated() {
+    _playWardenVictoryCue();
     progress.bossDefeated = true;
     _boss = null;
     game.runMetrics.recordOverflow();
     game.campaignExploration.collectCoreSignature(CampaignRegion.damageLab);
     _bossArenaPresentation?.markCleared();
+    _clearWardenMechanics();
     for (final seal in _bossSeals) {
       seal.unlock();
     }
@@ -806,7 +952,7 @@ final class DamageLabNodeController extends Component
   Future<void> _showCoreSignatureCard() async {
     await add(
       BossNameCardComponent(
-        center: Vector2(480, 145),
+        center: Vector2(worldSize.x / 2, 145),
         title: game.localization.text('boss.coreSignatureAcquired'),
         subtitle:
             '${game.localization.text('room.damageLab')} // '
@@ -820,20 +966,74 @@ final class DamageLabNodeController extends Component
   }
 
   void _onBossPhaseChanged(OverflowWardenPhase phase) {
+    _playWardenPhaseCue(phase);
     switch (phase) {
       case OverflowWardenPhase.dormant:
+        _setWardenMechanicPhase(0);
         break;
       case OverflowWardenPhase.intro:
+        _setWardenMechanicPhase(0);
         _bossArenaPresentation?.beginIntro();
       case OverflowWardenPhase.shielded:
+        _setWardenMechanicPhase(1);
         _bossArenaPresentation?.beginPhaseOne();
       case OverflowWardenPhase.breached:
+        _setWardenMechanicPhase(2);
         _bossArenaPresentation?.beginPhaseTwo();
-      case OverflowWardenPhase.critical || OverflowWardenPhase.overflowing:
+      case OverflowWardenPhase.critical:
+        _setWardenMechanicPhase(3);
+        _bossArenaPresentation?.beginPhaseThree();
+      case OverflowWardenPhase.overflowing:
+        _clearWardenMechanics();
         _bossArenaPresentation?.beginPhaseThree();
       case OverflowWardenPhase.defeated:
+        _clearWardenMechanics();
         _bossArenaPresentation?.markCleared();
     }
+  }
+
+  void _playWardenPhaseCue(OverflowWardenPhase phase) {
+    if (_lastBossAudioPhase == phase) return;
+    _lastBossAudioPhase = phase;
+    switch (phase) {
+      case OverflowWardenPhase.intro:
+        unawaited(
+          game.audio.playStoryBossIntro(StoryBossAudioIdentity.overflowWarden),
+        );
+      case OverflowWardenPhase.shielded:
+        unawaited(
+          game.audio.playStoryBossPhase(
+            StoryBossAudioIdentity.overflowWarden,
+            phase: 1,
+          ),
+        );
+      case OverflowWardenPhase.breached:
+        unawaited(
+          game.audio.playStoryBossPhase(
+            StoryBossAudioIdentity.overflowWarden,
+            phase: 2,
+          ),
+        );
+      case OverflowWardenPhase.critical:
+        unawaited(
+          game.audio.playStoryBossPhase(
+            StoryBossAudioIdentity.overflowWarden,
+            phase: 3,
+          ),
+        );
+      case OverflowWardenPhase.defeated:
+        _playWardenVictoryCue();
+      case OverflowWardenPhase.dormant || OverflowWardenPhase.overflowing:
+        break;
+    }
+  }
+
+  void _playWardenVictoryCue() {
+    if (_bossVictoryCuePlayed) return;
+    _bossVictoryCuePlayed = true;
+    unawaited(
+      game.audio.playStoryBossVictory(StoryBossAudioIdentity.overflowWarden),
+    );
   }
 
   Future<void> _spawnExitTerminal() async {
@@ -920,5 +1120,242 @@ final class DamageLabNodeController extends Component
   void onRemove() {
     game.setCinematicInputLocked(false);
     super.onRemove();
+  }
+}
+
+/// Phase-driven floor vent for the Warden pressure hangar. The authored bounds
+/// control both the warning plume and the damage check.
+final class WardenPressureVentComponent extends PositionComponent
+    with HasGameReference<PatchWorldGame> {
+  WardenPressureVentComponent(this.spec)
+    : super(
+        position: Vector2(spec.bounds.left, spec.bounds.top),
+        size: Vector2(spec.bounds.width, spec.bounds.height),
+        priority: 7,
+      );
+
+  final DamageLabPressureVentSpec spec;
+  static const double phaseEntryGraceSeconds = 1.1;
+  int _bossPhase = 0;
+  double _elapsed = 0;
+  double _phaseGraceRemaining = 0;
+  bool _burstActive = false;
+  bool _damagedThisBurst = false;
+  bool _cleared = false;
+
+  bool get isEnabled => !_cleared && _bossPhase >= spec.activeFromPhase;
+  bool get isBurstActive => isEnabled && _burstActive;
+  double get phaseGraceRemaining => _phaseGraceRemaining;
+  Rect get worldBounds => spec.bounds;
+
+  void setBossPhase(int phase) {
+    _bossPhase = phase;
+    _elapsed = 0;
+    _phaseGraceRemaining = phase > 0 ? phaseEntryGraceSeconds : 0;
+    _burstActive = false;
+    _damagedThisBurst = false;
+  }
+
+  void markCleared() {
+    _cleared = true;
+    _bossPhase = 0;
+    _phaseGraceRemaining = 0;
+    _burstActive = false;
+    _damagedThisBurst = false;
+  }
+
+  @override
+  void update(double dt) {
+    final enemyDt = isMounted ? game.clock.enemyDt : dt;
+    if (!isEnabled || enemyDt <= 0) {
+      super.update(dt);
+      return;
+    }
+    _elapsed += enemyDt;
+    if (_phaseGraceRemaining > 0) {
+      _phaseGraceRemaining = math.max(0, _phaseGraceRemaining - enemyDt);
+      _burstActive = false;
+      super.update(dt);
+      return;
+    }
+    final period = _bossPhase >= 3 ? 1.8 : 2.4;
+    final phaseTime = (_elapsed + spec.phaseOffset) % period;
+    final nextBurstActive = phaseTime >= period - .28;
+    if (nextBurstActive && !_burstActive) _damagedThisBurst = false;
+    _burstActive = nextBurstActive;
+    if (_burstActive && !_damagedThisBurst) {
+      final player = game.world.player;
+      if (spec.bounds
+          .inflate(6)
+          .contains(Offset(player.position.x, player.position.y))) {
+        _damagedThisBurst = true;
+        player.takeDamage(1, causeId: 'hazard.damage-lab.warden.pressure-vent');
+      }
+    }
+    super.update(dt);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final base = Rect.fromLTWH(0, size.y - 20, size.x, 20);
+    canvas.drawRect(base, Paint()..color = const Color(0xFF1B263A));
+    for (double x = 16; x < size.x; x += 32) {
+      canvas.drawCircle(
+        Offset(x, size.y - 10),
+        5,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = const Color(0xFF36E1FF).withValues(alpha: .55),
+      );
+    }
+    if (!isEnabled) {
+      super.render(canvas);
+      return;
+    }
+    final period = _bossPhase >= 3 ? 1.8 : 2.4;
+    final phaseTime = (_elapsed + spec.phaseOffset) % period;
+    final warning = (phaseTime / period).clamp(0.0, 1.0);
+    final plume = Rect.fromLTWH(8, 0, size.x - 16, size.y - 18);
+    canvas.drawRect(
+      plume,
+      Paint()
+        ..shader = Gradient.linear(
+          Offset(size.x / 2, size.y),
+          Offset(size.x / 2, 0),
+          <Color>[
+            const Color(
+              0xFFFF4FD8,
+            ).withValues(alpha: _burstActive ? .72 : .08 + warning * .18),
+            const Color(0xFFFFD35A).withValues(alpha: _burstActive ? .18 : 0),
+          ],
+        ),
+    );
+    super.render(canvas);
+  }
+}
+
+/// A platform whose collision and walkable artwork switch on atomically at a
+/// boss phase boundary.
+final class WardenPhasePlatformComponent extends PlatformSurfaceComponent {
+  WardenPhasePlatformComponent(this.spec)
+    : super(
+        position: Vector2(spec.bounds.left, spec.bounds.top),
+        size: Vector2(spec.bounds.width, spec.bounds.height),
+        style: PlatformSurfaceStyle.damage,
+        renderArtwork: true,
+      );
+
+  final DamageLabPhasePlatformSpec spec;
+  int _bossPhase = 0;
+  bool _cleared = false;
+
+  bool get isEnabled => _cleared || _bossPhase >= spec.activeFromPhase;
+  bool get isVisiblySolid => isEnabled && !isRemoving;
+
+  void setBossPhase(int phase) => _bossPhase = phase;
+
+  void markCleared() {
+    _cleared = true;
+    _bossPhase = 3;
+  }
+
+  @override
+  bool get isSolid => isEnabled && super.isSolid;
+
+  @override
+  void render(Canvas canvas) {
+    if (isEnabled) {
+      super.render(canvas);
+      return;
+    }
+    for (double x = 16; x < size.x; x += 32) {
+      canvas.drawCircle(
+        Offset(x, size.y / 2),
+        3,
+        Paint()..color = const Color(0xFF36E1FF).withValues(alpha: .22),
+      );
+    }
+  }
+}
+
+final class WardenSafeZoneComponent extends PositionComponent {
+  WardenSafeZoneComponent(this.spec)
+    : super(
+        position: Vector2(spec.bounds.left, spec.bounds.top),
+        size: Vector2(spec.bounds.width, spec.bounds.height),
+        priority: 6,
+      );
+
+  final DamageLabSafeZoneSpec spec;
+  Rect get worldBounds => spec.bounds;
+
+  @override
+  void render(Canvas canvas) {
+    final marker = Rect.fromLTWH(0, size.y - 12, size.x, 10);
+    canvas.drawRect(
+      marker,
+      Paint()..color = const Color(0xFF45F3A6).withValues(alpha: .16),
+    );
+    canvas.drawLine(
+      marker.bottomLeft,
+      marker.bottomRight,
+      Paint()
+        ..strokeWidth = 2
+        ..color = const Color(0xFF45F3A6).withValues(alpha: .7),
+    );
+  }
+}
+
+final class WardenSummonGateComponent extends PositionComponent {
+  WardenSummonGateComponent({required this.spec, required this.opensInPhase})
+    : super(
+        position: spec.position.toVector2(),
+        size: Vector2.all(72),
+        anchor: Anchor.center,
+        priority: 6,
+      );
+
+  final DamageLabSummonGateSpec spec;
+  final int opensInPhase;
+  int _bossPhase = 0;
+  bool _cleared = false;
+  double _clock = 0;
+
+  bool get isOpen => !_cleared && _bossPhase >= opensInPhase;
+
+  void setBossPhase(int phase) => _bossPhase = phase;
+
+  void markCleared() {
+    _cleared = true;
+    _bossPhase = 0;
+  }
+
+  @override
+  void update(double dt) {
+    _clock += dt;
+    super.update(dt);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final center = Offset(size.x / 2, size.y / 2);
+    final pulse = isOpen ? 1 + math.sin(_clock * 6).abs() * .14 : 1.0;
+    canvas.drawCircle(
+      center,
+      25 * pulse,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isOpen ? 4 : 2
+        ..color = (isOpen ? const Color(0xFFFF4FD8) : const Color(0xFF41506B))
+            .withValues(alpha: .82),
+    );
+    canvas.drawRect(
+      Rect.fromCenter(center: center, width: 22, height: 34),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0xFFFFD35A).withValues(alpha: isOpen ? .9 : .32),
+    );
   }
 }

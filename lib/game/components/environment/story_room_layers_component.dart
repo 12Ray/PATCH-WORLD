@@ -467,21 +467,148 @@ final class StoryRoomLayersComponent extends PositionComponent {
   }
 
   void _drawBossMotif(Canvas canvas, _StoryPalette palette) {
-    final center = Offset(_snap(size.x * .5), _snap(size.y * .42));
-    final radius = math.min(size.x, size.y) * .29;
+    switch (theme) {
+      case StoryRegionVisualTheme.damage:
+        _drawWardenBossMotif(canvas, palette);
+      case StoryRegionVisualTheme.temporal:
+        _drawChronoBossMotif(canvas, palette);
+      case StoryRegionVisualTheme.collision:
+        _drawChimeraBossMotif(canvas, palette);
+      case StoryRegionVisualTheme.boot || StoryRegionVisualTheme.optimizer:
+        final center = Offset(_snap(size.x * .5), _snap(size.y * .42));
+        final radius = math.min(size.x, size.y) * .29;
+        canvas.drawArc(
+          Rect.fromCircle(center: center, radius: radius),
+          math.pi * .13,
+          math.pi * .74,
+          false,
+          _stroke(palette.accent, .25, 4),
+        );
+        canvas.drawArc(
+          Rect.fromCircle(center: center, radius: radius),
+          math.pi * 1.13,
+          math.pi * .74,
+          false,
+          _stroke(palette.accent, .25, 4),
+        );
+    }
+  }
+
+  void _drawWardenBossMotif(Canvas canvas, _StoryPalette palette) {
+    final center = Offset(_snap(size.x * .5), _snap(size.y * .34));
+    final gaugeRadius = math.min(size.x, size.y) * .16;
     canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      math.pi * .13,
-      math.pi * .74,
+      Rect.fromCircle(center: center, radius: gaugeRadius),
+      math.pi,
+      math.pi,
       false,
-      _stroke(palette.accent, .25, 4),
+      _stroke(palette.accent, .30, 7),
     );
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      math.pi * 1.13,
-      math.pi * .74,
-      false,
-      _stroke(palette.accent, .25, 4),
+    for (var tick = 0; tick <= 8; tick += 1) {
+      final angle = math.pi + tick * math.pi / 8;
+      final direction = Offset(math.cos(angle), math.sin(angle));
+      canvas.drawLine(
+        center + direction * (gaugeRadius - 11),
+        center + direction * gaugeRadius,
+        _stroke(palette.highlight, .23, tick.isEven ? 4 : 2),
+      );
+    }
+    canvas.drawLine(
+      center,
+      center +
+          Offset(math.cos(math.pi * 1.72), math.sin(math.pi * 1.72)) *
+              gaugeRadius *
+              .72,
+      _stroke(const Color(0xFFFF754D), .34, 5),
+    );
+    for (final direction in const <double>[-1, 1]) {
+      final x = _snap(size.x * (.5 + direction * .31));
+      canvas.drawPath(
+        Path()
+          ..moveTo(x, 0)
+          ..lineTo(x, size.y * .22)
+          ..quadraticBezierTo(x, size.y * .28, x - direction * 42, size.y * .28)
+          ..lineTo(x - direction * 118, size.y * .28),
+        _stroke(palette.structure, .24, 9),
+      );
+    }
+  }
+
+  void _drawChronoBossMotif(Canvas canvas, _StoryPalette palette) {
+    final center = Offset(_snap(size.x * .5), _snap(size.y * .42));
+    final radius = math.min(size.x, size.y) * .27;
+    for (var ring = 0; ring < 3; ring += 1) {
+      canvas.drawCircle(
+        center,
+        radius - ring * moduleSize * .55,
+        _stroke(palette.accent, .26 - ring * .04, 4 - ring.toDouble()),
+      );
+    }
+    for (var tick = 0; tick < 12; tick += 1) {
+      final angle = tick * math.pi / 6;
+      final direction = Offset(math.cos(angle), math.sin(angle));
+      canvas.drawLine(
+        center + direction * (radius - 14),
+        center + direction * radius,
+        _stroke(palette.highlight, .24, tick % 3 == 0 ? 4 : 2),
+      );
+    }
+    canvas.drawLine(
+      center,
+      center + const Offset(0, -1) * radius * .72,
+      _stroke(palette.highlight, .27, 5),
+    );
+    canvas.drawLine(
+      center,
+      center + const Offset(.76, .65) * radius * .55,
+      _stroke(palette.accent, .32, 4),
+    );
+  }
+
+  void _drawChimeraBossMotif(Canvas canvas, _StoryPalette palette) {
+    final center = Offset(_snap(size.x * .5), _snap(size.y * .43));
+    final extent = math.min(size.x, size.y) * .28;
+    final cyan = const Color(0xFF43E5FF);
+    final magenta = const Color(0xFFFF4FCA);
+    for (var lane = -2; lane <= 2; lane += 1) {
+      final laneY = center.dy + lane * moduleSize * 1.25;
+      canvas.drawPath(
+        Path()
+          ..moveTo(center.dx - extent * 1.55, laneY)
+          ..quadraticBezierTo(
+            center.dx - extent * .48,
+            laneY,
+            center.dx - 12,
+            center.dy + lane * 9,
+          ),
+        _stroke(cyan, .24, 3),
+      );
+      canvas.drawPath(
+        Path()
+          ..moveTo(center.dx + extent * 1.55, laneY)
+          ..quadraticBezierTo(
+            center.dx + extent * .48,
+            laneY,
+            center.dx + 12,
+            center.dy - lane * 9,
+          ),
+        _stroke(magenta, .24, 3),
+      );
+    }
+    final core = Path()
+      ..moveTo(center.dx, center.dy - moduleSize * 1.35)
+      ..lineTo(center.dx + moduleSize * 1.35, center.dy)
+      ..lineTo(center.dx, center.dy + moduleSize * 1.35)
+      ..lineTo(center.dx - moduleSize * 1.35, center.dy)
+      ..close();
+    canvas.drawPath(
+      core,
+      Paint()
+        ..shader = Gradient.linear(
+          Offset(center.dx - moduleSize, center.dy),
+          Offset(center.dx + moduleSize, center.dy),
+          <Color>[cyan.withValues(alpha: .23), magenta.withValues(alpha: .23)],
+        ),
     );
   }
 

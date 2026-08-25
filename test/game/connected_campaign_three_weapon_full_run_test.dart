@@ -10,9 +10,11 @@ import 'package:patch_world/game/campaign/campaign_encounter_director.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/boss/campaign_chapter_boss_component.dart';
+import 'package:patch_world/game/components/boss/optimizer_boss_component.dart';
 import 'package:patch_world/game/components/boss/overflow_warden_boss_component.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
+import 'package:patch_world/game/components/environment/patch_exit_terminal_component.dart';
 import 'package:patch_world/game/components/environment/qa_record_terminal_component.dart';
 import 'package:patch_world/game/components/items/item_pedestal_component.dart';
 import 'package:patch_world/game/core/run_state.dart';
@@ -261,15 +263,55 @@ Future<void> _completeCampaign(
   await _pumpFrames(tester, 90, const Duration(milliseconds: 100));
 
   final optimizerRoom = game.world.activeRoom! as BossRoomController;
+  await _waitForOptimizerPatternGate(
+    tester,
+    game,
+    optimizerRoom.boss,
+    OptimizerPhase.analyze,
+  );
   optimizerRoom.boss.receiveDamage(99);
+  expect(optimizerRoom.boss.phase, OptimizerPhase.predict);
+  await _waitForOptimizerPatternGate(
+    tester,
+    game,
+    optimizerRoom.boss,
+    OptimizerPhase.predict,
+  );
+  optimizerRoom.boss.receiveDamage(99);
+  expect(optimizerRoom.boss.phase, OptimizerPhase.perfect);
   game.world.player.position.setValues(960, 980);
   expect(game.world.tryInteract(game.world.player), isTrue);
   optimizerRoom.boss.receiveHealing(150);
-  await tester.pump(const Duration(milliseconds: 700));
-  await tester.pump(const Duration(milliseconds: 16));
+  await _pumpRealSeconds(tester, OptimizerBossComponent.outroSeconds + .2);
 
   expect(game.overlays.isActive(OverlayIds.ending), isTrue);
   game.chooseEnding('preserve');
+}
+
+Future<void> _waitForOptimizerPatternGate(
+  WidgetTester tester,
+  PatchWorldGame game,
+  OptimizerBossComponent boss,
+  OptimizerPhase phase,
+) async {
+  game.resumeEngine();
+  game.input.setVirtualMovement(.01, 0);
+  try {
+    for (var frame = 0; frame < 360; frame += 1) {
+      if (boss.resolvedPatternCount(phase) >=
+          OptimizerPatternGate.requiredUniquePatterns) {
+        return;
+      }
+      game.world.player.restoreIntegrity(99);
+      await tester.pump(const Duration(milliseconds: 25));
+    }
+  } finally {
+    game.input.clearVirtualMovement();
+  }
+  throw StateError(
+    'Timed out waiting for Optimizer ${phase.name} pattern gate; '
+    'resolved=${boss.resolvedPatternCount(phase)}.',
+  );
 }
 
 Future<void> _clearEncounter(
@@ -465,6 +507,7 @@ Future<void> _waitForDamageBossAttackGate(
       if (!boss.isPhaseTransitioning && boss.hasCompletedAttackInCurrentPhase) {
         return;
       }
+      game.world.player.restoreIntegrity(99);
       await tester.pump(const Duration(milliseconds: 50));
     }
   } finally {
@@ -488,6 +531,7 @@ Future<void> _waitForDamageBossDefeat(
   try {
     for (var frame = 0; frame < 240; frame += 1) {
       if (game.damageLabProgress.bossDefeated) return;
+      game.world.player.restoreIntegrity(99);
       await tester.pump(const Duration(milliseconds: 50));
     }
   } finally {
@@ -555,10 +599,12 @@ Future<void> _waitForRegionalBossAttackGate(
   game.resumeEngine();
   game.input.setVirtualMovement(.01, 0);
   try {
-    for (var frame = 0; frame < 180; frame += 1) {
-      if (!boss.isPhaseTransitioning && boss.hasCompletedAttackInCurrentPhase) {
+    for (var frame = 0; frame < 360; frame += 1) {
+      if (!boss.isPhaseTransitioning &&
+          boss.hasCompletedRepresentativePatternsInCurrentPhase) {
         return;
       }
+      game.world.player.restoreIntegrity(99);
       await tester.pump(const Duration(milliseconds: 16));
     }
   } finally {
@@ -578,7 +624,8 @@ Future<void> _claimBossRewardAndOpenPatch(
 ) async {
   await tester.pump(const Duration(milliseconds: 16));
   final room = game.world.activeRoom!;
-  game.world.player.position.setValues(700, 478);
+  final reward = room.children.whereType<ItemPedestalComponent>().single;
+  game.world.player.position.setFrom(reward.position);
   expect(game.world.tryInteract(game.world.player), isTrue);
   switch (room) {
     case DamageLabNodeController():
@@ -601,7 +648,8 @@ Future<void> _claimBossRewardAndOpenPatch(
     default:
       fail('Boss reward helper mounted in ${room.runtimeType}.');
   }
-  game.world.player.position.setValues(850, 478);
+  final exit = room.children.whereType<PatchExitTerminalComponent>().single;
+  game.world.player.position.setFrom(exit.position);
   expect(game.world.tryInteract(game.world.player), isTrue);
   await tester.pump();
   expect(game.pendingPatchSelection, isNotNull);
