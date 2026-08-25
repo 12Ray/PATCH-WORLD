@@ -25,6 +25,9 @@ void main() {
     expect(find.text('주먹'), findsWidgets);
     expect(find.text('총'), findsWidgets);
     expect(find.byType(FilledButton), findsNWidgets(3));
+    expect(find.byKey(const Key('weapon-select-sword')), findsOneWidget);
+    expect(find.byKey(const Key('weapon-select-gauntlet')), findsOneWidget);
+    expect(find.byKey(const Key('weapon-select-gun')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

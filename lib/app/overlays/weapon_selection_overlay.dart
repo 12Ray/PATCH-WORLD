@@ -179,6 +179,7 @@ final class _WeaponCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
+                key: Key('weapon-select-${weapon.name}'),
                 onPressed: () => game.selectStartingWeapon(weapon),
                 child: Text(
                   game.localization.text(

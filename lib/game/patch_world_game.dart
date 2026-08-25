@@ -550,10 +550,13 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     weaponBuild.reset();
     overlays.remove(OverlayIds.weaponSelection);
     if (_weaponSelectionForSurvival) {
-      await _startSurvivalRun(weapon);
+      // Optional presentation assets continue warming in the background. A
+      // slow or stalled web decode must never strand the player on a blank
+      // screen after the selection overlay has already closed.
+      await _startSurvivalRun(weapon, waitForVisuals: false);
       return;
     }
-    await _startCampaignRun(weapon);
+    await _startCampaignRun(weapon, waitForVisuals: false);
   }
 
   void startRun() {
