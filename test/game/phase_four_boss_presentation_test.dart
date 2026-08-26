@@ -214,11 +214,28 @@ void main() {
         game.campaignExploration.coreSignatures,
         contains(CampaignRegion.damageLab),
       );
+      final coreSignatureCard = room.children
+          .whereType<BossNameCardComponent>()
+          .singleWhere((card) => card.style == BossNameCardStyle.victory);
+      expect(coreSignatureCard.position.y, closeTo(402, .001));
+      game.world.player.position.setValues(720, 732);
+      final clearedCameraTarget = room.cameraTargetFor(
+        game.world.player.position,
+      );
+      expect(clearedCameraTarget, Vector2(720, 612));
+      const effectiveZoom = .9;
+      final clearedHalfVisibleHeight =
+          PatchWorldGame.logicalHeight / (effectiveZoom * 2);
+      final clearedFramedCenterY = clearedCameraTarget.y
+          .clamp(
+            clearedHalfVisibleHeight,
+            room.worldSize.y - clearedHalfVisibleHeight,
+          )
+          .toDouble();
       expect(
-        room.children.whereType<BossNameCardComponent>().any(
-          (card) => card.style == BossNameCardStyle.victory,
-        ),
-        isTrue,
+        clearedFramedCenterY + clearedHalfVisibleHeight,
+        greaterThanOrEqualTo(768),
+        reason: 'The cleared camera must retain the arena floor and exits.',
       );
       expect(room.hasExitTerminal, isFalse);
 

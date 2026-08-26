@@ -71,13 +71,17 @@ void main() {
       expect(pillar.isSolid, isTrue);
     }
     expect(room.boss.position, Vector2(960, 330));
-    expect(room.terminal.position, Vector2(960, 980));
+    expect(room.terminal.position, Vector2(960, 500));
     game.resumeEngine();
     await tester.pump(const Duration(milliseconds: 16));
     await tester.pump(const Duration(milliseconds: 16));
     expect(room.isBossIntroActive, isTrue);
     expect(room.boss.isEncounterActive, isFalse);
-    expect(room.cameraZoomFor(game.world.player.position), greaterThan(1));
+    expect(room.cameraZoomFor(game.world.player.position), .9);
+    expect(room.keepsPlayerInsideHorizontalSafeArea, isTrue);
+    final introTarget = room.cameraTargetFor(game.world.player.position);
+    expect(introTarget.x, closeTo(400, .5));
+    expect(introTarget.y, closeTo(818, .5));
     expect(room.children.whereType<BossNameCardComponent>(), isNotEmpty);
 
     game.world.player.configureLoadout(PlayerWeapon.gun, assistMode: false);
@@ -158,6 +162,9 @@ void main() {
       greaterThanOrEqualTo(2),
     );
     expect(room.terminal.isEnabled, isTrue);
+    final terminalFocus = room.cameraTargetFor(game.world.player.position);
+    expect(terminalFocus.y, greaterThan(500));
+    expect(room.cameraZoomFor(game.world.player.position), .92);
     expect(room.arenaStage.phase, OptimizerPhase.perfect);
     expect(
       room.phaseLasers.every((laser) => laser.phase == OptimizerPhase.perfect),

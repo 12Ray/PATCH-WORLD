@@ -278,9 +278,10 @@ final class DamageLabNodeController extends Component
         target.y.clamp(zone.top, zone.bottom).toDouble(),
       );
     }
-    return nodeId != CampaignNodeId.overflowWarden
-        ? Vector2(playerPosition.x, playerPosition.y - 68)
-        : worldSize / 2;
+    if (nodeId == CampaignNodeId.overflowWarden) {
+      return Vector2(playerPosition.x, playerPosition.y - 120);
+    }
+    return Vector2(playerPosition.x, playerPosition.y - 68);
   }
 
   @override
@@ -918,7 +919,7 @@ final class DamageLabNodeController extends Component
     _bossIntroRemaining = 2.8;
     boss.beginIntro();
     game.setCinematicInputLocked(true);
-    final bannerCenterY = math.max(170.0, boss.position.y - 310);
+    final bannerCenterY = _wardenPresentationCenterY;
     final banner = BossNameCardComponent(
       center: Vector2(worldSize.x / 2, bannerCenterY),
       title: game.localization.text('enemy.overflowWarden.name'),
@@ -967,7 +968,7 @@ final class DamageLabNodeController extends Component
   Future<void> _showCoreSignatureCard() async {
     await add(
       BossNameCardComponent(
-        center: Vector2(worldSize.x / 2, 145),
+        center: Vector2(worldSize.x / 2, _wardenPresentationCenterY),
         title: game.localization.text('boss.coreSignatureAcquired'),
         subtitle:
             '${game.localization.text('room.damageLab')} // '
@@ -979,6 +980,11 @@ final class DamageLabNodeController extends Component
       ),
     );
   }
+
+  double get _wardenPresentationCenterY => math.max(
+    170.0,
+    layout.requireAnchor(DamageLabAnchorId.bossSpawn).y - 310,
+  );
 
   void _onBossPhaseChanged(OverflowWardenPhase phase) {
     _playWardenPhaseCue(phase);

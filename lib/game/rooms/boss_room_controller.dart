@@ -118,17 +118,30 @@ final class BossRoomController extends Component
 
   @override
   Vector2 cameraTargetFor(Vector2 playerPosition) {
-    if (isBossIntroActive) return boss.position.clone();
+    if (isBossIntroActive) {
+      // Establish the arena from the entrance instead of cutting away from
+      // the player to the boss. Combat can widen after control is returned.
+      return Vector2(playerPosition.x + 220, playerPosition.y - 170);
+    }
     if (!boss.isEncounterActive && !boss.isOutroActive) {
       return playerPosition.clone();
+    }
+    if (terminal.isEnabled) {
+      // PERFECT is an interaction phase, so the required terminal becomes
+      // the camera focus without losing the player at the edge of the view.
+      return Vector2(
+        playerPosition.x * .55 + terminal.position.x * .45,
+        playerPosition.y * .55 + terminal.position.y * .45 - 60,
+      );
     }
     return (playerPosition + boss.position) / 2;
   }
 
   @override
   double cameraZoomFor(Vector2 playerPosition) {
-    if (isBossIntroActive) return 1.18;
+    if (isBossIntroActive) return .9;
     if (!boss.isEncounterActive && !boss.isOutroActive) return 1;
+    if (terminal.isEnabled) return .92;
     final horizontalSpan = (playerPosition.x - boss.position.x).abs() + 250;
     final verticalSpan = (playerPosition.y - boss.position.y).abs() + 150;
     return math
@@ -138,7 +151,7 @@ final class BossRoomController extends Component
   }
 
   @override
-  bool get keepsPlayerInsideHorizontalSafeArea => !isBossIntroActive;
+  bool get keepsPlayerInsideHorizontalSafeArea => true;
 
   @override
   Future<void> onLoad() async {
@@ -256,7 +269,8 @@ final class BossRoomController extends Component
     ]);
 
     terminal = LegacyGlitchTerminal(
-      position: Vector2(960, 980),
+      // The permanent center platform keeps this reachable by every weapon.
+      position: Vector2(960, 500),
       onActivated: _activateLegacyGlitch,
     );
     boss = OptimizerBossComponent(
@@ -337,7 +351,7 @@ final class BossRoomController extends Component
     _bossIntroRemaining = 2.8;
     game.setCinematicInputLocked(true);
     final card = BossNameCardComponent(
-      center: Vector2(960, 210),
+      center: Vector2(520, 560),
       title: game.localization.text('boss.optimizer.name'),
       subtitle: game.localization.text('boss.optimizer.intro'),
       accentColor: const Color(0xFFFFD35A),

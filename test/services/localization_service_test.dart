@@ -64,6 +64,7 @@ void main() {
       'interaction.enterBossRoom',
       'interaction.returnHubLift',
       'interaction.enterOptimizerCore',
+      'interaction.activateOptimizerTerminal',
       'interaction.clearThreats',
       'interaction.completeRoomTask',
       'interaction.completePreviousRooms',

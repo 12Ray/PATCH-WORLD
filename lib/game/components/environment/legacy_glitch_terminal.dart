@@ -15,7 +15,7 @@ final class LegacyGlitchTerminal extends RectangleComponent
         size: Vector2(76, 44),
         anchor: Anchor.center,
         paint: Paint()..color = const Color(0x00000000),
-        priority: 6,
+        priority: 24,
       );
 
   final void Function() onActivated;
@@ -42,6 +42,21 @@ final class LegacyGlitchTerminal extends RectangleComponent
             fontFamily: 'PatchWorldCJK',
             color: Color(0xFFF4F7FF),
             fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+    await add(
+      TextComponent(
+        text: game.localization.text('interaction.activateOptimizerTerminal'),
+        position: Vector2(width / 2, -16),
+        anchor: Anchor.bottomCenter,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            fontFamily: 'PatchWorldCJK',
+            color: Color(0xFF36E1FF),
+            fontSize: 14,
             fontWeight: FontWeight.w900,
           ),
         ),
@@ -111,6 +126,20 @@ final class LegacyGlitchTerminal extends RectangleComponent
         ..strokeWidth = 3
         ..color = activeColor,
     );
+    if (isEnabled) {
+      canvas.drawLine(
+        Offset(center.dx, -7),
+        Offset(center.dx, -32),
+        Paint()
+          ..strokeWidth = 3
+          ..color = const Color(0xFF36E1FF),
+      );
+      canvas.drawCircle(
+        Offset(center.dx, -36),
+        6 * pulse,
+        Paint()..color = const Color(0xFFFFD35A),
+      );
+    }
     for (final direction in <Offset>[
       const Offset(0, -1),
       const Offset(1, 0),

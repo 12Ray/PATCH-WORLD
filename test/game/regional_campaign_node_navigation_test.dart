@@ -399,6 +399,7 @@ void main() {
     expect(room.bossSeals.every((seal) => seal.isUnlocked), isTrue);
     expect(room.bossArenaPresentation!.isCleared, isTrue);
     expect(room.activeBossMechanicIds, isEmpty);
+    _expectClearedBossCameraKeepsFloorVisible(room, game);
 
     final temporalReward = room.layout.requireAnchor(
       RegionalCampaignAnchorId.bossReward,
@@ -547,6 +548,7 @@ void main() {
     expect(collisionRoom.bossSeals.every((seal) => seal.isUnlocked), isTrue);
     expect(collisionRoom.bossArenaPresentation!.isCleared, isTrue);
     expect(collisionRoom.activeBossMechanicIds, isEmpty);
+    _expectClearedBossCameraKeepsFloorVisible(collisionRoom, game);
     final collisionReward = collisionRoom.layout.requireAnchor(
       RegionalCampaignAnchorId.bossReward,
     );
@@ -627,6 +629,29 @@ void main() {
     expect(game.world.player.selectedWeapon, optimizerWeapon);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+}
+
+void _expectClearedBossCameraKeepsFloorVisible(
+  RegionalCampaignNodeController room,
+  PatchWorldGame game,
+) {
+  game.world.player.position.setValues(960, 700);
+  final target = room.cameraTargetFor(game.world.player.position);
+  expect(target, Vector2(960, 610));
+  expect(room.keepsPlayerInsideHorizontalSafeArea, isTrue);
+  final requestedZoom = room.cameraZoomFor(target);
+  final effectiveZoom = requestedZoom < .9 ? .9 : requestedZoom;
+  final halfVisibleHeight = PatchWorldGame.logicalHeight / (effectiveZoom * 2);
+  final framedCenterY = target.y
+      .clamp(halfVisibleHeight, room.worldSize.y - halfVisibleHeight)
+      .toDouble();
+  final exit = room.layout.requireAnchor(RegionalCampaignAnchorId.exitTerminal);
+  expect(
+    framedCenterY + halfVisibleHeight,
+    greaterThanOrEqualTo(exit.y + 6),
+    reason:
+        '${room.nodeId.name} clear camera must retain the player floor and exit.',
+  );
 }
 
 bool _hasStaticUniversalRoute(

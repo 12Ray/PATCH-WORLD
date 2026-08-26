@@ -392,9 +392,11 @@ final class RegionalCampaignNodeController extends Component
         target.y.clamp(zone.top, zone.bottom).toDouble(),
       );
     }
-    return !isBossRoom
-        ? Vector2(playerPosition.x, playerPosition.y - 68)
-        : Vector2(480, 270);
+    if (isBossRoom) {
+      final clearedFloor = _anchorVector(RegionalCampaignAnchorId.exitTerminal);
+      return Vector2(playerPosition.x, clearedFloor.y - 120);
+    }
+    return Vector2(playerPosition.x, playerPosition.y - 68);
   }
 
   @override
@@ -1252,7 +1254,7 @@ final class RegionalCampaignNodeController extends Component
     _bossArenaPresentation?.beginIntro();
     game.setCinematicInputLocked(true);
     final banner = BossNameCardComponent(
-      center: Vector2(worldSize.x / 2, math.max(145, worldSize.y * .2)),
+      center: Vector2(worldSize.x / 2, _bossPresentationCenterY),
       title: game.localization.text(bossKind.enemyLocalizationKey),
       subtitle: game.localization.text(bossIntroLocalizationKey),
       accentColor: accentColor,
@@ -1310,7 +1312,7 @@ final class RegionalCampaignNodeController extends Component
         : 'ability.terrainPulse.name';
     await add(
       BossNameCardComponent(
-        center: Vector2(worldSize.x / 2, math.max(145, worldSize.y * .2)),
+        center: Vector2(worldSize.x / 2, _bossPresentationCenterY),
         title: game.localization.text('boss.coreSignatureAcquired'),
         subtitle:
             '${game.localization.text(regionKey)} // '
@@ -1322,6 +1324,11 @@ final class RegionalCampaignNodeController extends Component
       ),
     );
   }
+
+  double get _bossPresentationCenterY => math.max(
+    170.0,
+    _anchorVector(RegionalCampaignAnchorId.bossSpawn).y - 310,
+  );
 
   void _onBossPhaseChanged(CampaignChapterBossPhase phase) {
     final mechanicPhase = switch (phase) {

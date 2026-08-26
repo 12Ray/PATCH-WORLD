@@ -279,7 +279,7 @@ Future<void> _completeCampaign(
   );
   optimizerRoom.boss.receiveDamage(99);
   expect(optimizerRoom.boss.phase, OptimizerPhase.perfect);
-  game.world.player.position.setValues(960, 980);
+  game.world.player.position.setFrom(optimizerRoom.terminal.position);
   expect(game.world.tryInteract(game.world.player), isTrue);
   optimizerRoom.boss.receiveHealing(150);
   await _pumpRealSeconds(tester, OptimizerBossComponent.outroSeconds + .2);
