@@ -217,6 +217,10 @@ final class OptimizerPhasePlatformComponent extends PlatformSurfaceComponent {
   final double periodSeconds;
   OptimizerPhase phase = OptimizerPhase.analyze;
   double _clock = 0;
+  final Vector2 _frameDisplacement = Vector2.zero();
+
+  @override
+  Vector2 get frameDisplacement => _frameDisplacement;
 
   void setPhase(OptimizerPhase next) => phase = next;
 
@@ -226,6 +230,7 @@ final class OptimizerPhasePlatformComponent extends PlatformSurfaceComponent {
   @override
   void update(double dt) {
     final simulationDt = isMounted ? game.clock.enemyDt : dt;
+    final previousPosition = position.clone();
     if (simulationDt > 0) _clock += simulationDt;
     final midpoint = (_start + end) / 2;
     final halfTravel = (end - _start) / 2;
@@ -247,6 +252,11 @@ final class OptimizerPhasePlatformComponent extends PlatformSurfaceComponent {
     final desired = midpoint + halfTravel * (wave * amplitude);
     final blend = math.min(1.0, simulationDt * 5);
     position += (desired - position) * blend;
+    if (simulationDt > 0) {
+      _frameDisplacement.setFrom(position - previousPosition);
+    } else {
+      _frameDisplacement.setZero();
+    }
     super.update(dt);
   }
 }

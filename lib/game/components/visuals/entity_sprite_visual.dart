@@ -281,10 +281,11 @@ final class EntitySpriteVisual extends SpriteComponent {
   @override
   void update(double dt) {
     final resolvedAnimationDt = animationDeltaResolver?.call(dt) ?? dt;
-    _updateAnimation(
-      resolvedAnimationDt.isFinite ? math.max(0, resolvedAnimationDt) : 0,
-    );
-    _phase += dt * bobSpeed * (1 + _motionStrength * 0.7);
+    final visualDt = resolvedAnimationDt.isFinite
+        ? math.max(0, resolvedAnimationDt).toDouble()
+        : 0.0;
+    _updateAnimation(visualDt);
+    _phase += visualDt * bobSpeed * (1 + _motionStrength * 0.7);
     final transientAction =
         _activeFrames != null && !_animationLoops && _animationPlaying;
     final frameTransform = _activeFrameTransforms == null

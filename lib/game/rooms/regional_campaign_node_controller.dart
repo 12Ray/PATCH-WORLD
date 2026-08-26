@@ -321,12 +321,21 @@ final class RegionalCampaignNodeController extends Component
       .map((surface) => surface.bounds);
 
   @override
-  double horizontalSurfaceVelocityFor(Rect playerBounds) {
-    for (final conveyor in _surfaces.whereType<ConveyorPlatformComponent>()) {
-      final velocity = conveyor.horizontalVelocityFor(playerBounds);
-      if (velocity != 0) return velocity;
+  Vector2? surfaceDisplacementFor(Rect playerBounds) {
+    for (final surface in _surfaces) {
+      final displacement = surface.supportDisplacementFor(playerBounds);
+      if (displacement != null) return displacement;
     }
-    return 0;
+    return null;
+  }
+
+  @override
+  Vector2? surfaceVelocityFor(Rect playerBounds) {
+    for (final surface in _surfaces) {
+      final velocity = surface.supportVelocityFor(playerBounds);
+      if (velocity != null) return velocity;
+    }
+    return null;
   }
 
   @override

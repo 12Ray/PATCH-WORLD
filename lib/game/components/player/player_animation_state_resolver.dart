@@ -1,6 +1,7 @@
 import 'package:patch_world/game/combat/player_weapon.dart';
 
-const double playerRunAnimationThreshold = 5;
+const double playerRunAnimationEnterThreshold = 10;
+const double playerRunAnimationExitThreshold = 3;
 const double playerAirAnimationThreshold = 60;
 
 PlayerAnimationState resolvePlayerAnimationState({
@@ -9,12 +10,16 @@ PlayerAnimationState resolvePlayerAnimationState({
   required double horizontalVelocity,
   required double verticalVelocity,
   required bool isMoving,
+  PlayerAnimationState? currentState,
 }) {
   if (!usesPlatformerMovement) {
     return isMoving ? PlayerAnimationState.run : PlayerAnimationState.idle;
   }
   if (grounded) {
-    return horizontalVelocity.abs() > playerRunAnimationThreshold
+    final threshold = currentState == PlayerAnimationState.run
+        ? playerRunAnimationExitThreshold
+        : playerRunAnimationEnterThreshold;
+    return horizontalVelocity.abs() > threshold
         ? PlayerAnimationState.run
         : PlayerAnimationState.idle;
   }

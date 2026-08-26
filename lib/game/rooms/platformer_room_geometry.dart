@@ -11,11 +11,20 @@ abstract interface class PlatformerRoomGeometry {
   Vector2 respawnPointFor(Vector2 playerPosition);
 }
 
-/// Optional horizontal surface motion used by authored platforms such as
-/// conveyors. The player asks for this velocity while grounded and resolves
-/// the combined movement through the same wall collision path as normal input.
+/// Optional two-axis support motion used by authored platforms.
+///
+/// The player samples this velocity while grounded and resolves the combined
+/// movement through the same collision path as normal input. This keeps
+/// conveyors, lifts, rewind platforms, and boss platforms attached to the
+/// gameplay body instead of moving only their artwork/collision rectangle.
 abstract interface class PlatformerRoomSurfaceMotion {
-  double horizontalSurfaceVelocityFor(Rect playerBounds);
+  /// Motion already applied to dynamic surfaces earlier in this render frame.
+  /// The player consumes it once before its fixed physics substeps.
+  Vector2? surfaceDisplacementFor(Rect playerBounds);
+
+  /// Continuous surface velocity integrated during the player's fixed physics
+  /// substeps. Conveyors use this while dynamic platforms use displacement.
+  Vector2? surfaceVelocityFor(Rect playerBounds);
 }
 
 /// Optional camera policy used by room-based maps. The returned point is

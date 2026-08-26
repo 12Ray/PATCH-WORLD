@@ -16,16 +16,43 @@ void main() {
 
   test('grounded platformer movement resolves idle and run by velocity', () {
     expect(
-      _resolve(grounded: true, horizontalVelocity: 5),
+      _resolve(grounded: true, horizontalVelocity: 10),
       PlayerAnimationState.idle,
     );
     expect(
-      _resolve(grounded: true, horizontalVelocity: 5.1),
+      _resolve(grounded: true, horizontalVelocity: 10.1),
       PlayerAnimationState.run,
     );
     expect(
-      _resolve(grounded: true, horizontalVelocity: -5.1),
+      _resolve(grounded: true, horizontalVelocity: -10.1),
       PlayerAnimationState.run,
+    );
+  });
+
+  test('grounded run uses hysteresis near zero velocity', () {
+    expect(
+      _resolve(
+        grounded: true,
+        horizontalVelocity: 4,
+        currentState: PlayerAnimationState.run,
+      ),
+      PlayerAnimationState.run,
+    );
+    expect(
+      _resolve(
+        grounded: true,
+        horizontalVelocity: 3,
+        currentState: PlayerAnimationState.run,
+      ),
+      PlayerAnimationState.idle,
+    );
+    expect(
+      _resolve(
+        grounded: true,
+        horizontalVelocity: 4,
+        currentState: PlayerAnimationState.idle,
+      ),
+      PlayerAnimationState.idle,
     );
   });
 
@@ -44,10 +71,12 @@ PlayerAnimationState _resolve({
   double horizontalVelocity = 0,
   double verticalVelocity = 0,
   bool isMoving = false,
+  PlayerAnimationState? currentState,
 }) => resolvePlayerAnimationState(
   usesPlatformerMovement: usesPlatformerMovement,
   grounded: grounded,
   horizontalVelocity: horizontalVelocity,
   verticalVelocity: verticalVelocity,
   isMoving: isMoving,
+  currentState: currentState,
 );

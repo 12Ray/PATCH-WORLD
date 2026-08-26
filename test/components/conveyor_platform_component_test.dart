@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/components/environment/platform_surface_component.dart';
+import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/regional_campaign_node_controller.dart';
 import 'package:patch_world/game/rules/rule_context.dart';
@@ -39,6 +40,11 @@ void main() {
     }
     final groundedX = player.position.x;
     expect(player.isGrounded, isTrue);
+    expect(
+      player.resolvedMovementAnimationState,
+      PlayerAnimationState.run,
+      reason: 'Conveyor travel must not display a sliding idle pose.',
+    );
 
     for (var frame = 0; frame < 10; frame += 1) {
       await tester.pump(const Duration(milliseconds: 16));
@@ -78,16 +84,40 @@ void main() {
     );
 
     expect(
-      conveyor.horizontalVelocityFor(const Rect.fromLTWH(140, 168, 32, 32)),
+      conveyor.supportVelocityFor(const Rect.fromLTWH(140, 168, 32, 32))?.x,
       -ConveyorPlatformComponent.carrySpeed,
     );
     expect(
-      conveyor.horizontalVelocityFor(const Rect.fromLTWH(140, 150, 32, 32)),
-      0,
+      conveyor.supportVelocityFor(const Rect.fromLTWH(140, 150, 32, 32)),
+      isNull,
     );
     expect(
-      conveyor.horizontalVelocityFor(const Rect.fromLTWH(300, 168, 32, 32)),
-      0,
+      conveyor.supportVelocityFor(const Rect.fromLTWH(300, 168, 32, 32)),
+      isNull,
     );
+  });
+
+  test('moving and rewind platforms expose one-frame support displacement', () {
+    final moving = MovingPlatformComponent(
+      start: Vector2(100, 200),
+      end: Vector2(100, 100),
+      size: Vector2(140, 22),
+      periodSeconds: 2,
+    );
+    const bodyAtMovingStart = Rect.fromLTWH(140, 168, 32, 32);
+    moving.update(.25);
+    final movingDisplacement = moving.supportDisplacementFor(bodyAtMovingStart);
+    expect(movingDisplacement?.y, lessThan(0));
+    expect(moving.supportVelocityFor(bodyAtMovingStart), isNull);
+
+    final rewind = RewindPlatformComponent(
+      timeline: <Vector2>[Vector2(300, 200), Vector2(360, 150)],
+      size: Vector2(140, 22),
+      periodSeconds: 2,
+    );
+    const bodyAtRewindStart = Rect.fromLTWH(330, 168, 32, 32);
+    rewind.update(.2);
+    final rewindDisplacement = rewind.supportDisplacementFor(bodyAtRewindStart);
+    expect(rewindDisplacement?.length2, greaterThan(0));
   });
 }

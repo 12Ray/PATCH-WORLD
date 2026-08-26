@@ -95,6 +95,38 @@ class PlatformSurfaceComponent extends RectangleComponent
       : ArtV3EnvironmentRole.surface;
 
   Rect get bounds => Rect.fromLTWH(position.x, position.y, size.x, size.y);
+  Vector2? get carryVelocity => null;
+  Vector2? get frameDisplacement => null;
+
+  bool supports(Rect playerBounds, {double verticalTolerance = 3}) {
+    if (!isSolid) return false;
+    final horizontalOverlap =
+        math.min(playerBounds.right, bounds.right) -
+        math.max(playerBounds.left, bounds.left);
+    final currentTopDistance = (playerBounds.bottom - bounds.top).abs();
+    final previousTopDistance =
+        (playerBounds.bottom - (bounds.top - (frameDisplacement?.y ?? 0)))
+            .abs();
+    return horizontalOverlap > 0 &&
+        math.min(currentTopDistance, previousTopDistance) <= verticalTolerance;
+  }
+
+  Vector2? supportVelocityFor(Rect playerBounds) {
+    final velocity = carryVelocity;
+    return velocity != null && velocity.length2 > 0 && supports(playerBounds)
+        ? velocity
+        : null;
+  }
+
+  Vector2? supportDisplacementFor(Rect playerBounds) {
+    final displacement = frameDisplacement;
+    return displacement != null &&
+            displacement.length2 > 0 &&
+            supports(playerBounds)
+        ? displacement
+        : null;
+  }
+
   @override
   bool get isSolid => !isRemoving;
 
@@ -300,16 +332,27 @@ final class MovingPlatformComponent extends PlatformSurfaceComponent {
   final Vector2 end;
   final double periodSeconds;
   double _elapsed = 0;
+  final Vector2 _frameDisplacement = Vector2.zero();
+
+  @override
+  Vector2 get frameDisplacement => _frameDisplacement;
 
   @override
   ArtV3EnvironmentRole get foregroundRole => ArtV3EnvironmentRole.statePlatform;
 
   @override
   void update(double dt) {
-    _elapsed += isMounted ? game.clock.simulationDt : dt;
+    final simulationDt = isMounted ? game.clock.simulationDt : dt;
+    final previousPosition = position.clone();
+    _elapsed += simulationDt;
     final phase = (_elapsed / periodSeconds) * math.pi * 2;
     final t = (1 - math.cos(phase)) / 2;
     position.setFrom(_start + (end - _start) * t);
+    if (simulationDt > 0) {
+      _frameDisplacement.setFrom(position - previousPosition);
+    } else {
+      _frameDisplacement.setZero();
+    }
     super.update(dt);
   }
 
@@ -355,13 +398,19 @@ final class RewindPlatformComponent extends PlatformSurfaceComponent {
   final List<Vector2> _timeline;
   final double periodSeconds;
   double _elapsed = 0;
+  final Vector2 _frameDisplacement = Vector2.zero();
+
+  @override
+  Vector2 get frameDisplacement => _frameDisplacement;
 
   @override
   ArtV3EnvironmentRole get foregroundRole => ArtV3EnvironmentRole.statePlatform;
 
   @override
   void update(double dt) {
-    _elapsed += isMounted ? game.clock.simulationDt : dt;
+    final simulationDt = isMounted ? game.clock.simulationDt : dt;
+    final previousPosition = position.clone();
+    _elapsed += simulationDt;
     final cycle = (_elapsed / periodSeconds) % 1;
     final rewindProgress = cycle <= .5 ? cycle * 2 : (1 - cycle) * 2;
     final segmentProgress = rewindProgress * (_timeline.length - 1);
@@ -372,6 +421,11 @@ final class RewindPlatformComponent extends PlatformSurfaceComponent {
       _timeline[segment] +
           (_timeline[segment + 1] - _timeline[segment]) * eased,
     );
+    if (simulationDt > 0) {
+      _frameDisplacement.setFrom(position - previousPosition);
+    } else {
+      _frameDisplacement.setZero();
+    }
     super.update(dt);
   }
 
@@ -479,17 +533,11 @@ final class ConveyorPlatformComponent extends PlatformSurfaceComponent {
 
   final double direction;
   static const double carrySpeed = 78;
+  late final Vector2 _carryVelocity = Vector2(direction.sign * carrySpeed, 0);
   double _phase = 0;
 
-  double horizontalVelocityFor(Rect playerBounds) {
-    if (!isSolid || direction == 0) return 0;
-    final horizontalOverlap =
-        math.min(playerBounds.right, bounds.right) -
-        math.max(playerBounds.left, bounds.left);
-    final isStanding =
-        horizontalOverlap > 0 && (playerBounds.bottom - bounds.top).abs() <= 2;
-    return isStanding ? direction.sign * carrySpeed : 0;
-  }
+  @override
+  Vector2 get carryVelocity => _carryVelocity;
 
   @override
   ArtV3EnvironmentRole get foregroundRole => ArtV3EnvironmentRole.statePlatform;

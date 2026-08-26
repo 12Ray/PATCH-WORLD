@@ -152,6 +152,30 @@ void main() {
       expect(visual.sprite, same(idle));
     },
   );
+
+  test('procedural motion freezes on the resolved simulation clock', () async {
+    final image = await _testImage();
+    final sprite = Sprite(image, srcSize: Vector2.all(2));
+    var simulationDt = 0.0;
+    final visual = EntitySpriteVisual(
+      sprite: sprite,
+      size: Vector2.all(16),
+      parentSize: Vector2.all(32),
+      bobAmplitude: 2,
+      rotationAmplitude: .1,
+      animationDeltaResolver: (_) => simulationDt,
+    );
+    final start = visual.position.clone();
+
+    visual.update(.5);
+    expect(visual.position, start);
+    expect(visual.angle, 0);
+
+    simulationDt = .1;
+    visual.update(.5);
+    expect(visual.position.y, isNot(closeTo(start.y, .001)));
+    expect(visual.angle, isNot(0));
+  });
 }
 
 Future<Image> _testImage() async {

@@ -75,8 +75,10 @@ final class PlayerComponent extends RectangleComponent
   final Vector2 spawnPosition;
   final Vector2 _movementInput = Vector2.zero();
   final Vector2 _aimDirection = Vector2(1, 0);
+  final Vector2 _visualMovement = Vector2.zero();
   final Vector2 _previousPosition = Vector2.zero();
   final PlatformerMotion _platformerMotion = PlatformerMotion();
+  double _resolvedHorizontalVelocity = 0;
   bool _jumpHeld = false;
 
   int maxIntegrity = 5;
@@ -175,6 +177,8 @@ final class PlayerComponent extends RectangleComponent
   bool get isTouchingWall => _wallContactDirection != 0;
   bool get isDashing => _dashRemaining > 0;
   bool get isGrounded => _platformerMotion.grounded;
+  PlayerAnimationState get resolvedMovementAnimationState =>
+      _desiredMovementAnimation;
   Rect get damageHitboxBounds => Rect.fromCenter(
     center: Offset(position.x, position.y),
     width: size.x * damageHitboxScale,
@@ -241,8 +245,11 @@ final class PlayerComponent extends RectangleComponent
         // scale without changing jumps, collisions, or weapon reach.
         size: Vector2.all(presentationSize),
         parentSize: size,
-        bobAmplitude: 1.1,
+        // Locomotion already lives in authored sprite frames. Procedural
+        // sub-pixel bob/rotation made the pixel-art body shimmer while idle.
+        bobAmplitude: 0,
         bobSpeed: 4.2,
+        rotationAmplitude: 0,
         animationDeltaResolver: (rawDt) =>
             isMounted ? game.clock.simulationDt : rawDt,
       );
@@ -562,6 +569,7 @@ final class PlayerComponent extends RectangleComponent
     _airJumpsRemaining = 1;
     _traversalAirDashesRemaining = 1;
     _wallContactDirection = 0;
+    _resolvedHorizontalVelocity = 0;
     _activeMovementAnimation = null;
     _pendingWeaponImpacts.clear();
     _syncMovementAnimation(force: true);
@@ -1457,6 +1465,7 @@ final class PlayerComponent extends RectangleComponent
     if (platformRoom != null && _usesPlatformerMovement) {
       _updatePlatformer(statusDt, platformRoom);
     } else {
+      _resolvedHorizontalVelocity = _movementInput.x * moveSpeed;
       position +=
           _movementInput *
           (moveSpeed * phaseMoveMultiplier * vectorBootsMultiplier * statusDt);
@@ -1468,7 +1477,12 @@ final class PlayerComponent extends RectangleComponent
         _movementInput.length2 > .01) {
       _aimDirection.setFrom(_movementInput.normalized());
     }
-    _visual?.faceMovement(_movementInput);
+    if (_usesPlatformerMovement) {
+      _visualMovement.setValues(_resolvedHorizontalVelocity, 0);
+      _visual?.faceMovement(_visualMovement);
+    } else {
+      _visual?.faceMovement(_movementInput);
+    }
     _syncMovementAnimation();
     _updateDamageBlink();
     super.update(dt);
@@ -1477,7 +1491,34 @@ final class PlayerComponent extends RectangleComponent
   void _updatePlatformer(double dt, PlatformerRoomGeometry room) {
     final wasGrounded = _platformerMotion.grounded;
     _wallContactDirection = 0;
+    final surfaceRoom = room is PlatformerRoomSurfaceMotion
+        ? room as PlatformerRoomSurfaceMotion
+        : null;
+    final supportDisplacement =
+        _platformerMotion.grounded && surfaceRoom != null
+        ? surfaceRoom.surfaceDisplacementFor(_boundsAt(position.x, position.y))
+        : null;
+    if (supportDisplacement != null) {
+      final oldX = position.x;
+      final oldY = position.y;
+      position.add(supportDisplacement);
+      if (supportDisplacement.x != 0) {
+        _resolvePlatformerHorizontal(
+          room.solidBounds,
+          oldX,
+          horizontalVelocity: supportDisplacement.x,
+        );
+      }
+      if (supportDisplacement.y != 0) {
+        _resolvePlatformerVertical(
+          room.solidBounds,
+          oldY,
+          verticalVelocity: supportDisplacement.y,
+        );
+      }
+    }
     var remaining = math.min(dt, 0.10);
+    _resolvedHorizontalVelocity = 0;
     while (remaining > 0) {
       final step = math.min(remaining, 1 / 120);
       _platformerMotion.advance(
@@ -1494,13 +1535,12 @@ final class PlayerComponent extends RectangleComponent
             _dashDirection * (dashDistance / dashDurationSeconds);
       }
 
-      final surfaceVelocity =
-          _platformerMotion.grounded && room is PlatformerRoomSurfaceMotion
-          ? (room as PlatformerRoomSurfaceMotion).horizontalSurfaceVelocityFor(
-              _boundsAt(position.x, position.y),
-            )
-          : 0.0;
-      final horizontalVelocity = _platformerMotion.velocity.x + surfaceVelocity;
+      final surfaceVelocity = _platformerMotion.grounded && surfaceRoom != null
+          ? surfaceRoom.surfaceVelocityFor(_boundsAt(position.x, position.y))
+          : null;
+      final horizontalVelocity =
+          _platformerMotion.velocity.x + (surfaceVelocity?.x ?? 0);
+      _resolvedHorizontalVelocity = horizontalVelocity;
       final oldX = position.x;
       position.x += horizontalVelocity * step;
       _resolvePlatformerHorizontal(
@@ -1511,8 +1551,14 @@ final class PlayerComponent extends RectangleComponent
 
       final oldY = position.y;
       _platformerMotion.beginVerticalResolution();
-      position.y += _platformerMotion.velocity.y * step;
-      _resolvePlatformerVertical(room.solidBounds, oldY);
+      final verticalVelocity =
+          _platformerMotion.velocity.y + (surfaceVelocity?.y ?? 0);
+      position.y += verticalVelocity * step;
+      _resolvePlatformerVertical(
+        room.solidBounds,
+        oldY,
+        verticalVelocity: verticalVelocity,
+      );
       remaining -= step;
     }
 
@@ -1556,19 +1602,22 @@ final class PlayerComponent extends RectangleComponent
     }
   }
 
-  void _resolvePlatformerVertical(Iterable<Rect> solids, double oldY) {
+  void _resolvePlatformerVertical(
+    Iterable<Rect> solids,
+    double oldY, {
+    required double verticalVelocity,
+  }) {
     final halfHeight = size.y / 2;
     final oldTop = oldY - halfHeight;
     final oldBottom = oldY + halfHeight;
     for (final solid in solids) {
       final bounds = _boundsAt(position.x, position.y);
       if (!bounds.overlaps(solid)) continue;
-      if (_platformerMotion.velocity.y >= 0 && oldBottom <= solid.top + 1) {
+      if (verticalVelocity >= 0 && oldBottom <= solid.top + 1) {
         position.y = solid.top - halfHeight;
         _platformerMotion.land();
         _airJumpsRemaining = 1;
-      } else if (_platformerMotion.velocity.y < 0 &&
-          oldTop >= solid.bottom - 1) {
+      } else if (verticalVelocity < 0 && oldTop >= solid.bottom - 1) {
         position.y = solid.bottom + halfHeight;
         _platformerMotion.hitCeiling();
       }
@@ -1606,7 +1655,8 @@ final class PlayerComponent extends RectangleComponent
     return resolvePlayerAnimationState(
       usesPlatformerMovement: _usesPlatformerMovement,
       grounded: _platformerMotion.grounded,
-      horizontalVelocity: _platformerMotion.velocity.x,
+      horizontalVelocity: _resolvedHorizontalVelocity,
+      currentState: _activeMovementAnimation,
       verticalVelocity: _platformerMotion.velocity.y,
       isMoving: isMoving,
     );

@@ -25,6 +25,7 @@ final class BossRoomController extends Component
     with HasGameReference<PatchWorldGame>
     implements
         PlatformerRoomGeometry,
+        PlatformerRoomSurfaceMotion,
         PlatformerRoomCameraTarget,
         PlatformerRoomCameraZoom,
         CampaignNodeRoom {
@@ -87,6 +88,24 @@ final class BossRoomController extends Component
             wall.size.y,
           ),
         );
+  }
+
+  @override
+  Vector2? surfaceDisplacementFor(Rect playerBounds) {
+    for (final surface in _surfaces) {
+      final displacement = surface.supportDisplacementFor(playerBounds);
+      if (displacement != null) return displacement;
+    }
+    return null;
+  }
+
+  @override
+  Vector2? surfaceVelocityFor(Rect playerBounds) {
+    for (final surface in _surfaces) {
+      final velocity = surface.supportVelocityFor(playerBounds);
+      if (velocity != null) return velocity;
+    }
+    return null;
   }
 
   @override
