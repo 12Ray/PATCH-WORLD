@@ -107,6 +107,7 @@ final class BootSectorController extends Component
     final door = CampaignDoorComponent(
       position: _vector(mandatoryDoorFeet['interaction.enterDamageLab']!),
       labelLocalizationKey: 'interaction.enterDamageLab',
+      isCompletedResolver: () => game.damageLabProgress.bossDefeated,
       onInteract: () => game.travelToCampaignNode(
         CampaignNodeId.damageWorkshop,
         entry: CampaignNodeEntry.west,
@@ -119,6 +120,7 @@ final class BootSectorController extends Component
         position: _vector(mandatoryDoorFeet['interaction.enterTemporalHall']!),
         labelLocalizationKey: 'interaction.enterTemporalHall',
         accentColor: const Color(0xFF9D8CFF),
+        isCompletedResolver: () => game.temporalHallProgress.bossDefeated,
         onInteract: () => game.travelToCampaignNode(
           CampaignNodeId.temporalAscent,
           entry: CampaignNodeEntry.west,
@@ -133,6 +135,7 @@ final class BootSectorController extends Component
           mandatoryDoorFeet['interaction.enterCollisionArchive']!,
         ),
         labelLocalizationKey: 'interaction.enterCollisionArchive',
+        isCompletedResolver: () => game.collisionArchiveProgress.bossDefeated,
         onInteract: () => game.travelToCampaignNode(
           CampaignNodeId.collisionCompression,
           entry: CampaignNodeEntry.west,

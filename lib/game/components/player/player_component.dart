@@ -735,11 +735,6 @@ final class PlayerComponent extends RectangleComponent
       case PlayerWeapon.sword:
         return tryDash(requestedDirection);
       case PlayerWeapon.gauntlet:
-        if (!_platformerMotion.grounded &&
-            _airJumpsRemaining <= 0 &&
-            tryTraversalAirDash(requestedDirection)) {
-          return true;
-        }
         if (_gauntletCharging || _gauntletChargeRecovery > 0 || isRemoving) {
           return false;
         }
@@ -749,9 +744,6 @@ final class PlayerComponent extends RectangleComponent
         if (isMounted) game.publishUiSnapshot(force: true);
         return true;
       case PlayerWeapon.gun:
-        if (_gunLaserCooldown > 0 && tryTraversalAirDash(requestedDirection)) {
-          return true;
-        }
         if (_gunLaserActive || _gunLaserCooldown > 0 || isRemoving) {
           return false;
         }
@@ -978,7 +970,8 @@ final class PlayerComponent extends RectangleComponent
   }
 
   bool tryTraversalAirDash(double requestedDirection) {
-    if (!_usesPlatformerMovement ||
+    if (selectedWeapon == PlayerWeapon.gauntlet ||
+        !_usesPlatformerMovement ||
         _platformerMotion.grounded ||
         _traversalAirDashesRemaining <= 0 ||
         isDashing ||
@@ -2062,13 +2055,6 @@ final class PlayerComponent extends RectangleComponent
     if (game.mode == PatchWorldMode.survival) {
       return _survivalSpecialCooldown <= 0;
     }
-    final airDashReady =
-        !_platformerMotion.grounded &&
-        _traversalAirDashesRemaining > 0 &&
-        !isDashing &&
-        game.campaignExploration.hasTraversalAbility(
-          CampaignTraversalAbility.airDash,
-        );
     return switch (selectedWeapon) {
       PlayerWeapon.sword =>
         _usesPlatformerMovement &&
@@ -2076,9 +2062,8 @@ final class PlayerComponent extends RectangleComponent
             !isDashing &&
             (_platformerMotion.grounded || _airJumpsRemaining > 0),
       PlayerWeapon.gauntlet =>
-        (!_gauntletCharging && _gauntletChargeRecovery <= 0) || airDashReady,
-      PlayerWeapon.gun =>
-        (!_gunLaserActive && _gunLaserCooldown <= 0) || airDashReady,
+        !_gauntletCharging && _gauntletChargeRecovery <= 0,
+      PlayerWeapon.gun => !_gunLaserActive && _gunLaserCooldown <= 0,
     };
   }
 

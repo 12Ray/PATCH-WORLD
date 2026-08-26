@@ -61,6 +61,8 @@ final class BossRoomController extends Component
       );
   List<OptimizerPhaseLaserComponent> get phaseLasers =>
       List<OptimizerPhaseLaserComponent>.unmodifiable(_phaseLasers);
+  List<PhaseWallComponent> get phaseWalls =>
+      List<PhaseWallComponent>.unmodifiable(_phaseWalls);
 
   @override
   CampaignNodeId get campaignNodeId => CampaignNodeId.optimizerCore;
@@ -327,10 +329,14 @@ final class BossRoomController extends Component
       }
     }
     final simulationDt = game.clock.simulationDt;
-    if (_phaseWalls.isNotEmpty && _phaseLeak.update(simulationDt)) {
-      final solid = _phaseLeak.phase != PhaseLeakPhase.open;
+    if (_phaseWalls.isNotEmpty) {
+      _phaseLeak.update(simulationDt);
+      final phaseAllowsSolid = _phaseLeak.phase != PhaseLeakPhase.open;
+      final playerBounds = game.world.player.damageHitboxBounds;
       for (final wall in _phaseWalls) {
-        unawaited(wall.setSolid(solid));
+        final safelySolid =
+            phaseAllowsSolid && wall.canSolidifyAround(playerBounds);
+        unawaited(wall.setSolid(safelySolid));
       }
     }
     if (_legacyActive) {

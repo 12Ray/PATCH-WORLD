@@ -433,6 +433,7 @@
   "interaction.useMaintenanceShortcut": "리프트 지름길",
   "interaction.enterOptimizerCore": "OPTIMIZER CORE 진입",
   "interaction.activateOptimizerTerminal": "레거시 터미널 [L]",
+  "interaction.regionComplete": "지역 완료",
   "interaction.routeLocked": "경로 잠김",
   "interaction.clearThreats": "남은 적을 제거해야 합니다",
   "interaction.completeRoomTask": "방의 안정화 목표를 완료해야 합니다",

@@ -12,6 +12,7 @@ import 'package:patch_world/game/components/environment/story_room_layers_compon
 import 'package:patch_world/game/components/projectiles/player_projectile_component.dart';
 import 'package:patch_world/game/components/projectiles/enemy_projectile_component.dart';
 import 'package:patch_world/game/components/presentation/boss_arena_presentation_component.dart';
+import 'package:patch_world/game/core/run_state.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/rooms/boss_room_controller.dart';
@@ -20,6 +21,7 @@ import 'package:patch_world/game/rules/rule_context.dart';
 void main() {
   testWidgets('Optimizer Core is a side-view weapon arena', (tester) async {
     final game = PatchWorldGame(initialRoom: RoomId.optimizerCore);
+    game.runState.selectPatch(PatchCatalog.phaseLeak.id);
     await tester.pumpWidget(
       MaterialApp(
         home: GameWidget<PatchWorldGame>(
@@ -62,6 +64,7 @@ void main() {
     expect(room.phasePlatforms, hasLength(2));
     expect(room.breakablePlatforms, hasLength(2));
     expect(room.phaseLasers, hasLength(2));
+    expect(room.phaseWalls, hasLength(2));
     for (final x in <double>[560, 1318]) {
       final pillar = room.children
           .whereType<PlatformSurfaceComponent>()
@@ -83,6 +86,23 @@ void main() {
     expect(introTarget.x, closeTo(400, .5));
     expect(introTarget.y, closeTo(818, .5));
     expect(room.children.whereType<BossNameCardComponent>(), isNotEmpty);
+
+    final phaseWall = room.phaseWalls.first;
+    game.world.player.position.setValues(
+      phaseWall.position.x + phaseWall.size.x / 2,
+      900,
+    );
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(
+      phaseWall.isSolid,
+      isFalse,
+      reason: 'A phase wall must not solidify around the player.',
+    );
+    game.world.player.position.setValues(phaseWall.position.x - 80, 900);
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(phaseWall.isSolid, isTrue);
+    game.world.player.position.setFrom(room.playerSpawn);
+    await tester.pump(const Duration(milliseconds: 16));
 
     game.world.player.configureLoadout(PlayerWeapon.gun, assistMode: false);
     game.world.player.tryAttack();

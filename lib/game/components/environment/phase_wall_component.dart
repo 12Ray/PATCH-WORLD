@@ -11,6 +11,10 @@ final class PhaseWallComponent extends RectangleComponent {
   bool _solid = true;
   @override
   bool get isSolid => _solid;
+  Rect get bounds => Rect.fromLTWH(position.x, position.y, size.x, size.y);
+
+  bool canSolidifyAround(Rect occupiedBounds, {double clearance = 3}) =>
+      !bounds.overlaps(occupiedBounds.inflate(clearance));
 
   @override
   Future<void> onLoad() async {

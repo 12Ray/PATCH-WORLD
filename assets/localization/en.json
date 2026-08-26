@@ -433,6 +433,7 @@
   "interaction.useMaintenanceShortcut": "MAINTENANCE LIFT SHORTCUT",
   "interaction.enterOptimizerCore": "ENTER OPTIMIZER CORE",
   "interaction.activateOptimizerTerminal": "LEGACY TERMINAL [L]",
+  "interaction.regionComplete": "REGION CLEARED",
   "interaction.routeLocked": "ROUTE LOCKED",
   "interaction.clearThreats": "CLEAR THE REMAINING THREATS",
   "interaction.completeRoomTask": "COMPLETE THE ROOM STABILIZATION TASK",

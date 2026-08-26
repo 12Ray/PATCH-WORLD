@@ -82,6 +82,7 @@ void main() {
     );
     expect(returnDoor.isUnlocked, isTrue);
     expect(forwardDoor.isUnlocked, isFalse);
+    game.damageLabProgress.bossDefeated = true;
     game.world.player.position.setValues(
       returnDoor.position.x,
       returnDoor.position.y - 36,
@@ -90,6 +91,22 @@ void main() {
     await _waitForRoom(tester, game, RoomId.bootSector);
 
     expect(game.world.activeRoom, isA<BootSectorController>());
+    final clearedDamageDoor = game.world.activeRoom!.children
+        .whereType<CampaignDoorComponent>()
+        .single;
+    expect(clearedDamageDoor.isCompleted, isTrue);
+    game.world.player.position.setValues(
+      clearedDamageDoor.position.x,
+      clearedDamageDoor.position.y - 36,
+    );
+    clearedDamageDoor.update(.016);
+    expect(
+      clearedDamageDoor.children.whereType<TextComponent>().single.text,
+      allOf(
+        contains('✓'),
+        contains(game.localization.text('interaction.regionComplete')),
+      ),
+    );
     expect(
       game.campaignExploration.visitedNodeIds,
       containsAll(<CampaignNodeId>[

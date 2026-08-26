@@ -427,6 +427,20 @@ void main() {
       'interaction.returnHubLift',
       CampaignNodeId.bootSector,
     );
+    final temporalHubDoors = <String, CampaignDoorComponent>{
+      for (final door
+          in game.world.activeRoom!.children.whereType<CampaignDoorComponent>())
+        door.labelLocalizationKey: door,
+    };
+    expect(temporalHubDoors['interaction.enterDamageLab']!.isCompleted, isTrue);
+    expect(
+      temporalHubDoors['interaction.enterTemporalHall']!.isCompleted,
+      isTrue,
+    );
+    expect(
+      temporalHubDoors['interaction.enterCollisionArchive']!.isCompleted,
+      isFalse,
+    );
     expect(
       game.world.activeRoom!.children.whereType<CampaignDoorComponent>().map(
         (door) => door.labelLocalizationKey,
@@ -574,6 +588,16 @@ void main() {
       CampaignNodeId.bootSector,
     );
     expect(game.campaignExploration.hasAllCoreSignatures, isTrue);
+    final clearedRegionDoors = game.world.activeRoom!.children
+        .whereType<CampaignDoorComponent>()
+        .where(
+          (door) =>
+              door.labelLocalizationKey == 'interaction.enterDamageLab' ||
+              door.labelLocalizationKey == 'interaction.enterTemporalHall' ||
+              door.labelLocalizationKey == 'interaction.enterCollisionArchive',
+        );
+    expect(clearedRegionDoors, hasLength(3));
+    expect(clearedRegionDoors.every((door) => door.isCompleted), isTrue);
 
     for (final weapon in PlayerWeapon.values) {
       game.world.player.configureLoadout(

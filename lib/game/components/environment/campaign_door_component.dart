@@ -14,6 +14,7 @@ final class CampaignDoorComponent extends PositionComponent
     required this.onInteract,
     this.accentColor = const Color(0xFF36E1FF),
     this.isUnlockedResolver,
+    this.isCompletedResolver,
     this.lockedLabelLocalizationKeyResolver,
     this.onLockedInteract,
   }) : super(size: Vector2(72, 104), anchor: Anchor.bottomCenter, priority: 16);
@@ -22,6 +23,7 @@ final class CampaignDoorComponent extends PositionComponent
   final bool Function() onInteract;
   final Color accentColor;
   final bool Function()? isUnlockedResolver;
+  final bool Function()? isCompletedResolver;
   final String Function()? lockedLabelLocalizationKeyResolver;
   final VoidCallback? onLockedInteract;
   double _clock = 0;
@@ -30,6 +32,7 @@ final class CampaignDoorComponent extends PositionComponent
   late final TextComponent _label;
 
   bool get isUnlocked => isUnlockedResolver?.call() ?? true;
+  bool get isCompleted => isCompletedResolver?.call() ?? false;
 
   String get currentLabelLocalizationKey => isUnlocked
       ? labelLocalizationKey
@@ -75,9 +78,15 @@ final class CampaignDoorComponent extends PositionComponent
         game.world.player.position.distanceTo(position - Vector2(0, 36)) <= 140;
     if (_labelVisible != labelVisible || labelVisible) {
       _labelVisible = labelVisible;
-      _label.text = labelVisible
-          ? '${game.localization.text(currentLabelLocalizationKey)}  [L]'
-          : '';
+      if (!labelVisible) {
+        _label.text = '';
+      } else {
+        final completion = isCompleted
+            ? '  ✓ ${game.localization.text('interaction.regionComplete')}'
+            : '';
+        _label.text =
+            '${game.localization.text(currentLabelLocalizationKey)}$completion  [L]';
+      }
     }
     super.update(dt);
   }
@@ -85,7 +94,11 @@ final class CampaignDoorComponent extends PositionComponent
   @override
   void render(Canvas canvas) {
     final pulse = .58 + math.sin(_clock * 3.4).abs() * .32;
-    final renderColor = isUnlocked ? accentColor : const Color(0xFFFF8A5B);
+    final renderColor = isCompleted
+        ? const Color(0xFF45F3A6)
+        : isUnlocked
+        ? accentColor
+        : const Color(0xFFFF8A5B);
     final frame = RRect.fromRectAndRadius(
       Rect.fromLTWH(4, 8, size.x - 8, size.y - 8),
       const Radius.circular(10),
@@ -110,6 +123,27 @@ final class CampaignDoorComponent extends PositionComponent
         Paint()
           ..color = renderColor.withValues(alpha: pulse)
           ..strokeWidth = 2,
+      );
+    }
+    if (isCompleted) {
+      const badgeCenter = Offset(61, 17);
+      canvas.drawCircle(
+        badgeCenter,
+        10,
+        Paint()..color = const Color(0xFF45F3A6),
+      );
+      final check = Path()
+        ..moveTo(badgeCenter.dx - 5, badgeCenter.dy)
+        ..lineTo(badgeCenter.dx - 1, badgeCenter.dy + 4)
+        ..lineTo(badgeCenter.dx + 6, badgeCenter.dy - 5);
+      canvas.drawPath(
+        check,
+        Paint()
+          ..color = const Color(0xFF071A18)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.6
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round,
       );
     }
     super.render(canvas);

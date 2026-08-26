@@ -433,6 +433,7 @@
   "interaction.useMaintenanceShortcut": "リフトの近道",
   "interaction.enterOptimizerCore": "OPTIMIZER COREへ入る",
   "interaction.activateOptimizerTerminal": "レガシー端末 [L]",
+  "interaction.regionComplete": "エリアクリア",
   "interaction.routeLocked": "経路ロック",
   "interaction.clearThreats": "残りの敵を排除せよ",
   "interaction.completeRoomTask": "ルーム安定化目標を完了せよ",

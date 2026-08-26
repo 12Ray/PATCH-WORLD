@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:patch_world/game/campaign/campaign_traversal_ability.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/effects/player_strike_component.dart';
@@ -82,6 +83,32 @@ void main() {
       isTrue,
     );
 
+    // Gauntlet: consuming the double jump must never turn K into the
+    // progression air dash. K remains the gauntlet charge in mid-air.
+    player.configureLoadout(
+      PlayerWeapon.gauntlet,
+      assistMode: false,
+      restoreIntegrity: false,
+    );
+    game.campaignExploration.unlockTraversalAbility(
+      CampaignTraversalAbility.airDash,
+    );
+    expect(player.airJumpsRemaining, 1);
+    player.queueJump();
+    await _pumpFrames(tester, 3);
+    expect(player.isGrounded, isFalse);
+    player.queueJump();
+    expect(player.airJumpsRemaining, 0);
+    expect(player.traversalAirDashesRemaining, 1);
+
+    game.input.handleKeyDown(LogicalKeyboardKey.keyK);
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(player.isDashing, isFalse);
+    expect(player.traversalAirDashesRemaining, 1);
+    expect(player.isGauntletCharging, isTrue);
+    game.input.handleKeyUp(LogicalKeyboardKey.keyK);
+    await tester.pump(const Duration(milliseconds: 16));
+
     // Gun: K hold channels repeated bounded strikes; release starts cooldown.
     player.selectWeapon(PlayerWeapon.gun);
     game.input.handleKeyDown(LogicalKeyboardKey.keyK);
@@ -99,6 +126,22 @@ void main() {
     await _pumpFrames(tester, 2);
     expect(player.isGunLaserActive, isFalse);
     expect(player.gunLaserCooldownRemaining, greaterThan(0));
+
+    // Gun: while airborne and the laser is cooling down, K must not fall
+    // through to the campaign air dash.
+    if (player.isGrounded) {
+      player.queueJump();
+      await _pumpFrames(tester, 3);
+    }
+    expect(player.isGrounded, isFalse);
+    final airDashesBeforeGunK = player.traversalAirDashesRemaining;
+    game.input.handleKeyDown(LogicalKeyboardKey.keyK);
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(player.isDashing, isFalse);
+    expect(player.isGunLaserActive, isFalse);
+    expect(player.traversalAirDashesRemaining, airDashesBeforeGunK);
+    game.input.handleKeyUp(LogicalKeyboardKey.keyK);
+    await tester.pump(const Duration(milliseconds: 16));
     await tester.pumpWidget(const SizedBox.shrink());
   });
 }

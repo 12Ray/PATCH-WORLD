@@ -65,6 +65,7 @@ void main() {
       'interaction.returnHubLift',
       'interaction.enterOptimizerCore',
       'interaction.activateOptimizerTerminal',
+      'interaction.regionComplete',
       'interaction.clearThreats',
       'interaction.completeRoomTask',
       'interaction.completePreviousRooms',
