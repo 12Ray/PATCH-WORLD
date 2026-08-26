@@ -71,6 +71,28 @@ final class PlayerComponent extends RectangleComponent
   static const double dashDurationSeconds = 0.15;
   static const double dashCooldownSeconds = 5;
   static const double dashContactImmunitySeconds = 0.08;
+  static const double gauntletMaximumChargeSeconds = 10;
+  static const double gauntletMinimumBlastRadius = 54;
+  static const double gauntletMaximumBlastRadius = 220;
+  static const double gauntletChargeRecoverySeconds = 0.8;
+  static const double gunLaserMaximumDurationSeconds = 5;
+  static const double gunLaserMaximumRange = 340;
+  static const double gunLaserHeight = 30;
+  static const double gunLaserDamageIntervalSeconds = 0.25;
+  static const double gunLaserCooldownSeconds = 5;
+
+  static double gauntletChargeProgressFor(double seconds) =>
+      (seconds / gauntletMaximumChargeSeconds).clamp(0, 1).toDouble();
+
+  static double gauntletBlastRadiusForCharge(double seconds) {
+    final easedProgress = math.sqrt(gauntletChargeProgressFor(seconds));
+    return gauntletMinimumBlastRadius +
+        (gauntletMaximumBlastRadius - gauntletMinimumBlastRadius) *
+            easedProgress;
+  }
+
+  static int gauntletBlastDamageForCharge(double seconds) =>
+      1 + (gauntletChargeProgressFor(seconds) * 5).floor();
 
   final Vector2 spawnPosition;
   final Vector2 _movementInput = Vector2.zero();
@@ -129,9 +151,18 @@ final class PlayerComponent extends RectangleComponent
   double _dashRemaining = 0;
   double _dashCooldown = 0;
   double _dashContactImmunity = 0;
+  double _swordDashInvulnerability = 0;
   double _dashEmpowerWindow = 0;
   double _dashDirection = 1;
   double _survivalSpecialCooldown = 0;
+  bool _gauntletCharging = false;
+  double _gauntletChargeSeconds = 0;
+  double _gauntletChargeRecovery = 0;
+  bool _gunLaserActive = false;
+  double _gunLaserRemaining = 0;
+  double _gunLaserDamageTimer = 0;
+  double _gunLaserCooldown = 0;
+  bool _specialInputHeld = false;
   double _presentationActionRemaining = 0;
   int _airJumpsRemaining = 1;
   int _traversalAirDashesRemaining = 1;
@@ -143,11 +174,14 @@ final class PlayerComponent extends RectangleComponent
       _attackCooldown > 0 ||
       _pendingWeaponImpacts.isNotEmpty ||
       _dashRemaining > 0 ||
+      _gauntletCharging ||
+      _gunLaserActive ||
       _presentationActionRemaining > 0;
   bool get canParry => _parryRecovery <= 0 && !isRemoving;
   bool get isParrying => _parryWindow > 0;
   bool get hasParryCounter => _counterWindow > 0;
-  bool get isInvulnerable => _hitInvulnerability > 0;
+  bool get isInvulnerable =>
+      _hitInvulnerability > 0 || _swordDashInvulnerability > 0;
   bool get isMoving => _usesPlatformerMovement
       ? _platformerMotion.velocity.length2 > 0.01
       : _movementInput.length2 > 0.01;
@@ -157,6 +191,19 @@ final class PlayerComponent extends RectangleComponent
   double get facingDirection => _facing;
   double get dashCooldownRemaining => _dashCooldown;
   double get survivalSpecialCooldownRemaining => _survivalSpecialCooldown;
+  bool get isGauntletCharging => _gauntletCharging;
+  double get gauntletChargeSeconds => _gauntletChargeSeconds;
+  double get gauntletChargeProgress =>
+      gauntletChargeProgressFor(_gauntletChargeSeconds);
+  bool get isGunLaserActive => _gunLaserActive;
+  double get gunLaserRemaining => _gunLaserRemaining;
+  double get gunLaserCooldownRemaining => _gunLaserCooldown;
+  bool get specialAbilityReady => _isSpecialAbilityReady;
+  double get campaignSpecialCooldownRemaining => switch (selectedWeapon) {
+    PlayerWeapon.sword => _dashCooldown,
+    PlayerWeapon.gauntlet => _gauntletChargeRecovery,
+    PlayerWeapon.gun => _gunLaserCooldown,
+  };
   double get effectiveDashCooldownSeconds => isMounted
       ? (game.runItems.swordDashCooldownSeconds -
                 game.weaponBuild.swordDashCooldownReduction)
@@ -514,6 +561,8 @@ final class PlayerComponent extends RectangleComponent
 
   void setJumpHeld(bool value) => _jumpHeld = value;
 
+  void setSpecialAbilityHeld(bool value) => _specialInputHeld = value;
+
   void queueJump() {
     if (!_usesPlatformerMovement) return;
     if (isMounted &&
@@ -564,7 +613,11 @@ final class PlayerComponent extends RectangleComponent
     _dashRemaining = 0;
     _dashCooldown = 0;
     _dashContactImmunity = 0;
+    _swordDashInvulnerability = 0;
     _dashEmpowerWindow = 0;
+    _gauntletChargeRecovery = 0;
+    _gunLaserCooldown = 0;
+    _cancelCampaignSpecialAbility();
     _presentationActionRemaining = 0;
     _airJumpsRemaining = 1;
     _traversalAirDashesRemaining = 1;
@@ -600,6 +653,7 @@ final class PlayerComponent extends RectangleComponent
 
   void selectWeapon(PlayerWeapon weapon) {
     if (selectedWeapon == weapon) return;
+    _cancelCampaignSpecialAbility();
     selectedWeapon = weapon;
     _weaponComboStep = 0;
     _weaponComboReset = 0;
@@ -626,8 +680,12 @@ final class PlayerComponent extends RectangleComponent
     _dashRemaining = 0;
     _dashCooldown = 0;
     _dashContactImmunity = 0;
+    _swordDashInvulnerability = 0;
     _dashEmpowerWindow = 0;
     _survivalSpecialCooldown = 0;
+    _gauntletChargeRecovery = 0;
+    _gunLaserCooldown = 0;
+    _cancelCampaignSpecialAbility();
     _presentationActionRemaining = 0;
     if (isMounted) game.publishUiSnapshot(force: true);
   }
@@ -647,7 +705,8 @@ final class PlayerComponent extends RectangleComponent
     _facing = direction;
     _dashRemaining = dashDurationSeconds;
     _dashCooldown = effectiveDashCooldownSeconds;
-    _dashContactImmunity = dashContactImmunitySeconds;
+    _dashContactImmunity = dashDurationSeconds;
+    _swordDashInvulnerability = dashDurationSeconds;
     if (game.weaponBuild.tier(WeaponBuildUpgradeId.swordDashCircuit) > 0 ||
         game.runItems.enablesSwordDashEmpowerWindow) {
       _dashEmpowerWindow = 1.25;
@@ -667,7 +726,8 @@ final class PlayerComponent extends RectangleComponent
     return true;
   }
 
-  bool trySpecialAbility(double requestedDirection) {
+  bool beginSpecialAbility(double requestedDirection) {
+    _specialInputHeld = true;
     if (isMounted && game.mode == PatchWorldMode.survival) {
       return _trySurvivalSpecial();
     }
@@ -675,14 +735,135 @@ final class PlayerComponent extends RectangleComponent
       case PlayerWeapon.sword:
         return tryDash(requestedDirection);
       case PlayerWeapon.gauntlet:
-        if (_platformerMotion.grounded || _airJumpsRemaining > 0) {
-          queueJump();
+        if (!_platformerMotion.grounded &&
+            _airJumpsRemaining <= 0 &&
+            tryTraversalAirDash(requestedDirection)) {
           return true;
         }
-        return tryTraversalAirDash(requestedDirection);
+        if (_gauntletCharging || _gauntletChargeRecovery > 0 || isRemoving) {
+          return false;
+        }
+        _gauntletCharging = true;
+        _gauntletChargeSeconds = 0;
+        _visual?.flash(const Color(0xFFFF4FD8), seconds: .10);
+        if (isMounted) game.publishUiSnapshot(force: true);
+        return true;
       case PlayerWeapon.gun:
-        return tryTraversalAirDash(requestedDirection);
+        if (_gunLaserCooldown > 0 && tryTraversalAirDash(requestedDirection)) {
+          return true;
+        }
+        if (_gunLaserActive || _gunLaserCooldown > 0 || isRemoving) {
+          return false;
+        }
+        _gunLaserActive = true;
+        _gunLaserRemaining = gunLaserMaximumDurationSeconds;
+        _gunLaserDamageTimer = gunLaserDamageIntervalSeconds;
+        _fireGunLaserPulse();
+        final clip = _gunRailClip;
+        if (clip != null) {
+          _playAbilityMotion(clip, weapon: PlayerWeapon.gun);
+        }
+        if (isMounted) {
+          unawaited(game.audio.playWeaponAttack(PlayerWeapon.gun, heavy: true));
+          game.publishUiSnapshot(force: true);
+        }
+        return true;
     }
+  }
+
+  bool trySpecialAbility(double requestedDirection) =>
+      beginSpecialAbility(requestedDirection);
+
+  void endSpecialAbility() {
+    _specialInputHeld = false;
+    if (_gauntletCharging) _releaseGauntletCharge();
+    if (_gunLaserActive) _finishGunLaser();
+  }
+
+  void _releaseGauntletCharge() {
+    if (!_gauntletCharging) return;
+    final progress = gauntletChargeProgress;
+    final radius = gauntletBlastRadiusForCharge(_gauntletChargeSeconds);
+    final damage = gauntletBlastDamageForCharge(_gauntletChargeSeconds);
+    _gauntletCharging = false;
+    _gauntletChargeSeconds = 0;
+    _gauntletChargeRecovery = gauntletChargeRecoverySeconds;
+    if (isMounted) {
+      game.world.add(
+        PlayerStrikeComponent(
+          position: position.clone(),
+          size: Vector2.all(radius * 2),
+          sourceId: 'player.gauntlet.campaign.chargeBurst',
+          damage: damage,
+          activeSeconds: .24,
+          strikeColor: const Color(0xAAFF4FD8),
+        ),
+      );
+      final clip = _gauntletDoubleJumpClip;
+      if (clip != null) {
+        _playAbilityMotion(clip, weapon: PlayerWeapon.gauntlet);
+      }
+      _visual?.squash(seconds: .20);
+      _visual?.flash(const Color(0xFFFF8BE5), seconds: .14);
+      unawaited(
+        game.audio.playWeaponAttack(PlayerWeapon.gauntlet, heavy: true),
+      );
+      game.triggerImpactFeedback(intensity: .7 + progress * .8);
+      game.publishUiSnapshot(force: true);
+    }
+  }
+
+  void _finishGunLaser() {
+    if (!_gunLaserActive) return;
+    _gunLaserActive = false;
+    _gunLaserRemaining = 0;
+    _gunLaserDamageTimer = 0;
+    _gunLaserCooldown = gunLaserCooldownSeconds;
+    if (isMounted) game.publishUiSnapshot(force: true);
+  }
+
+  void _cancelCampaignSpecialAbility() {
+    _specialInputHeld = false;
+    _gauntletCharging = false;
+    _gauntletChargeSeconds = 0;
+    _gunLaserActive = false;
+    _gunLaserRemaining = 0;
+    _gunLaserDamageTimer = 0;
+  }
+
+  void _fireGunLaserPulse() {
+    if (!isMounted || !_gunLaserActive) return;
+    final range = _gunLaserRange;
+    if (range <= 0) return;
+    final direction = _facing.sign;
+    game.world.add(
+      PlayerStrikeComponent(
+        position: position + Vector2(direction * range / 2, 0),
+        size: Vector2(range, gunLaserHeight),
+        sourceId: 'player.gun.campaign.channelLaser',
+        damage: 1,
+        activeSeconds: .10,
+        strikeColor: const Color(0xAA36E1FF),
+      ),
+    );
+  }
+
+  double get _gunLaserRange {
+    if (!isMounted) return gunLaserMaximumRange;
+    final activeRoom = game.world.activeRoom;
+    if (activeRoom is! PlatformerRoomGeometry) return gunLaserMaximumRange;
+    final platformRoom = activeRoom as PlatformerRoomGeometry;
+    var range = gunLaserMaximumRange;
+    final top = position.y - gunLaserHeight / 2;
+    final bottom = position.y + gunLaserHeight / 2;
+    for (final solid in platformRoom.solidBounds) {
+      if (solid.bottom <= top || solid.top >= bottom) continue;
+      final distance = _facing >= 0
+          ? solid.left - position.x
+          : position.x - solid.right;
+      if (distance >= 0) range = math.min(range, distance);
+    }
+    return range.clamp(0, gunLaserMaximumRange).toDouble();
   }
 
   bool _trySurvivalSpecial() {
@@ -1440,8 +1621,14 @@ final class PlayerComponent extends RectangleComponent
     _dashRemaining = math.max(0, _dashRemaining - statusDt);
     _dashCooldown = math.max(0, _dashCooldown - statusDt);
     _dashContactImmunity = math.max(0, _dashContactImmunity - statusDt);
+    _swordDashInvulnerability = math.max(
+      0,
+      _swordDashInvulnerability - statusDt,
+    );
     _dashEmpowerWindow = math.max(0, _dashEmpowerWindow - statusDt);
     _survivalSpecialCooldown = math.max(0, _survivalSpecialCooldown - statusDt);
+    _gauntletChargeRecovery = math.max(0, _gauntletChargeRecovery - statusDt);
+    _gunLaserCooldown = math.max(0, _gunLaserCooldown - statusDt);
     _presentationActionRemaining = math.max(
       0,
       _presentationActionRemaining - simulationDt,
@@ -1477,6 +1664,7 @@ final class PlayerComponent extends RectangleComponent
         _movementInput.length2 > .01) {
       _aimDirection.setFrom(_movementInput.normalized());
     }
+    _updateHeldSpecialAbilities(statusDt);
     if (_usesPlatformerMovement) {
       _visualMovement.setValues(_resolvedHorizontalVelocity, 0);
       _visual?.faceMovement(_visualMovement);
@@ -1486,6 +1674,27 @@ final class PlayerComponent extends RectangleComponent
     _syncMovementAnimation();
     _updateDamageBlink();
     super.update(dt);
+  }
+
+  void _updateHeldSpecialAbilities(double statusDt) {
+    if (!_specialInputHeld) {
+      if (_gauntletCharging) _releaseGauntletCharge();
+      if (_gunLaserActive) _finishGunLaser();
+    }
+    if (_gauntletCharging) {
+      _gauntletChargeSeconds = math.min(
+        gauntletMaximumChargeSeconds,
+        _gauntletChargeSeconds + statusDt,
+      );
+    }
+    if (!_gunLaserActive) return;
+    _gunLaserRemaining = math.max(0, _gunLaserRemaining - statusDt);
+    _gunLaserDamageTimer -= statusDt;
+    while (_gunLaserDamageTimer <= 0 && _gunLaserRemaining > 0) {
+      _fireGunLaserPulse();
+      _gunLaserDamageTimer += gunLaserDamageIntervalSeconds;
+    }
+    if (_gunLaserRemaining <= 0) _finishGunLaser();
   }
 
   void _updatePlatformer(double dt, PlatformerRoomGeometry room) {
@@ -1731,16 +1940,107 @@ final class PlayerComponent extends RectangleComponent
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    for (var index = 0; index < PlayerWeapon.values.length; index += 1) {
-      final selected = selectedWeapon.index == index;
-      canvas.drawRect(
-        Rect.fromLTWH(5 + index * 8, -14, 6, 4),
+
+    if (_gauntletCharging) {
+      final progress = gauntletChargeProgress;
+      canvas.drawCircle(
+        Offset(size.x / 2, size.y / 2),
+        20 + progress * 22,
         Paint()
-          ..color = selected
-              ? const Color(0xFFFFD35A)
-              : const Color(0x6636E1FF),
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2 + progress * 4
+          ..color = const Color(
+            0xFFFF4FD8,
+          ).withValues(alpha: .35 + progress * .55),
       );
     }
+    if (_gunLaserActive) {
+      final range = _gunLaserRange;
+      final left = _facing >= 0 ? size.x / 2 : size.x / 2 - range;
+      final top = size.y / 2 - gunLaserHeight / 2;
+      canvas.drawRect(
+        Rect.fromLTWH(left, top, range, gunLaserHeight),
+        Paint()
+          ..color = const Color(0x5536E1FF)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(left, size.y / 2 - 3, range, 6),
+        Paint()..color = const Color(0xDD8AEEFF),
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(left, size.y / 2 - 1, range, 2),
+        Paint()..color = const Color(0xFFFFFFFF),
+      );
+    }
+
+    // World-space status stays focused on immediate combat information.
+    const healthCellWidth = 4.0;
+    const healthCellGap = 1.0;
+    final healthRowWidth =
+        maxIntegrity * healthCellWidth + (maxIntegrity - 1) * healthCellGap;
+    final healthRowLeft = (size.x - healthRowWidth) / 2;
+    for (var index = 0; index < maxIntegrity; index += 1) {
+      final active = index < integrity;
+      canvas.drawRect(
+        Rect.fromLTWH(
+          healthRowLeft + index * (healthCellWidth + healthCellGap),
+          -16,
+          healthCellWidth,
+          4,
+        ),
+        Paint()
+          ..color = active ? const Color(0xFF36E1FF) : const Color(0x66304050),
+      );
+    }
+
+    const specialBarLeft = 5.0;
+    const specialBarTop = -9.0;
+    const specialBarWidth = 22.0;
+    const specialBarHeight = 4.0;
+    final hasSpecial = _hasAvailableSpecialAbility;
+    final specialReady = hasSpecial && _isSpecialAbilityReady;
+    canvas.drawRect(
+      const Rect.fromLTWH(
+        specialBarLeft,
+        specialBarTop,
+        specialBarWidth,
+        specialBarHeight,
+      ),
+      Paint()..color = const Color(0x5525304A),
+    );
+    final specialProgress = _specialAbilityDisplayProgress;
+    if (specialProgress > 0) {
+      canvas.drawRect(
+        Rect.fromLTWH(
+          specialBarLeft,
+          specialBarTop,
+          specialBarWidth * specialProgress,
+          specialBarHeight,
+        ),
+        Paint()
+          ..color = specialReady
+              ? const Color(0xFFFFD35A)
+              : _gauntletCharging
+              ? const Color(0xFFFF4FD8)
+              : const Color(0xFF36E1FF),
+      );
+    } else if (!hasSpecial) {
+      final unavailablePaint = Paint()
+        ..color = const Color(0xFF7A8498)
+        ..strokeWidth = 1.5;
+      canvas.drawLine(
+        const Offset(specialBarLeft + 8, specialBarTop),
+        const Offset(specialBarLeft + 14, specialBarTop + specialBarHeight),
+        unavailablePaint,
+      );
+      canvas.drawLine(
+        const Offset(specialBarLeft + 14, specialBarTop),
+        const Offset(specialBarLeft + 8, specialBarTop + specialBarHeight),
+        unavailablePaint,
+      );
+    }
+
     if (isParrying || hasParryCounter) {
       canvas.drawCircle(
         Offset(size.x / 2, size.y / 2),
@@ -1751,14 +2051,53 @@ final class PlayerComponent extends RectangleComponent
           ..color = const Color(0xFFFFD35A),
       );
     }
-    if (_dataShardCharge == 0) return;
-    for (var index = 0; index < dataShardThreshold; index += 1) {
-      final active = index < _dataShardCharge;
-      canvas.drawRect(
-        Rect.fromLTWH(2 + index * 5, -9, 3, 3),
-        Paint()
-          ..color = active ? const Color(0xFF36E1FF) : const Color(0x4425304A),
-      );
+  }
+
+  bool get _hasAvailableSpecialAbility {
+    if (game.mode == PatchWorldMode.survival) return true;
+    return true;
+  }
+
+  bool get _isSpecialAbilityReady {
+    if (game.mode == PatchWorldMode.survival) {
+      return _survivalSpecialCooldown <= 0;
     }
+    final airDashReady =
+        !_platformerMotion.grounded &&
+        _traversalAirDashesRemaining > 0 &&
+        !isDashing &&
+        game.campaignExploration.hasTraversalAbility(
+          CampaignTraversalAbility.airDash,
+        );
+    return switch (selectedWeapon) {
+      PlayerWeapon.sword =>
+        _usesPlatformerMovement &&
+            _dashCooldown <= 0 &&
+            !isDashing &&
+            (_platformerMotion.grounded || _airJumpsRemaining > 0),
+      PlayerWeapon.gauntlet =>
+        (!_gauntletCharging && _gauntletChargeRecovery <= 0) || airDashReady,
+      PlayerWeapon.gun =>
+        (!_gunLaserActive && _gunLaserCooldown <= 0) || airDashReady,
+    };
+  }
+
+  double get _specialAbilityDisplayProgress {
+    if (_gauntletCharging) return gauntletChargeProgress;
+    if (_gunLaserActive) {
+      return (_gunLaserRemaining / gunLaserMaximumDurationSeconds).clamp(0, 1);
+    }
+    if (_isSpecialAbilityReady) return 1;
+    return switch (selectedWeapon) {
+      PlayerWeapon.sword => 1 - dashCooldownProgress,
+      PlayerWeapon.gauntlet =>
+        1 -
+            (_gauntletChargeRecovery / gauntletChargeRecoverySeconds).clamp(
+              0,
+              1,
+            ),
+      PlayerWeapon.gun =>
+        1 - (_gunLaserCooldown / gunLaserCooldownSeconds).clamp(0, 1),
+    };
   }
 }

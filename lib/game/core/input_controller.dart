@@ -8,12 +8,10 @@ final class InputController {
   bool _parryQueued = false;
   bool _interactQueued = false;
   bool _jumpQueued = false;
-  double? _dashDirectionQueued;
-  double _doubleTapRemaining = 0;
-  double _lastTapDirection = 0;
+  double? _specialDirectionQueued;
+  bool _specialReleaseQueued = false;
+  bool _specialHeld = false;
   Vector2 _virtualMovement = Vector2.zero();
-
-  static const double doubleTapWindowSeconds = 0.22;
 
   void syncPressedKeys(Set<LogicalKeyboardKey> keysPressed) {
     _pressedKeys
@@ -29,18 +27,8 @@ final class InputController {
         key == LogicalKeyboardKey.shiftRight) {
       _parryQueued = true;
     }
-    if (!isRepeat &&
-        (key == LogicalKeyboardKey.keyA ||
-            key == LogicalKeyboardKey.arrowLeft)) {
-      _recordHorizontalTap(-1);
-    }
-    if (!isRepeat &&
-        (key == LogicalKeyboardKey.keyD ||
-            key == LogicalKeyboardKey.arrowRight)) {
-      _recordHorizontalTap(1);
-    }
     if (!isRepeat && key == LogicalKeyboardKey.keyK) {
-      queueDash(movementAxis.x);
+      queueSpecialPress(movementAxis.x);
     }
     if (key == LogicalKeyboardKey.keyL) {
       _interactQueued = true;
@@ -50,21 +38,30 @@ final class InputController {
     }
   }
 
+  void handleKeyUp(LogicalKeyboardKey key) {
+    if (key == LogicalKeyboardKey.keyK) queueSpecialRelease();
+  }
+
   void queueAttack() => _attackQueued = true;
 
   void queueParry() => _parryQueued = true;
 
-  void queueDash([double direction = 0]) {
-    _dashDirectionQueued = direction.sign.toDouble();
+  void queueSpecialPress([double direction = 0]) {
+    if (_specialHeld) return;
+    _specialHeld = true;
+    _specialDirectionQueued = direction.sign.toDouble();
+  }
+
+  void queueSpecialRelease() {
+    if (!_specialHeld) return;
+    _specialHeld = false;
+    _specialReleaseQueued = true;
   }
 
   void queueInteract() => _interactQueued = true;
 
   void setVirtualMovement(double x, double y) {
     if (y < -0.5 && _virtualMovement.y >= -0.5) _jumpQueued = true;
-    if (x.abs() > 0.5 && _virtualMovement.x.abs() <= 0.5) {
-      _recordHorizontalTap(x.sign.toDouble());
-    }
     _virtualMovement = Vector2(x, y);
     if (_virtualMovement.length2 > 1) _virtualMovement.normalize();
   }
@@ -101,7 +98,9 @@ final class InputController {
       _parryQueued ||
       _interactQueued ||
       _jumpQueued ||
-      _dashDirectionQueued != null;
+      _specialDirectionQueued != null ||
+      _specialHeld ||
+      _specialReleaseQueued;
 
   bool get jumpHeld =>
       _isPressed(LogicalKeyboardKey.keyW, LogicalKeyboardKey.arrowUp) ||
@@ -125,19 +124,19 @@ final class InputController {
     return value;
   }
 
-  double? consumeDashDirection() {
-    final value = _dashDirectionQueued;
-    _dashDirectionQueued = null;
+  double? consumeSpecialPressDirection() {
+    final value = _specialDirectionQueued;
+    _specialDirectionQueued = null;
     return value;
   }
 
-  void advance(double dt) {
-    if (dt <= 0) return;
-    _doubleTapRemaining = (_doubleTapRemaining - dt)
-        .clamp(0, double.infinity)
-        .toDouble();
-    if (_doubleTapRemaining == 0) _lastTapDirection = 0;
+  bool consumeSpecialRelease() {
+    final value = _specialReleaseQueued;
+    _specialReleaseQueued = false;
+    return value;
   }
+
+  bool get specialHeld => _specialHeld;
 
   bool consumeInteract() {
     final value = _interactQueued;
@@ -150,29 +149,18 @@ final class InputController {
     _parryQueued = false;
     _interactQueued = false;
     _jumpQueued = false;
-    _dashDirectionQueued = null;
+    _specialDirectionQueued = null;
+    _specialReleaseQueued = false;
   }
 
   void clearAll() {
     _pressedKeys.clear();
-    _doubleTapRemaining = 0;
-    _lastTapDirection = 0;
+    _specialHeld = false;
     clearVirtualMovement();
     clearTransientActions();
   }
 
   bool _isPressed(LogicalKeyboardKey primary, LogicalKeyboardKey alternative) {
     return _pressedKeys.contains(primary) || _pressedKeys.contains(alternative);
-  }
-
-  void _recordHorizontalTap(double direction) {
-    if (_doubleTapRemaining > 0 && _lastTapDirection == direction) {
-      _dashDirectionQueued = direction;
-      _doubleTapRemaining = 0;
-      _lastTapDirection = 0;
-      return;
-    }
-    _lastTapDirection = direction;
-    _doubleTapRemaining = doubleTapWindowSeconds;
   }
 }

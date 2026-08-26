@@ -32,15 +32,20 @@ void main() {
       expect(input.consumeInteract(), isFalse);
     });
 
-    test('shift parries and K queues the weapon special once', () {
+    test('shift parries and K exposes special press hold and release', () {
       final input = InputController();
       input.handleKeyDown(LogicalKeyboardKey.shiftLeft);
       input.handleKeyDown(LogicalKeyboardKey.keyK);
 
       expect(input.consumeParry(), isTrue);
       expect(input.consumeParry(), isFalse);
-      expect(input.consumeDashDirection(), 0);
-      expect(input.consumeDashDirection(), isNull);
+      expect(input.consumeSpecialPressDirection(), 0);
+      expect(input.consumeSpecialPressDirection(), isNull);
+      expect(input.specialHeld, isTrue);
+      input.handleKeyUp(LogicalKeyboardKey.keyK);
+      expect(input.specialHeld, isFalse);
+      expect(input.consumeSpecialRelease(), isTrue);
+      expect(input.consumeSpecialRelease(), isFalse);
     });
 
     test('legacy action keys no longer queue J K L actions', () {
@@ -51,7 +56,7 @@ void main() {
       input.handleKeyDown(LogicalKeyboardKey.enter);
 
       expect(input.consumeAttack(), isFalse);
-      expect(input.consumeDashDirection(), isNull);
+      expect(input.consumeSpecialPressDirection(), isNull);
       expect(input.consumeInteract(), isFalse);
     });
 
@@ -81,38 +86,36 @@ void main() {
       expect(input.consumeJump(), isTrue);
       input.queueAttack();
       input.queueParry();
-      input.queueDash(-1);
+      input.queueSpecialPress(-1);
       input.queueInteract();
       expect(input.consumeAttack(), isTrue);
       expect(input.consumeParry(), isTrue);
-      expect(input.consumeDashDirection(), -1);
+      expect(input.consumeSpecialPressDirection(), -1);
+      expect(input.specialHeld, isTrue);
+      input.queueSpecialRelease();
+      expect(input.consumeSpecialRelease(), isTrue);
       expect(input.consumeInteract(), isTrue);
 
       input.clearAll();
       expect(input.movementAxis.length2, 0);
     });
 
-    test('same-direction double tap queues a dash inside 0.22 seconds', () {
+    test('same-direction double tap never queues a special ability', () {
       final input = InputController();
 
       input.handleKeyDown(LogicalKeyboardKey.keyD);
-      input.advance(0.1);
       input.handleKeyDown(LogicalKeyboardKey.keyD);
 
-      expect(input.consumeDashDirection(), 1);
-      expect(input.consumeDashDirection(), isNull);
+      expect(input.consumeSpecialPressDirection(), isNull);
     });
 
-    test('repeat and expired taps do not queue a dash', () {
+    test('K key repeat does not queue a second special press', () {
       final input = InputController();
 
-      input.handleKeyDown(LogicalKeyboardKey.keyA);
-      input.handleKeyDown(LogicalKeyboardKey.keyA, isRepeat: true);
-      expect(input.consumeDashDirection(), isNull);
-
-      input.advance(0.23);
-      input.handleKeyDown(LogicalKeyboardKey.keyA);
-      expect(input.consumeDashDirection(), isNull);
+      input.handleKeyDown(LogicalKeyboardKey.keyK);
+      expect(input.consumeSpecialPressDirection(), 0);
+      input.handleKeyDown(LogicalKeyboardKey.keyK, isRepeat: true);
+      expect(input.consumeSpecialPressDirection(), isNull);
     });
   });
 }

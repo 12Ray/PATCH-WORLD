@@ -45,6 +45,7 @@ final class DamageLabNodeController extends Component
         PlatformerRoomCameraZoom,
         PlatformerRoomCameraLead,
         PlatformerRoomCameraFollow,
+        PlatformerRoomPlayerCameraSafety,
         CampaignNodeRoom,
         CampaignNodeTravelGuard,
         DamageLabRoomStatus {
@@ -232,7 +233,12 @@ final class DamageLabNodeController extends Component
 
   @override
   Vector2 cameraTargetFor(Vector2 playerPosition) {
-    if (isBossIntroActive) return worldSize / 2;
+    if (isBossIntroActive) {
+      final bossPosition =
+          _boss?.position ??
+          layout.requireAnchor(DamageLabAnchorId.bossSpawn).toVector2();
+      return Vector2(worldSize.x / 2, bossPosition.y - 120);
+    }
     final boss = _boss;
     if (_bossEncounterStarted && boss != null && boss.isActive) {
       return Vector2(
@@ -305,6 +311,9 @@ final class DamageLabNodeController extends Component
   double get cameraFollowResponsiveness => isEncounterSealed
       ? math.max(8, layout.camera.followResponsiveness)
       : layout.camera.followResponsiveness;
+
+  @override
+  bool get keepsPlayerInsideHorizontalSafeArea => !isBossIntroActive;
 
   @override
   Future<void> onLoad() async {
@@ -909,8 +918,9 @@ final class DamageLabNodeController extends Component
     _bossIntroRemaining = 2.8;
     boss.beginIntro();
     game.setCinematicInputLocked(true);
+    final bannerCenterY = math.max(170.0, boss.position.y - 310);
     final banner = BossNameCardComponent(
-      center: Vector2(worldSize.x / 2, 145),
+      center: Vector2(worldSize.x / 2, bannerCenterY),
       title: game.localization.text('enemy.overflowWarden.name'),
       subtitle: game.localization.text('boss.overflowWarden.intro'),
       accentColor: const Color(0xFFFFD35A),

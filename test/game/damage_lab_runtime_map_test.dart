@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patch_world/game/campaign/campaign_world_graph.dart';
@@ -83,6 +84,7 @@ void main() {
           : const <String>[
               DamageLabAnchorId.backDoor,
               DamageLabAnchorId.forwardDoor,
+              DamageLabAnchorId.qaRecord,
             ];
       final destinations = <OrdinaryJumpAnchor>[
         for (final id in destinationIds)
@@ -91,6 +93,30 @@ void main() {
             feet: Offset(room.requireAnchor(id).x, room.requireAnchor(id).y),
             settleDistance: 8,
           ),
+        if (room.terrainPulse case final pulse?)
+          OrdinaryJumpAnchor(
+            id: 'terrainPulse',
+            feet: Offset(pulse.nodePosition.x, pulse.nodePosition.y),
+            settleDistance: 8,
+          ),
+        if (room.nodeId == CampaignNodeId.overflowWarden) ...const [
+          OrdinaryJumpAnchor(
+            id: 'wardenSecondFloorWest',
+            feet: Offset(488, 608),
+          ),
+          OrdinaryJumpAnchor(
+            id: 'wardenSecondFloorEast',
+            feet: Offset(952, 608),
+          ),
+          OrdinaryJumpAnchor(
+            id: 'wardenThirdFloorWest',
+            feet: Offset(348, 448),
+          ),
+          OrdinaryJumpAnchor(
+            id: 'wardenThirdFloorEast',
+            feet: Offset(1092, 448),
+          ),
+        ],
       ];
 
       for (final entry in <(String, DamageLabPointSpec)>[
@@ -122,7 +148,7 @@ void main() {
   });
 
   test(
-    'Warden owns a two-level pressure hangar with a universal floor route',
+    'Warden owns a three-level pressure hangar with universal stair routes',
     () {
       final catalog = DamageLabRoomLayoutCatalog.fromJson(source);
       final warden = catalog.room(CampaignNodeId.overflowWarden);
@@ -132,8 +158,59 @@ void main() {
       expect(warden.height, greaterThanOrEqualTo(832));
       expect(
         warden.surfaces.where((surface) => !surface.isBoundary),
-        hasLength(greaterThanOrEqualTo(5)),
+        hasLength(greaterThanOrEqualTo(12)),
       );
+      Rect anchoredFootprint(String anchorId, double width, double height) {
+        final anchor = warden.requireAnchor(anchorId);
+        return Rect.fromLTWH(
+          anchor.x - width / 2,
+          anchor.y - height,
+          width,
+          height,
+        );
+      }
+
+      final postBossFootprints = <String, Rect>{
+        DamageLabAnchorId.backDoor: anchoredFootprint(
+          DamageLabAnchorId.backDoor,
+          72,
+          104,
+        ),
+        DamageLabAnchorId.bossReward: anchoredFootprint(
+          DamageLabAnchorId.bossReward,
+          82,
+          78,
+        ),
+        DamageLabAnchorId.exitTerminal: anchoredFootprint(
+          DamageLabAnchorId.exitTerminal,
+          64,
+          84,
+        ),
+        DamageLabAnchorId.regionBranchDoor: anchoredFootprint(
+          DamageLabAnchorId.regionBranchDoor,
+          72,
+          104,
+        ),
+      };
+      for (final entry in postBossFootprints.entries) {
+        expect(entry.value.left, greaterThanOrEqualTo(0), reason: entry.key);
+        expect(
+          entry.value.right,
+          lessThanOrEqualTo(warden.width),
+          reason: entry.key,
+        );
+        for (final surface in warden.surfaces.where(
+          (surface) => !surface.isBoundary,
+        )) {
+          expect(
+            entry.value.overlaps(surface.bounds),
+            isFalse,
+            reason:
+                '${entry.key} must not be embedded in ${surface.id}: '
+                '${entry.value} vs ${surface.bounds}',
+          );
+        }
+      }
       expect(mechanic.pressureVents, hasLength(greaterThanOrEqualTo(3)));
       expect(mechanic.phasePlatforms, hasLength(greaterThanOrEqualTo(2)));
       expect(mechanic.safeZones, hasLength(greaterThanOrEqualTo(2)));

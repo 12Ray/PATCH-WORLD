@@ -28,6 +28,7 @@ final class BossRoomController extends Component
         PlatformerRoomSurfaceMotion,
         PlatformerRoomCameraTarget,
         PlatformerRoomCameraZoom,
+        PlatformerRoomPlayerCameraSafety,
         CampaignNodeRoom {
   late final OptimizerBossComponent boss;
   late final LegacyGlitchTerminal terminal;
@@ -135,6 +136,9 @@ final class BossRoomController extends Component
         .clamp(.9, 1.06)
         .toDouble();
   }
+
+  @override
+  bool get keepsPlayerInsideHorizontalSafeArea => !isBossIntroActive;
 
   @override
   Future<void> onLoad() async {

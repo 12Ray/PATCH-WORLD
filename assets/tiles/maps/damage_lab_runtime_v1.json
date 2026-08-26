@@ -107,11 +107,11 @@
       },
       "spawns": {
         "west": [140, 529],
-        "east": [1780, 529]
+        "east": [1660, 529]
       },
       "anchors": {
         "backDoor": [105, 565],
-        "forwardDoor": [1815, 565],
+        "forwardDoor": [1760, 565],
         "checkpoint": [1510, 565],
         "qaRecord": [980, 784]
       },
@@ -139,6 +139,9 @@
         {"id": "assembly.lower.return-a", "rect": [1140, 945, 170, 24], "renderArtwork": true},
         {"id": "assembly.lower.return-b", "rect": [1310, 875, 150, 24], "renderArtwork": true},
         {"id": "assembly.lower.east", "rect": [1460, 805, 420, 28], "renderArtwork": true},
+        {"id": "assembly.lower.access-west-a", "rect": [560, 645, 180, 24], "renderArtwork": true},
+        {"id": "assembly.lower.access-center-b", "rect": [700, 725, 180, 24], "renderArtwork": true},
+        {"id": "assembly.lower.access-east-a", "rect": [840, 645, 180, 24], "renderArtwork": true},
         {"id": "assembly.floor.west", "rect": [40, 1020, 520, 60], "renderArtwork": true},
         {"id": "assembly.floor.east", "rect": [1360, 1020, 520, 60], "renderArtwork": true},
         {"id": "assembly.boundary.east", "rect": [1896, 0, 24, 1080], "boundary": true, "renderArtwork": false}
@@ -147,7 +150,13 @@
         {"id": "damage.assembly.ascent-a", "fromSurfaceId": "assembly.route.west", "toSurfaceId": "assembly.route.ascent-a"},
         {"id": "damage.assembly.ascent-b", "fromSurfaceId": "assembly.route.ascent-a", "toSurfaceId": "assembly.route.crown"},
         {"id": "damage.assembly.descent-a", "fromSurfaceId": "assembly.route.crown", "toSurfaceId": "assembly.route.descent-a"},
-        {"id": "damage.assembly.descent-b", "fromSurfaceId": "assembly.route.descent-a", "toSurfaceId": "assembly.route.east"}
+        {"id": "damage.assembly.descent-b", "fromSurfaceId": "assembly.route.descent-a", "toSurfaceId": "assembly.route.east"},
+        {"id": "damage.assembly.lower-west-a", "fromSurfaceId": "assembly.route.west", "toSurfaceId": "assembly.lower.access-west-a"},
+        {"id": "damage.assembly.lower-west-b", "fromSurfaceId": "assembly.lower.access-west-a", "toSurfaceId": "assembly.lower.access-center-b"},
+        {"id": "damage.assembly.lower-west-c", "fromSurfaceId": "assembly.lower.access-center-b", "toSurfaceId": "assembly.lower.center"},
+        {"id": "damage.assembly.lower-east-a", "fromSurfaceId": "assembly.route.east", "toSurfaceId": "assembly.lower.access-east-a"},
+        {"id": "damage.assembly.lower-east-b", "fromSurfaceId": "assembly.lower.access-east-a", "toSurfaceId": "assembly.lower.access-center-b"},
+        {"id": "damage.assembly.lower-east-c", "fromSurfaceId": "assembly.lower.access-center-b", "toSurfaceId": "assembly.lower.center"}
       ],
       "enemies": [
         {"id": "assembly.patch-mite", "archetype": "patchMite", "position": [350, 529]},
@@ -179,7 +188,7 @@
       "terrainPulse": {
         "routeId": "terrain.damage-assembly.upper-bypass",
         "bridge": [1110, 408, 190, 20],
-        "node": [1080, 553]
+        "node": [1080, 565]
       }
     },
     {
@@ -280,20 +289,27 @@
         "east": [1264, 732]
       },
       "anchors": {
-        "backDoor": [96, 768],
+        "backDoor": [220, 768],
         "bossSpawn": [720, 712],
         "bossReward": [1040, 762],
-        "exitTerminal": [1264, 762],
-        "regionBranchDoor": [288, 768]
+        "exitTerminal": [1200, 762],
+        "regionBranchDoor": [720, 768]
       },
       "surfaces": [
         {"id": "warden.boundary.west", "rect": [0, 0, 32, 832], "boundary": true, "renderArtwork": false},
         {"id": "warden.boundary.east", "rect": [1408, 0, 32, 832], "boundary": true, "renderArtwork": false},
         {"id": "warden.hangar.floor", "rect": [32, 768, 1376, 64], "renderArtwork": true},
-        {"id": "warden.catwalk.lower-west", "rect": [224, 608, 320, 32], "renderArtwork": true},
-        {"id": "warden.catwalk.lower-east", "rect": [896, 608, 320, 32], "renderArtwork": true},
-        {"id": "warden.catwalk.upper-west", "rect": [352, 448, 256, 32], "renderArtwork": true},
-        {"id": "warden.catwalk.upper-east", "rect": [832, 448, 256, 32], "renderArtwork": true}
+        {"id": "warden.access.lower-west-a", "rect": [64, 700, 120, 24], "renderArtwork": true},
+        {"id": "warden.access.lower-west-b", "rect": [300, 648, 120, 24], "renderArtwork": true},
+        {"id": "warden.catwalk.lower-west", "rect": [368, 608, 240, 32], "renderArtwork": true},
+        {"id": "warden.access.upper-center", "rect": [660, 552, 120, 24], "renderArtwork": true},
+        {"id": "warden.access.upper-west", "rect": [416, 496, 120, 24], "renderArtwork": true},
+        {"id": "warden.catwalk.upper-west", "rect": [220, 448, 256, 32], "renderArtwork": true},
+        {"id": "warden.access.upper-east", "rect": [904, 496, 120, 24], "renderArtwork": true},
+        {"id": "warden.catwalk.upper-east", "rect": [964, 448, 256, 32], "renderArtwork": true},
+        {"id": "warden.catwalk.lower-east", "rect": [832, 608, 240, 32], "renderArtwork": true},
+        {"id": "warden.access.lower-east-b", "rect": [1020, 648, 120, 24], "renderArtwork": true},
+        {"id": "warden.access.lower-east-a", "rect": [1256, 700, 120, 24], "renderArtwork": true}
       ],
       "traversal": [
         {"id": "damage.warden.universal-floor", "fromSurfaceId": "warden.hangar.floor", "toSurfaceId": "warden.hangar.floor", "requiredForCompletion": true, "requirement": "universal"}

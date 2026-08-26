@@ -8,6 +8,9 @@ import 'package:patch_world/game/components/environment/platform_surface_compone
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 
+String terrainPulsePromptLocalizationKey({required bool isUnlocked}) =>
+    isUnlocked ? 'interaction.terrainPulse' : 'interaction.terrainPulseLocked';
+
 /// A persistent metroidvania switch. It can be used only after the Collision
 /// Archive core grants Terrain Pulse, and rebuilds the same optional bridge
 /// when a previously visited room is loaded again.
@@ -25,11 +28,15 @@ final class TerrainPulseNodeComponent extends PositionComponent
   final Color accentColor;
   bool _activated = false;
   double _clock = 0;
+  bool? _lastUnlocked;
+  late final TextComponent _label;
 
   bool get isActivated => _activated;
   bool get isUnlocked => game.campaignExploration.hasTraversalAbility(
     CampaignTraversalAbility.terrainPulse,
   );
+  String get currentLabelLocalizationKey =>
+      terrainPulsePromptLocalizationKey(isUnlocked: isUnlocked);
 
   bool tryActivate(PlayerComponent player) {
     if (player.position.distanceTo(position) > 88) return false;
@@ -50,27 +57,36 @@ final class TerrainPulseNodeComponent extends PositionComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    await add(
-      TextComponent(
-        text: '${game.localization.text('interaction.terrainPulse')}  [L]',
-        position: Vector2(size.x / 2, -3),
-        anchor: Anchor.bottomCenter,
-        textRenderer: TextPaint(
-          style: const TextStyle(
-            fontFamily: 'PatchWorldCJK',
-            color: Color(0xFFF3F7FF),
-            fontSize: 9,
-            fontWeight: FontWeight.w800,
-          ),
+    _label = TextComponent(
+      text: '',
+      position: Vector2(size.x / 2, -3),
+      anchor: Anchor.bottomCenter,
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          fontFamily: 'PatchWorldCJK',
+          color: Color(0xFFF3F7FF),
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
+    await add(_label);
+    _syncLabel();
   }
 
   @override
   void update(double dt) {
     _clock += game.clock.simulationDt;
+    if (_lastUnlocked != isUnlocked) _syncLabel();
     super.update(dt);
+  }
+
+  void _syncLabel() {
+    final unlocked = isUnlocked;
+    _lastUnlocked = unlocked;
+    _label.text = unlocked
+        ? '${game.localization.text(currentLabelLocalizationKey)}  [L]'
+        : game.localization.text(currentLabelLocalizationKey);
   }
 
   @override
@@ -84,7 +100,7 @@ final class TerrainPulseNodeComponent extends PositionComponent
     final pulse = .5 + math.sin(_clock * 3) * .5;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(8, 28, size.x - 16, 36),
+        Rect.fromLTWH(8, 28, size.x - 16, size.y - 28),
         const Radius.circular(8),
       ),
       Paint()..color = const Color(0xEE141B35),

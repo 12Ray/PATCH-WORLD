@@ -14,6 +14,10 @@ final class UiSnapshot {
     this.selectedWeapon,
     this.dashCooldownRemaining = 0,
     this.airJumpsRemaining = 0,
+    this.specialAbilityReady = false,
+    this.gauntletChargeSeconds = 0,
+    this.gunLaserRemaining = 0,
+    this.specialAbilityCooldownRemaining = 0,
     this.normalizedHeat,
     this.echoPulseCount,
     this.frameBurstPhase,
@@ -54,6 +58,10 @@ final class UiSnapshot {
   final PlayerWeapon? selectedWeapon;
   final double dashCooldownRemaining;
   final int airJumpsRemaining;
+  final bool specialAbilityReady;
+  final double gauntletChargeSeconds;
+  final double gunLaserRemaining;
+  final double specialAbilityCooldownRemaining;
   final double? normalizedHeat;
   final int? echoPulseCount;
   final FrameBurstPhase? frameBurstPhase;
@@ -88,6 +96,11 @@ final class UiSnapshot {
           selectedWeapon == other.selectedWeapon &&
           dashCooldownRemaining == other.dashCooldownRemaining &&
           airJumpsRemaining == other.airJumpsRemaining &&
+          specialAbilityReady == other.specialAbilityReady &&
+          gauntletChargeSeconds == other.gauntletChargeSeconds &&
+          gunLaserRemaining == other.gunLaserRemaining &&
+          specialAbilityCooldownRemaining ==
+              other.specialAbilityCooldownRemaining &&
           normalizedHeat == other.normalizedHeat &&
           echoPulseCount == other.echoPulseCount &&
           frameBurstPhase == other.frameBurstPhase &&
@@ -121,6 +134,10 @@ final class UiSnapshot {
     selectedWeapon,
     dashCooldownRemaining,
     airJumpsRemaining,
+    specialAbilityReady,
+    gauntletChargeSeconds,
+    gunLaserRemaining,
+    specialAbilityCooldownRemaining,
     normalizedHeat,
     echoPulseCount,
     frameBurstPhase,

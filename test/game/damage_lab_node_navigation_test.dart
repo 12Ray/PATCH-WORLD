@@ -232,7 +232,7 @@ void main() {
           room,
           expectedSpawn: Vector2(140, 529),
           backDoorPosition: Vector2(105, 565),
-          forwardDoorPosition: Vector2(1815, 565),
+          forwardDoorPosition: Vector2(1760, 565),
         );
         final checkpoint = room.children
             .whereType<CampaignCheckpointComponent>()
@@ -245,6 +245,23 @@ void main() {
         expect(
           room.respawnPointFor(Vector2(900, room.killPlaneY)),
           Vector2(1510, 529),
+        );
+        final forwardDoor = room.children
+            .whereType<CampaignDoorComponent>()
+            .singleWhere(
+              (door) => door.labelLocalizationKey == 'interaction.nextRoom',
+            );
+        game.world.player
+          ..resetMotionForRoomTransition()
+          ..position.setValues(1700, 529);
+        await tester.pump(const Duration(milliseconds: 16));
+        final visibleRight =
+            game.camera.viewfinder.position.x +
+            PatchWorldGame.logicalWidth / (game.camera.viewfinder.zoom * 2);
+        expect(
+          visibleRight,
+          greaterThanOrEqualTo(forwardDoor.position.x + forwardDoor.size.x / 2),
+          reason: 'Camera easing must not crop the next-room door.',
         );
       }
       await _useDoor(

@@ -52,6 +52,17 @@ void main() {
     bridge.activate();
     expect(bridge.isSolid, isTrue);
   });
+
+  test('terrain pulse prompt explains its progression lock', () {
+    expect(
+      terrainPulsePromptLocalizationKey(isUnlocked: false),
+      'interaction.terrainPulseLocked',
+    );
+    expect(
+      terrainPulsePromptLocalizationKey(isUnlocked: true),
+      'interaction.terrainPulse',
+    );
+  });
 }
 
 Future<DamageLabNodeController> _loadDamageNode(

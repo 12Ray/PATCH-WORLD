@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/patch_world_game.dart';
 import 'package:patch_world/services/game_settings.dart';
 
@@ -29,15 +28,12 @@ final class TouchControlsOverlay extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: <Widget>[
-                      if (game.world.isReady &&
-                          game.world.player.selectedWeapon ==
-                              PlayerWeapon.sword) ...<Widget>[
-                        _ActionButton(
-                          label: game.localization.text('touch.dash'),
-                          onPressed: game.queueTouchDash,
-                        ),
-                        const SizedBox(width: 8),
-                      ],
+                      _HoldActionButton(
+                        label: 'K',
+                        onPressed: game.beginTouchSpecialAbility,
+                        onReleased: game.endTouchSpecialAbility,
+                      ),
+                      const SizedBox(width: 8),
                       _ActionButton(
                         label: game.localization.text('touch.parry'),
                         onPressed: game.queueTouchParry,
@@ -66,6 +62,38 @@ final class TouchControlsOverlay extends StatelessWidget {
       ),
     );
   }
+}
+
+final class _HoldActionButton extends StatelessWidget {
+  const _HoldActionButton({
+    required this.label,
+    required this.onPressed,
+    required this.onReleased,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+  final VoidCallback onReleased;
+
+  @override
+  Widget build(BuildContext context) => Listener(
+    onPointerDown: (_) => onPressed(),
+    onPointerUp: (_) => onReleased(),
+    onPointerCancel: (_) => onReleased(),
+    child: Container(
+      width: 56,
+      height: 56,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        color: Color(0xFF334769),
+        shape: BoxShape.circle,
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+      ),
+    ),
+  );
 }
 
 final class _DirectionPad extends StatelessWidget {

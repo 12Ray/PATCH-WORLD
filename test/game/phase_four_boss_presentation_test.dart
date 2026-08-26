@@ -5,6 +5,7 @@ import 'package:patch_world/game/campaign/campaign_world_graph.dart';
 import 'package:patch_world/game/components/boss/overflow_warden_boss_component.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
+import 'package:patch_world/game/components/environment/patch_exit_terminal_component.dart';
 import 'package:patch_world/game/components/presentation/boss_arena_presentation_component.dart';
 import 'package:patch_world/game/components/presentation/item_discovery_presentation_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
@@ -82,7 +83,29 @@ void main() {
         room.cameraZoomFor(game.world.player.position),
         closeTo(.94, .001),
       );
-      expect(room.children.whereType<BossNameCardComponent>(), isNotEmpty);
+      expect(room.keepsPlayerInsideHorizontalSafeArea, isFalse);
+      final boss = room.boss!;
+      final introTarget = room.cameraTargetFor(game.world.player.position);
+      expect(introTarget.x, room.worldSize.x / 2);
+      expect(introTarget.y, closeTo(boss.position.y - 120, .001));
+      final introCard = room.children.whereType<BossNameCardComponent>().single;
+      expect(introCard.position.y, closeTo(boss.position.y - 310, .001));
+      final halfVisibleHeight =
+          PatchWorldGame.logicalHeight /
+          (room.cameraZoomFor(game.world.player.position) * 2);
+      final framedCenterY = introTarget.y
+          .clamp(halfVisibleHeight, room.worldSize.y - halfVisibleHeight)
+          .toDouble();
+      expect(
+        framedCenterY + halfVisibleHeight,
+        greaterThanOrEqualTo(768),
+        reason: 'The intro frame must include the boss arena floor.',
+      );
+      expect(
+        introCard.position.y - introCard.size.y / 2,
+        greaterThan(framedCenterY - halfVisibleHeight),
+        reason: 'The name card must remain inside the intro frame.',
+      );
       expect(
         room.bossArenaPresentation!.state,
         BossArenaPresentationState.intro,
@@ -104,7 +127,6 @@ void main() {
       for (var frame = 0; frame < 70; frame += 1) {
         await tester.pump(const Duration(milliseconds: 100));
       }
-      final boss = room.boss!;
       expect(boss.phase, OverflowWardenPhase.shielded);
       expect(
         room.bossArenaPresentation!.state,
@@ -217,6 +239,16 @@ void main() {
       }
       expect(room.isBossRewardDiscoveryActive, isFalse);
       expect(room.hasExitTerminal, isTrue);
+      final exitTerminal = room.children
+          .whereType<PatchExitTerminalComponent>()
+          .single;
+      expect(exitTerminal.position, Vector2(1200, 762));
+      expect(
+        exitTerminal.position.x -
+            room.layout.requireAnchor(DamageLabAnchorId.bossReward).x,
+        lessThanOrEqualTo(160),
+        reason: 'The patch terminal should appear beside the claimed reward.',
+      );
 
       await tester.pumpWidget(const SizedBox.shrink());
     },

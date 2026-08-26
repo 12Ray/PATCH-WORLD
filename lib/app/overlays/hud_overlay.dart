@@ -230,12 +230,44 @@ final class _IntegrityView extends StatelessWidget {
                 'seconds': snapshot.dashCooldownRemaining.toStringAsFixed(1),
               },
             ),
-            PlayerWeapon.gauntlet when snapshot.airJumpsRemaining > 0 =>
-              game.localization.text('hud.doubleJumpReady'),
+            PlayerWeapon.gauntlet
+                when !snapshot.specialAbilityReady &&
+                    snapshot.specialAbilityCooldownRemaining <= 0 =>
+              game.localization.text(
+                'hud.gauntletCharging',
+                parameters: <String, Object>{
+                  'seconds': snapshot.gauntletChargeSeconds.toStringAsFixed(1),
+                },
+              ),
+            PlayerWeapon.gauntlet
+                when snapshot.specialAbilityCooldownRemaining > 0 =>
+              game.localization.text(
+                'hud.specialCooldown',
+                parameters: <String, Object>{
+                  'seconds': snapshot.specialAbilityCooldownRemaining
+                      .toStringAsFixed(1),
+                },
+              ),
             PlayerWeapon.gauntlet => game.localization.text(
-              'hud.doubleJumpSpent',
+              'hud.gauntletChargeReady',
             ),
-            PlayerWeapon.gun => game.localization.text('hud.rangedPassive'),
+            PlayerWeapon.gun when snapshot.gunLaserRemaining > 0 =>
+              game.localization.text(
+                'hud.gunLaserActive',
+                parameters: <String, Object>{
+                  'seconds': snapshot.gunLaserRemaining.toStringAsFixed(1),
+                },
+              ),
+            PlayerWeapon.gun
+                when snapshot.specialAbilityCooldownRemaining > 0 =>
+              game.localization.text(
+                'hud.specialCooldown',
+                parameters: <String, Object>{
+                  'seconds': snapshot.specialAbilityCooldownRemaining
+                      .toStringAsFixed(1),
+                },
+              ),
+            PlayerWeapon.gun => game.localization.text('hud.gunLaserReady'),
             null => '',
           };
     return Column(

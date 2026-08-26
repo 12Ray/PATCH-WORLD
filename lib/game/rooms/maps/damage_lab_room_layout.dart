@@ -1085,7 +1085,7 @@ abstract final class DamageLabRoomLayoutValidator {
         }
         if (!_containsPoint(room, pulse.nodePosition)) {
           errors.add('$prefix terrain pulse node is outside the room');
-        } else if (!_hasSupport(room, pulse.nodePosition, verticalOffset: 12)) {
+        } else if (!_hasSupport(room, pulse.nodePosition)) {
           errors.add('$prefix terrain pulse node has no authored landing');
         }
       }

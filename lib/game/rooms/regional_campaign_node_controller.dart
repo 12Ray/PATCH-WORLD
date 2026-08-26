@@ -46,6 +46,7 @@ final class RegionalCampaignNodeController extends Component
         PlatformerRoomCameraZoom,
         PlatformerRoomCameraLead,
         PlatformerRoomCameraFollow,
+        PlatformerRoomPlayerCameraSafety,
         PlatformerRoomSurfaceMotion,
         CampaignNodeRoom,
         CampaignNodeTravelGuard {
@@ -422,6 +423,9 @@ final class RegionalCampaignNodeController extends Component
   double get cameraFollowResponsiveness => isEncounterSealed
       ? math.max(8, layout.camera.followResponsiveness)
       : layout.camera.followResponsiveness;
+
+  @override
+  bool get keepsPlayerInsideHorizontalSafeArea => !isBossIntroActive;
 
   @override
   Future<void> onLoad() async {

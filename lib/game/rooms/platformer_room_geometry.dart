@@ -2,6 +2,36 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 
+/// Keeps a followed player inside a stable screen-space safety inset even
+/// while camera easing and directional lead are still catching up.
+double clampPlatformerCameraCenterToPlayer({
+  required double currentCenter,
+  required double playerCoordinate,
+  required double halfVisibleExtent,
+  required double safeInset,
+  required double minimumCenter,
+  required double maximumCenter,
+}) {
+  if (!currentCenter.isFinite ||
+      !playerCoordinate.isFinite ||
+      !halfVisibleExtent.isFinite ||
+      halfVisibleExtent <= 0 ||
+      !minimumCenter.isFinite ||
+      !maximumCenter.isFinite ||
+      minimumCenter > maximumCenter) {
+    return currentCenter;
+  }
+  final inset = safeInset.isFinite
+      ? safeInset.clamp(0.0, halfVisibleExtent * .8)
+      : 0.0;
+  final playerMinimumCenter = playerCoordinate - halfVisibleExtent + inset;
+  final playerMaximumCenter = playerCoordinate + halfVisibleExtent - inset;
+  return currentCenter
+      .clamp(playerMinimumCenter, playerMaximumCenter)
+      .clamp(minimumCenter, maximumCenter)
+      .toDouble();
+}
+
 /// Geometry contract shared by every side-view campaign room and boss arena.
 abstract interface class PlatformerRoomGeometry {
   Vector2 get playerSpawn;
@@ -52,4 +82,10 @@ abstract interface class PlatformerRoomCameraFollow {
   double get horizontalCameraDeadZone;
   double get verticalCameraDeadZone;
   double get cameraFollowResponsiveness;
+}
+
+/// Allows authored cinematics to temporarily favor their subject over the
+/// normal gameplay rule that keeps the player inside a horizontal safe area.
+abstract interface class PlatformerRoomPlayerCameraSafety {
+  bool get keepsPlayerInsideHorizontalSafeArea;
 }

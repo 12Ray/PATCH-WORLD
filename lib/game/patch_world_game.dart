@@ -485,6 +485,8 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
         _togglePause();
         return KeyEventResult.handled;
       }
+    } else if (event is KeyUpEvent) {
+      input.handleKeyUp(event.logicalKey);
     }
     return KeyEventResult.handled;
   }
@@ -1107,15 +1109,17 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     }
   }
 
-  void queueTouchDash() {
+  void beginTouchSpecialAbility() {
     if (!paused &&
         !_roomTransitionInProgress &&
         pendingPatchSelection == null &&
         pendingWeaponBuildSelection == null &&
         world.isReady) {
-      input.queueDash(world.player.facingDirection);
+      input.queueSpecialPress(world.player.facingDirection);
     }
   }
+
+  void endTouchSpecialAbility() => input.queueSpecialRelease();
 
   void queueTouchInteract() {
     if (!paused &&
@@ -1298,6 +1302,21 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     } else {
       _cameraFollowPosition.setValues(desiredCenterX, desiredCenterY);
     }
+    final playerCameraSafety = activeRoom is PlatformerRoomPlayerCameraSafety
+        ? activeRoom as PlatformerRoomPlayerCameraSafety
+        : null;
+    if ((playerCameraSafety?.keepsPlayerInsideHorizontalSafeArea ?? true) &&
+        platformRoom != null &&
+        platformRoom.worldSize.x > halfVisibleWidth * 2) {
+      _cameraFollowPosition.x = clampPlatformerCameraCenterToPlayer(
+        currentCenter: _cameraFollowPosition.x,
+        playerCoordinate: world.player.position.x,
+        halfVisibleExtent: halfVisibleWidth,
+        safeInset: 120 / camera.viewfinder.zoom,
+        minimumCenter: halfVisibleWidth,
+        maximumCenter: platformRoom.worldSize.x - halfVisibleWidth,
+      );
+    }
     if (_screenShakeRemaining <= 0) {
       _screenShakeIntensity = 1;
       camera.viewfinder.position = _cameraFollowPosition.clone();
@@ -1336,7 +1355,6 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
       super.update(dt);
       return;
     }
-    input.advance(dt);
     if (survivalQaAutoAttack && mode == PatchWorldMode.survival) {
       _survivalQaAutoAttackRemaining -= dt;
       if (_survivalQaAutoAttackRemaining <= 0) {
@@ -1391,13 +1409,17 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
     runMetrics.update(clock.realDt);
     world.player.setMovementInput(movement);
     world.player.setJumpHeld(!_cinematicInputLocked && input.jumpHeld);
+    world.player.setSpecialAbilityHeld(
+      !_cinematicInputLocked && input.specialHeld,
+    );
     if (!_cinematicInputLocked && input.consumeJump()) {
       world.player.queueJump();
     }
     if (!_cinematicInputLocked) {
-      if (input.consumeDashDirection() case final double direction) {
-        world.player.trySpecialAbility(direction);
+      if (input.consumeSpecialPressDirection() case final double direction) {
+        world.player.beginSpecialAbility(direction);
       }
+      if (input.consumeSpecialRelease()) world.player.endSpecialAbility();
     }
     patternTracker.update(clock.realDt);
     if (movement.length2 > 0) {
@@ -2546,6 +2568,11 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
           ? world.player.survivalSpecialCooldownRemaining
           : world.player.dashCooldownRemaining,
       airJumpsRemaining: world.player.airJumpsRemaining,
+      specialAbilityReady: world.player.specialAbilityReady,
+      gauntletChargeSeconds: world.player.gauntletChargeSeconds,
+      gunLaserRemaining: world.player.gunLaserRemaining,
+      specialAbilityCooldownRemaining:
+          world.player.campaignSpecialCooldownRemaining,
       survivalLevel: mode == PatchWorldMode.survival ? survivalRun.level : null,
       survivalExperience: mode == PatchWorldMode.survival
           ? survivalRun.experience
