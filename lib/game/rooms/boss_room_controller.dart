@@ -271,8 +271,10 @@ final class BossRoomController extends Component
     ]);
 
     terminal = LegacyGlitchTerminal(
-      // The permanent center platform keeps this reachable by every weapon.
-      position: Vector2(960, 500),
+      // PERFECT is an interaction phase, so the required terminal sits on
+      // the permanent center floor. It must never depend on the moving or
+      // upper-platform route while the boss is waiting for this input.
+      position: Vector2(960, 980),
       onActivated: _activateLegacyGlitch,
     );
     boss = OptimizerBossComponent(

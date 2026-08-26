@@ -74,7 +74,20 @@ void main() {
       expect(pillar.isSolid, isTrue);
     }
     expect(room.boss.position, Vector2(960, 330));
-    expect(room.terminal.position, Vector2(960, 500));
+    expect(room.terminal.position, Vector2(960, 980));
+    final terminalStandingPoint = Vector2(960, 988);
+    expect(
+      room.terminal.position.distanceTo(terminalStandingPoint),
+      lessThanOrEqualTo(64),
+      reason: 'The phase terminal must be usable while standing on the floor.',
+    );
+    expect(
+      geometry.solidBounds.any(
+        (bounds) => bounds.contains(const Offset(960, 1024)),
+      ),
+      isTrue,
+      reason: 'The terminal interaction point needs permanent floor support.',
+    );
     game.resumeEngine();
     await tester.pump(const Duration(milliseconds: 16));
     await tester.pump(const Duration(milliseconds: 16));
