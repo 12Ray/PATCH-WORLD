@@ -2538,12 +2538,7 @@ final class PatchWorldGame extends FlameGame<PatchWorld>
                 ),
         },
         RoomId.optimizerCore => switch (boss?.phase.name) {
-          'perfect' => localization.text(
-            'objective.optimizerPerfect',
-            parameters: <String, Object>{
-              'stability': boss?.stability.current ?? 75,
-            },
-          ),
+          'perfect' => localization.text('objective.optimizerPerfect'),
           'overflow' ||
           'defeated' => localization.text('objective.optimizerOverflow'),
           _ => localization.text('objective.optimizerDamage'),

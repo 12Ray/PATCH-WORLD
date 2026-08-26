@@ -212,8 +212,11 @@ void main() {
     expect(room.boss.recentPatterns.length, greaterThan(attacksBeforePerfect));
     expect(room.boss.recentPatterns.last.phase, OptimizerPhase.perfect);
 
-    room.boss.receiveHealing(4);
+    game.world.player.position.setFrom(terminalStandingPoint);
+    expect(room.tryInteract(game.world.player), isTrue);
     expect(room.boss.phase, OptimizerPhase.overflow);
+    expect(room.boss.stability.current, 150);
+    expect(room.terminal.isEnabled, isFalse);
     expect(room.phaseLasers.every((laser) => !laser.isActive), isTrue);
     for (var frame = 0; frame < 30; frame += 1) {
       await tester.pump(const Duration(milliseconds: 50));

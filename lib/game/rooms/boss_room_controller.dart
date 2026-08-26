@@ -15,7 +15,6 @@ import 'package:patch_world/game/components/environment/story_room_layers_compon
 import 'package:patch_world/game/components/player/player_component.dart';
 import 'package:patch_world/game/components/presentation/boss_arena_presentation_component.dart';
 import 'package:patch_world/game/patch_world_game.dart';
-import 'package:patch_world/game/rules/anomalies/damage_sign_inverted_rule.dart';
 import 'package:patch_world/game/rules/rule_ids.dart';
 import 'package:patch_world/game/rooms/platformer_room_geometry.dart';
 import 'package:patch_world/game/systems/phase_leak_controller.dart';
@@ -42,9 +41,6 @@ final class BossRoomController extends Component
       <OptimizerPhaseBreakablePlatformComponent>[];
   final List<OptimizerPhaseLaserComponent> _phaseLasers =
       <OptimizerPhaseLaserComponent>[];
-  double _legacyRemaining = 0;
-  double _legacyCooldown = 0;
-  bool _legacyActive = false;
   bool _bossIntroStarted = false;
   double _bossIntroRemaining = 0;
   BossNameCardComponent? _bossNameCard;
@@ -275,7 +271,7 @@ final class BossRoomController extends Component
       // the permanent center floor. It must never depend on the moving or
       // upper-platform route while the boss is waiting for this input.
       position: Vector2(960, 980),
-      onActivated: _activateLegacyGlitch,
+      onActivated: _completeTerminalPhase,
     );
     boss = OptimizerBossComponent(
       position: Vector2(960, 330),
@@ -339,15 +335,6 @@ final class BossRoomController extends Component
         final safelySolid =
             phaseAllowsSolid && wall.canSolidifyAround(playerBounds);
         unawaited(wall.setSolid(safelySolid));
-      }
-    }
-    if (_legacyActive) {
-      _legacyRemaining -= simulationDt;
-      if (_legacyRemaining <= 0) _deactivateFailedLegacyGlitch();
-    } else if (_legacyCooldown > 0) {
-      _legacyCooldown -= simulationDt;
-      if (_legacyCooldown <= 0 && boss.phase == OptimizerPhase.perfect) {
-        terminal.enable();
       }
     }
     super.update(dt);
@@ -430,28 +417,13 @@ final class BossRoomController extends Component
   bool tryInteract(PlayerComponent player) =>
       terminal.tryActivate(player.position);
 
-  void _activateLegacyGlitch() {
-    if (_legacyActive || boss.phase != OptimizerPhase.perfect) return;
-    _legacyActive = true;
-    _legacyRemaining = 6;
-    game.ruleEngine.addRule(
-      const DamageSignInvertedRule(
-        ruleId: RuleIds.legacyDamageInverted,
-        rulePriority: 400,
-      ),
-    );
+  void _completeTerminalPhase() {
+    if (boss.phase != OptimizerPhase.perfect) return;
+    // The terminal is the entire PERFECT-phase objective. Activating it
+    // completes the stability override immediately; no timed return trip or
+    // follow-up attacks are required.
+    boss.receiveHealing(4);
   }
-
-  void _deactivateFailedLegacyGlitch() {
-    _legacyActive = false;
-    _legacyRemaining = 0;
-    _legacyCooldown = 4;
-    game.ruleEngine.removeRule(RuleIds.legacyDamageInverted);
-    boss.resetFailedLegacyAttempt();
-  }
-
-  void disposeLegacyRule() =>
-      game.ruleEngine.removeRule(RuleIds.legacyDamageInverted);
 
   @override
   void onRemove() {

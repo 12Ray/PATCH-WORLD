@@ -251,7 +251,6 @@ final class PatchWorld extends World with HasGameReference<PatchWorldGame> {
     _isReady = false;
     final existing = _activeRoom;
     if (existing != null) {
-      if (existing is BossRoomController) existing.disposeLegacyRule();
       final removed = existing.removed;
       existing.removeFromParent();
       if (existing.isMounted || existing.isRemoving) await removed;

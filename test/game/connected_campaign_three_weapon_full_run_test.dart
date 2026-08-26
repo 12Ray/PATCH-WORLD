@@ -281,7 +281,7 @@ Future<void> _completeCampaign(
   expect(optimizerRoom.boss.phase, OptimizerPhase.perfect);
   game.world.player.position.setFrom(optimizerRoom.terminal.position);
   expect(game.world.tryInteract(game.world.player), isTrue);
-  optimizerRoom.boss.receiveHealing(150);
+  expect(optimizerRoom.boss.phase, OptimizerPhase.overflow);
   await _pumpRealSeconds(tester, OptimizerBossComponent.outroSeconds + .2);
 
   expect(game.overlays.isActive(OverlayIds.ending), isTrue);
