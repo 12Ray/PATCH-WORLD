@@ -110,7 +110,11 @@ void main() {
     room.boss.receiveDamage(99);
     expect(room.boss.health, 13);
     expect(room.boss.phase, OptimizerPhase.analyze);
-    for (var frame = 0; frame < 80; frame += 1) {
+    for (
+      var frame = 0;
+      frame < 160 && room.boss.phase == OptimizerPhase.analyze;
+      frame += 1
+    ) {
       await tester.pump(const Duration(milliseconds: 50));
     }
     expect(room.boss.phase, OptimizerPhase.predict);
@@ -141,7 +145,11 @@ void main() {
     room.boss.receiveDamage(99);
     expect(room.boss.health, 6);
     expect(room.boss.phase, OptimizerPhase.predict);
-    for (var frame = 0; frame < 90; frame += 1) {
+    for (
+      var frame = 0;
+      frame < 160 && room.boss.phase == OptimizerPhase.predict;
+      frame += 1
+    ) {
       await tester.pump(const Duration(milliseconds: 50));
     }
     expect(room.boss.phase, OptimizerPhase.perfect);

@@ -119,14 +119,16 @@ final class PhaseHoundComponent extends RectangleComponent
         sprite: runFrames.first,
         size: Vector2(78, 66),
         parentSize: size,
-        bobAmplitude: 0.7,
-        bobSpeed: 8,
-        rotationAmplitude: 0.018,
+        bobAmplitude: .20,
+        bobSpeed: 4,
+        rotationAmplitude: .006,
+        animationDeltaResolver: (rawDt) =>
+            isMounted ? game.clock.enemyDt : rawDt,
       );
       if (isRemoving) return;
       _visual = visual;
       await add(visual);
-      visual.setDefaultAnimation(runFrames, fps: 12);
+      visual.setDefaultAnimation(runFrames, fps: 9);
       visual.setStateTint(null);
     } catch (_) {
       paint.color = const Color(0xFF36E1FF);

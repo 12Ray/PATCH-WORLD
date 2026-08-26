@@ -10,6 +10,7 @@ import 'package:patch_world/game/combat/attack_tier.dart';
 import 'package:patch_world/game/components/effects/enemy_damage_volume_component.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_action_timeline.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_art_v3_frame_resolver.dart';
+import 'package:patch_world/game/components/enemies/platformer/enemy_attack_coordinator.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_attack_pattern.dart';
 import 'package:patch_world/game/components/enemies/platformer/enemy_combat_state.dart';
 import 'package:patch_world/game/components/enemies/platformer/platformer_enemy_brain.dart';
@@ -106,6 +107,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     required this.onDefeated,
     this.startsDormant = false,
     this.onRepairAlly,
+    this.attackCoordinator,
   }) : healthState = HealthState(
          max: archetype.isMidBoss ? 8 : 3,
          current: archetype.index < 5
@@ -123,6 +125,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   final HealthState healthState;
   final void Function(PlatformerEnemyComponent enemy) onDefeated;
   final bool Function(int amount)? onRepairAlly;
+  final EnemyAttackCoordinator? attackCoordinator;
   final Vector2 _velocity = Vector2.zero();
   late final Vector2 _homePosition;
 
@@ -147,6 +150,9 @@ final class PlatformerEnemyComponent extends PositionComponent
   final List<String> _recentActionIds = <String>[];
   int _activeMotionFrame = 3;
   double _visualClock = 0;
+  double _visualStateElapsed = 0;
+  EnemyCombatState _lastVisualState = EnemyCombatState.idle;
+  bool _ownsAttackTurn = false;
   double _hurtTimer = 0;
   double _defeatTimer = 0;
   SpriteComponent? _spriteVisual;
@@ -206,7 +212,12 @@ final class PlatformerEnemyComponent extends PositionComponent
   void activateEncounter() {
     if (!_dormant || _resolved) return;
     _dormant = false;
-    _nextAttackAt = _actionClock + .8;
+    _nextAttackAt =
+        _actionClock +
+        enemyActivationStagger(
+          archetypeIndex: archetype.index,
+          spawnX: position.x,
+        );
     scale.setAll(1);
   }
 
@@ -330,7 +341,12 @@ final class PlatformerEnemyComponent extends PositionComponent
   @override
   void update(double dt) {
     final simulationDt = game.clock.simulationDt;
-    _visualClock += simulationDt;
+    final sampledVisualDt = _resolved ? simulationDt : game.clock.enemyDt;
+    final visualDt = sampledVisualDt > 0 && sampledVisualDt.isFinite
+        ? sampledVisualDt
+        : 0.0;
+    _visualClock += visualDt;
+    _visualStateElapsed += visualDt;
     if (_overflowTimer > 0) {
       _combatState = EnemyCombatState.overflowing;
       _overflowTimer -= simulationDt;
@@ -428,6 +444,10 @@ final class PlatformerEnemyComponent extends PositionComponent
     final visual = _spriteVisual;
     final frames = _spriteFrames;
     if (visual == null || frames == null) return;
+    if (_combatState != _lastVisualState) {
+      _lastVisualState = _combatState;
+      _visualStateElapsed = 0;
+    }
     final frameIndex = switch (_combatState) {
       EnemyCombatState.idle => 0,
       EnemyCombatState.moving => 1,
@@ -454,18 +474,23 @@ final class PlatformerEnemyComponent extends PositionComponent
     } else {
       final artV3FrameIndex = resolveArtV3EnemyFrame(
         state: _combatState,
-        visualClock: _visualClock,
+        stateElapsed: _visualStateElapsed,
         archetypeIndex: archetype.index,
       );
       visual.sprite = artV3Frames[artV3FrameIndex];
     }
-    final bob =
-        math.sin(_visualClock * 5 + archetype.index) *
-        (_combatState == EnemyCombatState.moving ? 2.2 : 1.0);
+    final bobAmplitude = switch (archetype.mobility) {
+      PlatformerEnemyMobility.flying => .65,
+      PlatformerEnemyMobility.boss => .30,
+      _ => 0.0,
+    };
+    final bob = math.sin(_visualClock * 3.2 + archetype.index) * bobAmplitude;
     var offsetX = 0.0;
     var scaleX = 1.0;
     var scaleY = 1.0;
-    var angle = math.sin(_visualClock * 2.2 + archetype.index) * .012;
+    var angle = archetype.mobility == PlatformerEnemyMobility.flying
+        ? math.sin(_visualClock * 1.8 + archetype.index) * .008
+        : 0.0;
     switch (_combatState) {
       case EnemyCombatState.telegraph:
         break;
@@ -554,13 +579,14 @@ final class PlatformerEnemyComponent extends PositionComponent
     }
   }
 
-  void _beginAction({
+  bool _beginAction({
     required String id,
     required double telegraph,
     required double active,
     required double recovery,
     int motionFrame = 3,
   }) {
+    if (!_reserveAttackTurn()) return false;
     _action = EnemyActionTimeline(
       id: id,
       telegraphSeconds: telegraph,
@@ -573,6 +599,7 @@ final class PlatformerEnemyComponent extends PositionComponent
     _lockedTargetPosition.setFrom(game.world.player.position);
     final direction = _lockedTargetPosition.x - position.x;
     if (direction.abs() > 0.01) _facing = direction.sign.toDouble();
+    return true;
   }
 
   void _beginBrainAction({String? variant}) {
@@ -590,6 +617,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   }
 
   void _beginPatternAction() {
+    if (!_reserveAttackTurn()) return;
     final player = game.world.player;
     final allies = parent?.children
         .whereType<PlatformerEnemyComponent>()
@@ -651,7 +679,9 @@ final class PlatformerEnemyComponent extends PositionComponent
       EnemyActionPhase.completed => EnemyCombatState.idle,
     };
     if (tick.enteredActive) _executeAction(action.id);
+    if (tick.enteredRecovery) _releaseAttackTurn();
     if (tick.completed) {
+      _releaseAttackTurn();
       _action = null;
       _patternHorizontalVelocity = null;
       _nextAttackAt =
@@ -888,6 +918,7 @@ final class PlatformerEnemyComponent extends PositionComponent
         ),
         // Summons are support hazards, not one of the room's five primary kills.
         onDefeated: (_) {},
+        attackCoordinator: attackCoordinator,
       ),
     );
   }
@@ -1254,14 +1285,19 @@ final class PlatformerEnemyComponent extends PositionComponent
     final player = game.world.player.position;
     final target = Vector2(
       player.x,
-      player.y - 64 + math.sin(_actionClock * 3) * 18,
+      player.y - 64 + math.sin(_actionClock * 1.8 + archetype.index) * 12,
     );
     final delta = target - position;
     final speed = archetype.isMidBoss ? 62.0 : 78.0;
-    if (delta.length2 > 26 * 26) {
+    final locomotionScale = _locomotionScale;
+    final desiredVelocity = Vector2.zero();
+    if (delta.length2 > 26 * 26 && locomotionScale > 0) {
       delta.normalize();
-      position += delta * speed * dt;
+      desiredVelocity.setFrom(delta * speed * locomotionScale);
     }
+    _velocity.x = _moveToward(_velocity.x, desiredVelocity.x, 360 * dt);
+    _velocity.y = _moveToward(_velocity.y, desiredVelocity.y, 360 * dt);
+    position += _velocity * dt;
     position.x = position.x.clamp(36, _activeWorldWidth - 36);
     position.y = position.y.clamp(70, _activeWorldHeight - 70);
   }
@@ -1315,10 +1351,6 @@ final class PlatformerEnemyComponent extends PositionComponent
       speed = 0;
     }
     if (archetype == PlatformerEnemyArchetype.tickRunner) speed = 88;
-    if (archetype == PlatformerEnemyArchetype.rewindSkater ||
-        archetype == PlatformerEnemyArchetype.vectorRam) {
-      speed *= 1 + (math.sin(_actionClock * 2.2) > 0.55 ? 1.5 : 0);
-    }
     if (_action?.phase == EnemyActionPhase.active) {
       speed = switch (_action?.id) {
         'tickRunner.threeStepLunge' => 230,
@@ -1329,17 +1361,22 @@ final class PlatformerEnemyComponent extends PositionComponent
         _ => speed,
       };
     }
-    _velocity.x = direction * speed;
+    final desiredVelocityX = direction * speed * _locomotionScale;
+    final acceleration = direction == 0 ? 720.0 : 520.0;
+    _velocity.x = _moveToward(_velocity.x, desiredVelocityX, acceleration * dt);
     if (_action?.phase == EnemyActionPhase.active &&
         _patternHorizontalVelocity != null) {
       _velocity.x = _patternHorizontalVelocity!;
     }
+    final canUseTraversalJump =
+        _action == null || _action?.phase == EnemyActionPhase.active;
     final shouldJump =
-        (archetype.mobility == PlatformerEnemyMobility.hopper &&
-            archetype != PlatformerEnemyArchetype.checksumHopper) ||
-        (_grounded && !_hasSupportAhead(solids, direction)) ||
-        (player.y < position.y - 42 &&
-            archetype.mobility != PlatformerEnemyMobility.grounded);
+        canUseTraversalJump &&
+        ((archetype.mobility == PlatformerEnemyMobility.hopper &&
+                archetype != PlatformerEnemyArchetype.checksumHopper) ||
+            (_grounded && !_hasSupportAhead(solids, direction)) ||
+            (player.y < position.y - 42 &&
+                archetype.mobility != PlatformerEnemyMobility.grounded));
     if (_grounded && _jumpCooldown <= 0 && shouldJump) {
       _velocity.y = archetype.isMidBoss ? -420 : -385;
       _grounded = false;
@@ -1452,6 +1489,7 @@ final class PlatformerEnemyComponent extends PositionComponent
   void _resolveDefeat({bool corrupted = false}) {
     if (_resolved) return;
     _resolved = true;
+    _releaseAttackTurn();
     _defeatTimer = .28;
     _combatState = EnemyCombatState.defeated;
     _syncSpriteVisual();
@@ -1463,6 +1501,42 @@ final class PlatformerEnemyComponent extends PositionComponent
       );
     }
     onDefeated(this);
+  }
+
+  double get _locomotionScale => switch (_action?.phase) {
+    EnemyActionPhase.telegraph => .12,
+    EnemyActionPhase.recovery => .28,
+    EnemyActionPhase.completed => 0,
+    EnemyActionPhase.active || null => 1,
+  };
+
+  double _moveToward(double current, double target, double maxDelta) {
+    if (current < target) return math.min(current + maxDelta, target);
+    if (current > target) return math.max(current - maxDelta, target);
+    return target;
+  }
+
+  void _releaseAttackTurn() {
+    if (!_ownsAttackTurn) return;
+    attackCoordinator?.release(this);
+    _ownsAttackTurn = false;
+  }
+
+  bool _reserveAttackTurn() {
+    final coordinator = attackCoordinator;
+    if (coordinator == null) return true;
+    if (!coordinator.tryAcquire(this)) {
+      _nextAttackAt = _actionClock + .18;
+      return false;
+    }
+    _ownsAttackTurn = true;
+    return true;
+  }
+
+  @override
+  void onRemove() {
+    _releaseAttackTurn();
+    super.onRemove();
   }
 
   @override

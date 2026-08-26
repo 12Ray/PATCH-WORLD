@@ -64,9 +64,11 @@ final class OptimizerFragmentComponent extends CircleComponent
         sprite: await game.loadSprite('sprites/optimizer.png'),
         size: Vector2.all(104),
         parentSize: size,
-        bobAmplitude: 1.4,
-        bobSpeed: 2.5,
+        bobAmplitude: .60,
+        bobSpeed: 2.0,
         canFlipHorizontally: false,
+        animationDeltaResolver: (rawDt) =>
+            isMounted ? game.clock.enemyDt : rawDt,
       );
       if (isRemoving) return;
       _visual = visual;
@@ -83,7 +85,7 @@ final class OptimizerFragmentComponent extends CircleComponent
           srcSize: Vector2.all(256),
         ),
       );
-      visual.setDefaultAnimation(_predictFrames!, fps: 8);
+      visual.setDefaultAnimation(_predictFrames!, fps: 7);
     } catch (_) {
       paint.color = const Color(0xFFFFE39A);
     }

@@ -38,16 +38,14 @@ abstract final class CampaignBossPhaseGateSpec {
 /// its health-phase locomotion frame.
 int resolveCampaignBossAttackFrame(
   CampaignBossAttackVisualPhase phase,
-  double visualClock,
+  double phaseProgress,
 ) {
-  final safeClock = visualClock >= 0 && visualClock.isFinite
-      ? visualClock
-      : 0.0;
+  final progress = phaseProgress.isFinite ? phaseProgress.clamp(0.0, 1.0) : 0.0;
   return switch (phase) {
     CampaignBossAttackVisualPhase.idle => -1,
     CampaignBossAttackVisualPhase.telegraph => 4,
     CampaignBossAttackVisualPhase.active => 5,
-    CampaignBossAttackVisualPhase.recovery => 6 + (safeClock * 10).floor() % 2,
+    CampaignBossAttackVisualPhase.recovery => 6 + (progress >= .5 ? 1 : 0),
   };
 }
 
@@ -257,6 +255,18 @@ final class CampaignBossAttackCycle {
   CampaignChapterBossAttackSpec? get attack => _attack;
   double get remaining => _remaining;
   bool get isIdle => phase == CampaignBossAttackVisualPhase.idle;
+  double get phaseProgress {
+    final duration = switch (phase) {
+      CampaignBossAttackVisualPhase.telegraph => _attack?.telegraphSeconds ?? 0,
+      CampaignBossAttackVisualPhase.active => _attack?.activeSeconds ?? 0,
+      CampaignBossAttackVisualPhase.recovery => _attack?.recoverySeconds ?? 0,
+      CampaignBossAttackVisualPhase.idle => 0,
+    };
+    if (duration <= 0) {
+      return phase == CampaignBossAttackVisualPhase.idle ? 0 : 1;
+    }
+    return (1 - _remaining / duration).clamp(0.0, 1.0);
+  }
 
   bool start(CampaignChapterBossAttackSpec attack) {
     if (!isIdle) return false;

@@ -118,10 +118,12 @@ final class CrawlerComponent extends RectangleComponent
         sprite: await game.loadSprite('sprites/crawler.png'),
         size: Vector2.all(58),
         parentSize: size,
-        bobAmplitude: 1.5,
-        bobSpeed: 5.2,
-        rotationAmplitude: 0.045,
+        bobAmplitude: 0,
+        bobSpeed: 3.2,
+        rotationAmplitude: 0,
         phaseOffset: entityId.hashCode.remainder(17).toDouble(),
+        animationDeltaResolver: (rawDt) =>
+            isMounted ? game.clock.enemyDt : rawDt,
       );
       if (isRemoving) return;
       _visual = visual;
@@ -143,7 +145,7 @@ final class CrawlerComponent extends RectangleComponent
       'sprites/animations/crawler-heal.png',
     );
     if (isRemoving) return;
-    visual.setDefaultAnimation(_frames(chaseImage, 6), fps: 9);
+    visual.setDefaultAnimation(_frames(chaseImage, 6), fps: 8);
     _healFrames = _frames(healImage, 3);
     _overflowFrames = _frames(overflowImage, 5);
   }

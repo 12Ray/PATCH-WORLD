@@ -41,7 +41,7 @@ void main() {
     for (var index = 0; index < 40; index += 1) {
       final frame = resolveArtV3EnemyFrame(
         state: index.isEven ? EnemyCombatState.idle : EnemyCombatState.moving,
-        visualClock: index / 20,
+        stateElapsed: index / 20,
         archetypeIndex: index % 15,
       );
       expect(frame, inInclusiveRange(0, 3));
@@ -61,4 +61,4 @@ void main() {
 }
 
 int _frame(EnemyCombatState state) =>
-    resolveArtV3EnemyFrame(state: state, visualClock: 0.05, archetypeIndex: 0);
+    resolveArtV3EnemyFrame(state: state, stateElapsed: 0.05, archetypeIndex: 0);

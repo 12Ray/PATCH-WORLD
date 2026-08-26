@@ -127,18 +127,20 @@ final class SurvivalNexusBossComponent extends CircleComponent
         size: kind.visualSize,
         parentSize: size,
         bobAmplitude: kind == SurvivalNexusBossKind.collisionBehemoth
-            ? .45
-            : 1.2,
-        bobSpeed: kind == SurvivalNexusBossKind.temporalRegent ? 4.8 : 3.5,
+            ? .15
+            : .60,
+        bobSpeed: kind == SurvivalNexusBossKind.temporalRegent ? 3.2 : 2.5,
         rotationAmplitude: kind == SurvivalNexusBossKind.collisionBehemoth
-            ? .006
-            : .018,
+            ? 0
+            : .008,
+        animationDeltaResolver: (rawDt) =>
+            isMounted ? game.clock.enemyDt : rawDt,
       );
       if (isRemoving || _defeatReported) return;
       _frames = frames;
       _visual = visual;
       await add(visual);
-      visual.setDefaultAnimation(frames.sublist(0, 3), fps: 6);
+      visual.setDefaultAnimation(frames.sublist(0, 3), fps: 5);
       if (_introRemaining > 0) {
         visual.playOnce(<Sprite>[frames[3]], fps: 1 / _introRemaining);
       }

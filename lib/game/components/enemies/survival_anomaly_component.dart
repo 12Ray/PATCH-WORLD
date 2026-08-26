@@ -123,15 +123,17 @@ final class SurvivalAnomalyComponent extends RectangleComponent
         sprite: frames.first,
         size: kind.visualSize * scale,
         parentSize: size,
-        bobAmplitude: kind == SurvivalAnomalyKind.arcWarden ? 1.7 : .55,
-        bobSpeed: kind == SurvivalAnomalyKind.arcWarden ? 4.2 : 7.2,
-        rotationAmplitude: kind == SurvivalAnomalyKind.arcWarden ? .025 : .01,
+        bobAmplitude: kind == SurvivalAnomalyKind.arcWarden ? .80 : .20,
+        bobSpeed: kind == SurvivalAnomalyKind.arcWarden ? 3.0 : 4.0,
+        rotationAmplitude: kind == SurvivalAnomalyKind.arcWarden ? .012 : 0,
+        animationDeltaResolver: (rawDt) =>
+            isMounted ? game.clock.enemyDt : rawDt,
       );
       if (isRemoving || _defeatReported) return;
       _frames = frames;
       _visual = visual;
       await add(visual);
-      visual.setDefaultAnimation(frames.sublist(0, 4), fps: 8);
+      visual.setDefaultAnimation(frames.sublist(0, 4), fps: 7);
     } catch (_) {
       // The existing code-native silhouette remains a safe offline fallback.
     }

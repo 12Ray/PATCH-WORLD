@@ -271,9 +271,9 @@ final class OverflowWardenBossComponent extends PositionComponent
     _tryAdvancePhaseGate();
     if (!isPhaseTransitioning && phase != OverflowWardenPhase.overflowing) {
       _attackCooldown = switch (phase) {
-        OverflowWardenPhase.critical => .72,
-        OverflowWardenPhase.breached => .92,
-        _ => 1.15,
+        OverflowWardenPhase.critical => .90,
+        OverflowWardenPhase.breached => 1.10,
+        _ => 1.30,
       };
     }
   }
@@ -583,7 +583,7 @@ final class OverflowWardenBossComponent extends PositionComponent
     visual.sprite = frames[frameIndex];
     visual.position.setValues(
       size.x / 2,
-      size.y / 2 + math.sin(_clock * 3.2) * 1.5,
+      size.y / 2 + math.sin(_clock * 2.1) * .30,
     );
     // Telegraphs use the ring in render() rather than scaling the sprite.
     // Keeping a fixed silhouette prevents apparent boss-size jumps per attack.
@@ -607,7 +607,7 @@ final class OverflowWardenBossComponent extends PositionComponent
       _renderAttackTelegraph(canvas, _attackAction!.id);
       canvas.drawCircle(
         Offset(size.x / 2, size.y / 2),
-        52 + math.sin(_clock * 20).abs() * 7,
+        52 + (_attackAction?.phaseProgress ?? 0) * 7,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 4
@@ -698,7 +698,7 @@ final class OverflowWardenBossComponent extends PositionComponent
     };
     return resolveOverflowWardenAttackFrame(
       actionPhase: _attackAction?.phase,
-      visualClock: _clock,
+      phaseProgress: _attackAction?.phaseProgress ?? 0,
       idleFrame: idleFrame,
     );
   }

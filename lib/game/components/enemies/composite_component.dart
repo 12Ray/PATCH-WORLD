@@ -75,9 +75,11 @@ final class CompositeComponent extends RectangleComponent
         sprite: await game.loadSprite('sprites/composite.png'),
         size: Vector2.all(104),
         parentSize: size,
-        bobAmplitude: 1.3,
-        bobSpeed: 3.7,
-        rotationAmplitude: 0.018,
+        bobAmplitude: .45,
+        bobSpeed: 2.4,
+        rotationAmplitude: .008,
+        animationDeltaResolver: (rawDt) =>
+            isMounted ? game.clock.enemyDt : rawDt,
       );
       if (isRemoving) return;
       _visual = visual;
@@ -89,7 +91,7 @@ final class CompositeComponent extends RectangleComponent
         'sprites/animations/composite-shockwave.png',
       );
       if (isRemoving) return;
-      visual.setDefaultAnimation(_frames(stalkImage, 6), fps: 8);
+      visual.setDefaultAnimation(_frames(stalkImage, 6), fps: 7);
       _shockwaveFrames = _frames(shockwaveImage, 5);
     } catch (_) {
       paint.color = const Color(0xFFFF4FD8);

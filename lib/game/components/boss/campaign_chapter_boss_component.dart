@@ -345,7 +345,9 @@ final class CampaignChapterBossComponent extends PositionComponent
       return;
     }
     if (enemyDt > 0) {
-      _attackCooldown = math.max(0, _attackCooldown - enemyDt);
+      if (_attackCycle.isIdle) {
+        _attackCooldown = math.max(0, _attackCooldown - enemyDt);
+      }
       final advancingAttack = _attackCycle.attack;
       final events = _attackCycle.advance(enemyDt);
       if (advancingAttack != null) {
@@ -364,17 +366,19 @@ final class CampaignChapterBossComponent extends PositionComponent
                   _activeDamageWindowCap = null;
                 }
               }
-              _attackCooldown = switch (phase) {
-                CampaignChapterBossPhase.phaseThree => .72,
-                CampaignChapterBossPhase.phaseTwo => .92,
-                _ => 1.12,
-              };
             case CampaignBossAttackCycleEvent.activeEnded:
               _finishAttackMotion(advancingAttack.id);
             case CampaignBossAttackCycleEvent.recovered:
               _clearAttackDiagnostics();
               _completedAttackIdsInCurrentPhase.add(advancingAttack.id);
               _tryAdvancePhaseGate();
+              if (!isPhaseTransitioning && isActive) {
+                _attackCooldown = switch (phase) {
+                  CampaignChapterBossPhase.phaseThree => .85,
+                  CampaignChapterBossPhase.phaseTwo => 1.05,
+                  _ => 1.30,
+                };
+              }
           }
         }
       }
@@ -890,15 +894,15 @@ final class CampaignChapterBossComponent extends PositionComponent
     visual.sprite = frames[frameIndex];
     visual.position.setValues(
       size.x / 2,
-      size.y / 2 + math.sin(_clock * 3.1) * 1.5,
+      size.y / 2 + math.sin(_clock * 2.2) * .35,
     );
+    final phaseProgress = _attackCycle.phaseProgress;
     final pulse = switch (_attackCycle.phase) {
       CampaignBossAttackVisualPhase.idle => 1.0,
       CampaignBossAttackVisualPhase.telegraph =>
-        1 + math.sin(_clock * 18).abs() * .07,
+        1 + math.sin(phaseProgress * math.pi / 2) * .07,
       CampaignBossAttackVisualPhase.active => 1.08,
-      CampaignBossAttackVisualPhase.recovery =>
-        1 + math.sin(_clock * 9).abs() * .025,
+      CampaignBossAttackVisualPhase.recovery => 1 + (1 - phaseProgress) * .025,
     };
     visual.scale.setAll(pulse);
   }
@@ -911,7 +915,7 @@ final class CampaignChapterBossComponent extends PositionComponent
     if (phase == CampaignChapterBossPhase.defeated) return 7;
     final attackFrame = resolveCampaignBossAttackFrame(
       _attackCycle.phase,
-      _clock,
+      _attackCycle.phaseProgress,
     );
     if (attackFrame >= 0) return attackFrame;
     return switch (phase) {
@@ -940,7 +944,7 @@ final class CampaignChapterBossComponent extends PositionComponent
         _renderPatternTelegraph(canvas);
         canvas.drawCircle(
           Offset(size.x / 2, size.y / 2),
-          52 + math.sin(_clock * 20).abs() * 7,
+          52 + _attackCycle.phaseProgress * 7,
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = 4

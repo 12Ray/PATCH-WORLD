@@ -167,17 +167,18 @@ void main() {
         5,
       );
       expect(
-        <int>{
-          resolveCampaignBossAttackFrame(
-            CampaignBossAttackVisualPhase.recovery,
-            0,
-          ),
-          resolveCampaignBossAttackFrame(
-            CampaignBossAttackVisualPhase.recovery,
-            .1,
-          ),
-        },
-        <int>{6, 7},
+        resolveCampaignBossAttackFrame(
+          CampaignBossAttackVisualPhase.recovery,
+          0,
+        ),
+        6,
+      );
+      expect(
+        resolveCampaignBossAttackFrame(
+          CampaignBossAttackVisualPhase.recovery,
+          1,
+        ),
+        7,
       );
     });
 

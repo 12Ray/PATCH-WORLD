@@ -71,4 +71,24 @@ void main() {
     expect(tick.enteredRecovery, isTrue);
     expect(tick.completed, isTrue);
   });
+
+  test('phase progress resets at boundaries and advances one way', () {
+    final action = EnemyActionTimeline(
+      id: 'paced',
+      telegraphSeconds: .5,
+      activeSeconds: .2,
+      recoverySeconds: .4,
+    );
+
+    action.advance(.25);
+    expect(action.phaseProgress, closeTo(.5, .0001));
+    action.advance(.25);
+    expect(action.phase, EnemyActionPhase.active);
+    expect(action.phaseProgress, closeTo(0, .0001));
+    action.advance(.2);
+    expect(action.phase, EnemyActionPhase.recovery);
+    expect(action.phaseProgress, closeTo(0, .0001));
+    action.advance(.3);
+    expect(action.phaseProgress, closeTo(.75, .0001));
+  });
 }

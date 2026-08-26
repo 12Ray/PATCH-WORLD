@@ -143,12 +143,14 @@ double resolveOverflowWardenChargeEndX({
 /// health-phase idle silhouettes outside an attack.
 int resolveOverflowWardenAttackFrame({
   required EnemyActionPhase? actionPhase,
-  required double visualClock,
+  required double phaseProgress,
   required int idleFrame,
-}) => switch (actionPhase) {
-  null || EnemyActionPhase.completed => idleFrame,
-  EnemyActionPhase.telegraph => 4,
-  EnemyActionPhase.active => 5,
-  EnemyActionPhase.recovery =>
-    6 + ((visualClock.isFinite ? visualClock : 0) * 10).floor().abs() % 2,
-};
+}) {
+  final progress = phaseProgress.isFinite ? phaseProgress.clamp(0.0, 1.0) : 0.0;
+  return switch (actionPhase) {
+    null || EnemyActionPhase.completed => idleFrame,
+    EnemyActionPhase.telegraph => 4,
+    EnemyActionPhase.active => 5,
+    EnemyActionPhase.recovery => 6 + (progress >= .5 ? 1 : 0),
+  };
+}

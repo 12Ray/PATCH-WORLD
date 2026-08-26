@@ -71,10 +71,12 @@ final class SentinelComponent extends RectangleComponent
         sprite: await game.loadSprite('sprites/sentinel.png'),
         size: Vector2.all(isElite ? 78 : 62),
         parentSize: size,
-        bobAmplitude: 2.4,
-        bobSpeed: 2.8,
+        bobAmplitude: .70,
+        bobSpeed: 2.2,
         canFlipHorizontally: false,
-        rotationAmplitude: 0.06,
+        rotationAmplitude: .012,
+        animationDeltaResolver: (rawDt) =>
+            isMounted ? game.clock.enemyDt : rawDt,
       );
       if (isRemoving) return;
       _visual = visual;

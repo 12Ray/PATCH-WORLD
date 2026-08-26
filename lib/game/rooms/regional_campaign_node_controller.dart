@@ -11,6 +11,7 @@ import 'package:patch_world/game/campaign/regional_room_objective.dart';
 import 'package:patch_world/game/campaign/story_map_art_contract.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/boss/campaign_chapter_boss_component.dart';
+import 'package:patch_world/game/components/enemies/platformer/enemy_attack_coordinator.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/campaign_checkpoint_component.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
@@ -86,6 +87,8 @@ final class RegionalCampaignNodeController extends Component
       <String, PlatformerEnemyComponent>{};
   final Set<PlatformerEnemyComponent> _defeatedEnemies =
       <PlatformerEnemyComponent>{};
+  final EnemyAttackCoordinator _enemyAttackCoordinator =
+      EnemyAttackCoordinator();
   final List<QaRecordTerminalComponent> _recordTerminals =
       <QaRecordTerminalComponent>[];
   final List<CampaignRoomObjectiveComponent> _objectiveNodes =
@@ -822,6 +825,7 @@ final class RegionalCampaignNodeController extends Component
         position: spec.position.toVector2(),
         onDefeated: _onEnemyDefeated,
         startsDormant: true,
+        attackCoordinator: _enemyAttackCoordinator,
       );
       _enemyIds[enemy] = spec.id;
       _enemiesById[spec.id] = enemy;

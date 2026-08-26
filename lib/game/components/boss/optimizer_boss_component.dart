@@ -207,10 +207,16 @@ final class OptimizerBossComponent extends CircleComponent
         sprite: await game.loadSprite('sprites/optimizer.png'),
         size: Vector2.all(132),
         parentSize: size,
-        bobAmplitude: 1.2,
-        bobSpeed: 1.8,
+        bobAmplitude: .55,
+        bobSpeed: 1.4,
         canFlipHorizontally: false,
         rotationAmplitude: 0,
+        animationDeltaResolver: (rawDt) {
+          if (!isMounted) return rawDt;
+          return phase == OptimizerPhase.overflow
+              ? game.clock.realDt
+              : game.clock.enemyDt;
+        },
       );
       if (isRemoving) return;
       _visual = visual;
@@ -296,11 +302,15 @@ final class OptimizerBossComponent extends CircleComponent
 
   @override
   void update(double dt) {
-    _visualTime += dt;
+    final enemyDt = isMounted ? game.clock.enemyDt : dt;
+    final visualDt = phase == OptimizerPhase.overflow
+        ? (isMounted ? game.clock.realDt : dt)
+        : enemyDt;
+    _visualTime += visualDt;
     final visual = _visual;
     if (visual != null) {
       visual.angle +=
-          dt *
+          visualDt *
           switch (phase) {
             OptimizerPhase.analyze => 0.06,
             OptimizerPhase.predict => -0.11,
@@ -322,15 +332,14 @@ final class OptimizerBossComponent extends CircleComponent
       super.update(dt);
       return;
     }
-    final enemyDt = game.clock.enemyDt;
     if (enemyDt > 0) {
       _updatePhaseMovement(enemyDt);
       _attackTimer -= enemyDt;
       if (_attackTimer <= 0) {
         _attackTimer = switch (phase) {
-          OptimizerPhase.analyze => 1.48,
-          OptimizerPhase.predict => 1.12,
-          OptimizerPhase.perfect => 1.62,
+          OptimizerPhase.analyze => 2.80,
+          OptimizerPhase.predict => 2.40,
+          OptimizerPhase.perfect => 2.10,
           OptimizerPhase.overflow || OptimizerPhase.defeated => 99,
         };
         unawaited(_performNextAttack());

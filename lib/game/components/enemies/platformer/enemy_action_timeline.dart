@@ -39,6 +39,19 @@ final class EnemyActionTimeline {
   EnemyActionPhase get phase => _phase;
   bool get isDamaging => _phase == EnemyActionPhase.active;
   bool get isComplete => _phase == EnemyActionPhase.completed;
+  double get phaseProgress {
+    final (start, duration) = switch (_phase) {
+      EnemyActionPhase.telegraph => (0.0, telegraphSeconds),
+      EnemyActionPhase.active => (telegraphSeconds, activeSeconds),
+      EnemyActionPhase.recovery => (
+        telegraphSeconds + activeSeconds,
+        recoverySeconds,
+      ),
+      EnemyActionPhase.completed => (0.0, 0.0),
+    };
+    if (_phase == EnemyActionPhase.completed || duration <= 0) return 1;
+    return ((_elapsed - start) / duration).clamp(0.0, 1.0);
+  }
 
   EnemyActionTick advance(double dt) {
     final previous = _phase;

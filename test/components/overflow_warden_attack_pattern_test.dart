@@ -47,7 +47,7 @@ void main() {
     expect(
       resolveOverflowWardenAttackFrame(
         actionPhase: action.phase,
-        visualClock: 0,
+        phaseProgress: 0,
         idleFrame: 3,
       ),
       4,
@@ -57,7 +57,7 @@ void main() {
     expect(
       resolveOverflowWardenAttackFrame(
         actionPhase: action.phase,
-        visualClock: .2,
+        phaseProgress: action.phaseProgress,
         idleFrame: 3,
       ),
       5,
@@ -67,7 +67,7 @@ void main() {
     expect(
       resolveOverflowWardenAttackFrame(
         actionPhase: action.phase,
-        visualClock: .2,
+        phaseProgress: action.phaseProgress,
         idleFrame: 3,
       ),
       inInclusiveRange(6, 7),
@@ -78,7 +78,7 @@ void main() {
     expect(
       resolveOverflowWardenAttackFrame(
         actionPhase: null,
-        visualClock: 2,
+        phaseProgress: 0,
         idleFrame: 3,
       ),
       3,
@@ -86,7 +86,7 @@ void main() {
     expect(
       resolveOverflowWardenAttackFrame(
         actionPhase: EnemyActionPhase.completed,
-        visualClock: 2,
+        phaseProgress: 0,
         idleFrame: 1,
       ),
       1,

@@ -10,16 +10,21 @@ bool usesCombatMotionAttackFrame({
 
 int resolveArtV3EnemyFrame({
   required EnemyCombatState state,
-  required double visualClock,
+  required double stateElapsed,
   required int archetypeIndex,
-}) => switch (state) {
-  EnemyCombatState.idle ||
-  EnemyCombatState.moving => ((visualClock * 8).floor() + archetypeIndex) % 4,
-  EnemyCombatState.telegraph => 4,
-  EnemyCombatState.attacking => 5,
-  EnemyCombatState.recovering => 6 + (visualClock * 10).floor() % 2,
-  EnemyCombatState.hurt ||
-  EnemyCombatState.staggered ||
-  EnemyCombatState.overflowing ||
-  EnemyCombatState.defeated => -1,
-};
+}) {
+  final elapsed = stateElapsed.isFinite && stateElapsed >= 0
+      ? stateElapsed
+      : 0.0;
+  return switch (state) {
+    EnemyCombatState.idle => ((elapsed * 4).floor() + archetypeIndex) % 4,
+    EnemyCombatState.moving => ((elapsed * 8).floor() + archetypeIndex) % 4,
+    EnemyCombatState.telegraph => 4,
+    EnemyCombatState.attacking => 5,
+    EnemyCombatState.recovering => 6 + (elapsed * 6).floor().clamp(0, 1),
+    EnemyCombatState.hurt ||
+    EnemyCombatState.staggered ||
+    EnemyCombatState.overflowing ||
+    EnemyCombatState.defeated => -1,
+  };
+}

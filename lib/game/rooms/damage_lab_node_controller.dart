@@ -10,6 +10,7 @@ import 'package:patch_world/game/campaign/damage_lab_floor_state.dart';
 import 'package:patch_world/game/campaign/platformer_traversal_contract.dart';
 import 'package:patch_world/game/combat/player_weapon.dart';
 import 'package:patch_world/game/components/boss/overflow_warden_boss_component.dart';
+import 'package:patch_world/game/components/enemies/platformer/enemy_attack_coordinator.dart';
 import 'package:patch_world/game/components/enemies/platformer_enemy_component.dart';
 import 'package:patch_world/game/components/environment/campaign_door_component.dart';
 import 'package:patch_world/game/components/environment/campaign_checkpoint_component.dart';
@@ -72,6 +73,8 @@ final class DamageLabNodeController extends Component
       <String, PlatformerEnemyComponent>{};
   final Set<PlatformerEnemyComponent> _defeatedEnemies =
       <PlatformerEnemyComponent>{};
+  final EnemyAttackCoordinator _enemyAttackCoordinator =
+      EnemyAttackCoordinator();
   final List<QaRecordTerminalComponent> _recordTerminals =
       <QaRecordTerminalComponent>[];
 
@@ -469,12 +472,13 @@ final class DamageLabNodeController extends Component
       archetype: PlatformerEnemyArchetype.repairLeech,
       position: _wardenSummonGates[gateIndex].spec.position.toVector2(),
       onDefeated: (enemy) => _wardenSummons.remove(enemy),
+      attackCoordinator: _enemyAttackCoordinator,
       onRepairAlly: (amount) {
         final boss = _boss;
         if (boss == null || !boss.isActive || boss.isPhaseTransitioning) {
           return false;
         }
-        if (summon.position.distanceToSquared(boss.position) > 230 * 230) {
+        if (summon.position.distanceToSquared(boss.position) > 250 * 250) {
           return false;
         }
         boss.receiveSupportHealing(amount);
@@ -528,6 +532,7 @@ final class DamageLabNodeController extends Component
         position: spec.position.toVector2(),
         onDefeated: _onEnemyDefeated,
         startsDormant: true,
+        attackCoordinator: _enemyAttackCoordinator,
       );
       _enemyIds[enemy] = spec.id;
       _enemiesById[spec.id] = enemy;
